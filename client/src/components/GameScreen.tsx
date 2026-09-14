@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ClientIntent, GameState, PlayerSessionId, ServerEvent } from "@morichup/shared";
 import Board from "./Board";
 import Hud from "./Hud";
@@ -19,6 +20,7 @@ interface GameScreenProps {
 
 export default function GameScreen({ gameState, sessionId, turnDeadline, events, onIntent, onLeave }: GameScreenProps) {
   const winner = gameState.state === "GAME_OVER" ? gameState.players.find((p) => p.sessionId === gameState.winnerId) : null;
+  const [hoveredPlayerId, setHoveredPlayerId] = useState<PlayerSessionId | null>(null);
 
   return (
     <div className="app-layout">
@@ -33,9 +35,13 @@ export default function GameScreen({ gameState, sessionId, turnDeadline, events,
         </div>
       </header>
       <div className="app-main">
-        <Hud players={gameState.players} currentTurnPlayerId={gameState.currentTurnPlayerId} />
+        <Hud
+          players={gameState.players}
+          currentTurnPlayerId={gameState.currentTurnPlayerId}
+          onHoverPlayer={setHoveredPlayerId}
+        />
         <div className="app-board-area">
-          <Board board={gameState.board} players={gameState.players} />
+          <Board board={gameState.board} players={gameState.players} hoveredPlayerId={hoveredPlayerId} />
         </div>
         <aside className="game-side-panel">
           <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />

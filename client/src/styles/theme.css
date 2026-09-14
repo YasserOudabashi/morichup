@@ -1,15 +1,17 @@
+/* Tema scuro di default (identità principale del prodotto). */
 :root {
-  --color-bg: #f5f6fa;
-  --color-surface: #ffffff;
-  --color-text: #1a1a2e;
-  --color-text-muted: #6b7280;
-  --color-primary: #3d5af1;
-  --color-primary-dark: #2c40c9;
-  --color-accent: #ffb703;
-  --color-border: #e2e4ec;
-  --color-danger: #e53935;
-  --color-success: #2e7d32;
-  --shadow-card: 0 8px 24px rgba(26, 26, 46, 0.08);
+  --color-bg: #0f1117;
+  --color-surface: #1a1d29;
+  --color-surface-raised: #232738;
+  --color-text: #eef0f6;
+  --color-text-muted: #8b90a3;
+  --color-primary: #7c8cff;
+  --color-primary-dark: #5c6de8;
+  --color-accent: #ffc94d;
+  --color-border: #2a2e3d;
+  --color-danger: #ff6b6b;
+  --color-success: #4caf6d;
+  --shadow-card: 0 10px 34px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -113,6 +115,15 @@ body {
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
+  border-radius: 8px;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  transition: background-color 0.15s ease;
+  cursor: default;
+}
+
+.hud__player:hover {
+  background: var(--color-surface-raised);
 }
 
 .hud__player-color {
@@ -192,6 +203,12 @@ body {
 .board-tile--corner {
   font-size: 0.6rem;
   font-weight: 600;
+}
+
+.board-tile--highlighted {
+  background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 2px var(--tile-highlight-color, var(--color-primary));
+  transition: background-color 0.15s ease;
 }
 
 .board-tile__band {
@@ -501,7 +518,7 @@ body {
 }
 
 .lobby-player:hover {
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
 }
 
 .status-dot {

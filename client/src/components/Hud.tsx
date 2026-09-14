@@ -4,6 +4,7 @@ import { t } from "../i18n";
 interface HudProps {
   players: Player[];
   currentTurnPlayerId?: PlayerSessionId | null;
+  onHoverPlayer?: (playerId: PlayerSessionId | null) => void;
 }
 
 function statusLabel(player: Player): string | null {
@@ -14,7 +15,7 @@ function statusLabel(player: Player): string | null {
   return null;
 }
 
-export default function Hud({ players, currentTurnPlayerId }: HudProps) {
+export default function Hud({ players, currentTurnPlayerId, onHoverPlayer }: HudProps) {
   return (
     <aside className="hud">
       <h2 className="hud__title">{t("hud.players")}</h2>
@@ -26,6 +27,8 @@ export default function Hud({ players, currentTurnPlayerId }: HudProps) {
             <li
               key={player.sessionId}
               className={`hud__player${isCurrent ? " hud__player--current" : ""}${player.status === "bankrupt" ? " hud__player--bankrupt" : ""}`}
+              onMouseEnter={() => onHoverPlayer?.(player.sessionId)}
+              onMouseLeave={() => onHoverPlayer?.(null)}
             >
               <span className="hud__player-color" style={{ backgroundColor: player.color }} />
               <span className="hud__player-name">{player.nickname}</span>
