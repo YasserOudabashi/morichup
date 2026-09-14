@@ -222,6 +222,14 @@ body {
   height: 6px;
 }
 
+.board-tile__flag {
+  position: absolute;
+  top: 8px;
+  right: 3px;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
 .board-tile__name {
   margin-top: 4px;
 }

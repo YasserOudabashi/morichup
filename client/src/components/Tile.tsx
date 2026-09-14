@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Player, Tile as TileData } from "@morichup/shared";
 import PlayerToken from "./PlayerToken";
+import { flagFor } from "../lib/flags";
 
 interface TileProps {
   tile: TileData;
@@ -11,6 +12,8 @@ interface TileProps {
 }
 
 export default function Tile({ tile, players, isCorner, isHighlighted, highlightColor }: TileProps) {
+  const flag = tile.type === "property" ? flagFor(tile.name) : null;
+
   return (
     <div
       className={`board-tile${isCorner ? " board-tile--corner" : ""}${isHighlighted ? " board-tile--highlighted" : ""}`}
@@ -22,6 +25,11 @@ export default function Tile({ tile, players, isCorner, isHighlighted, highlight
     >
       {tile.groupColor && (
         <div className="board-tile__band" style={{ backgroundColor: tile.groupColor }} />
+      )}
+      {flag && (
+        <span className="board-tile__flag" aria-hidden="true">
+          {flag}
+        </span>
       )}
       <span className="board-tile__name">{tile.name}</span>
       {tile.purchasePrice !== undefined && (
