@@ -247,5 +247,5 @@ export type ServerEvent =
   | { type: "AUCTION_PASSED"; playerId: PlayerSessionId }
   | { type: "AUCTION_ENDED"; tileId: string; winnerId: PlayerSessionId | null; amount: number };
 
-export { classicBoard } from "./maps/classic";
+export * from "./maps/index";
 export * from "./socket";

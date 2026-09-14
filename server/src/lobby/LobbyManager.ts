@@ -1,10 +1,12 @@
-import { classicBoard, type PlayerSessionId, type RoomState, type ServerEvent } from "@morichup/shared";
+import { AVAILABLE_MAPS, getMapById, type PlayerSessionId, type RoomState, type ServerEvent } from "@morichup/shared";
 import { GameEngine } from "../game/GameEngine";
 import { createPlayer } from "../game/Player";
 
 const ROOM_CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // niente 0/O/1/I/L, facili da confondere
 const ROOM_CODE_LENGTH = 6;
 const DISCONNECT_GRACE_MS = 60_000;
+const DEFAULT_MIN_PLAYERS = 2;
+const DEFAULT_MAX_PLAYERS = 8;
 
 const PLAYER_COLORS = ["#3d5af1", "#e91e8c", "#ffb703", "#2e7d32", "#e53935", "#1a237e", "#f5821f", "#7ec8e3"];
 
@@ -24,6 +26,7 @@ interface Room {
   maxPlayers: number;
   status: "lobby" | "playing" | "ended";
   engine: GameEngine | null;
+  mapId: string;
 }
 
 /**
@@ -45,10 +48,11 @@ export class LobbyManager {
       code,
       hostSessionId: sessionId,
       players: new Map(),
-      minPlayers: classicBoard.rules.minPlayers,
-      maxPlayers: classicBoard.rules.maxPlayers,
+      minPlayers: DEFAULT_MIN_PLAYERS,
+      maxPlayers: DEFAULT_MAX_PLAYERS,
       status: "lobby",
       engine: null,
+      mapId: AVAILABLE_MAPS[0].id,
     };
     room.players.set(sessionId, { sessionId, nickname, socketId, connected: true, disconnectTimer: null });
     this.rooms.set(code, room);
@@ -163,6 +167,15 @@ export class LobbyManager {
     }
   }
 
+  selectMap(code: string, requesterSessionId: PlayerSessionId, mapId: string): Room {
+    const room = this.getRoom(code);
+    if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può scegliere la mappa");
+    if (room.status !== "lobby") throw new Error("La partita è già iniziata");
+    if (!AVAILABLE_MAPS.some((m) => m.id === mapId)) throw new Error("Mappa sconosciuta");
+    room.mapId = mapId;
+    return room;
+  }
+
   startGame(code: string, requesterSessionId: PlayerSessionId): Room {
     const room = this.getRoom(code);
     if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può avviare la partita");
@@ -172,10 +185,11 @@ export class LobbyManager {
       throw new Error(`Servono almeno ${room.minPlayers} giocatori connessi`);
     }
 
+    const board = getMapById(room.mapId);
     const enginePlayers = [...room.players.values()].map((p, i) =>
-      createPlayer(p.sessionId, p.nickname, PLAYER_COLORS[i % PLAYER_COLORS.length], classicBoard.rules.startingMoney)
+      createPlayer(p.sessionId, p.nickname, PLAYER_COLORS[i % PLAYER_COLORS.length], board.rules.startingMoney)
     );
-    room.engine = new GameEngine(code, classicBoard, enginePlayers, Date.now());
+    room.engine = new GameEngine(code, board, enginePlayers, Date.now());
     room.status = "playing";
     return room;
   }
@@ -219,6 +233,7 @@ export class LobbyManager {
       minPlayers: room.minPlayers,
       maxPlayers: room.maxPlayers,
       status: room.status,
+      mapId: room.mapId,
       players: [...room.players.values()].map((p) => ({
         sessionId: p.sessionId,
         nickname: p.nickname,

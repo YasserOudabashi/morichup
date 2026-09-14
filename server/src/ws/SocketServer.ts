@@ -186,6 +186,17 @@ export function registerSocketServer(io: AppServer): void {
       }
     });
 
+    socket.on("select_map", ({ code, mapId }, ack) => {
+      try {
+        if (!socket.data.sessionId) throw new Error("Sessione non valida");
+        lobbyManager.selectMap(code, socket.data.sessionId, mapId);
+        ack({ ok: true, data: null });
+        broadcastRoomOrGame(code);
+      } catch (err) {
+        ack({ ok: false, error: (err as Error).message });
+      }
+    });
+
     socket.on("kick_player", ({ code, targetSessionId }, ack) => {
       try {
         if (!socket.data.sessionId) throw new Error("Sessione non valida");

@@ -9,12 +9,15 @@ interface BoardProps {
 const CORNER_TYPES = new Set(["start", "jail", "freeParking", "goToJail"]);
 
 export default function Board({ board, players }: BoardProps) {
+  const aspectRatio = board.width / board.height;
   return (
     <div
       className="board"
       style={{
         gridTemplateColumns: `repeat(${board.width}, 1fr)`,
         gridTemplateRows: `repeat(${board.height}, 1fr)`,
+        aspectRatio: `${board.width} / ${board.height}`,
+        width: `min(90vw, calc(78vh * ${aspectRatio}))`,
       }}
     >
       <div

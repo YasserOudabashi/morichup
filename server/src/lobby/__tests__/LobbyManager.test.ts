@@ -92,3 +92,20 @@ test("disconnessione e riconnessione entro la finestra ripristinano il giocatore
   assert.equal(manager.getRoomState(room.code).players.find((p) => p.sessionId === "s2")?.connected, true);
   assert.ok(events.some((e) => e.events.some((ev: any) => ev.type === "PLAYER_RECONNECTED")));
 });
+
+test("l'host può scegliere la mappa, e la partita parte su quella mappa", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  assert.throws(() => manager.selectMap(room.code, "s2", "extended"), /host/);
+  assert.throws(() => manager.selectMap(room.code, "s1", "not-a-real-map"), /sconosciuta/);
+
+  manager.selectMap(room.code, "s1", "extended");
+  assert.equal(manager.getRoomState(room.code).mapId, "extended");
+
+  manager.startGame(room.code, "s1");
+  const state = manager.getEngine(room.code)!.getState();
+  assert.equal(state.board.id, "extended");
+  assert.equal(state.board.width, 15);
+});

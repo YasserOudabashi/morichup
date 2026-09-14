@@ -20,6 +20,11 @@ export interface StartGameRequest {
   code: string;
 }
 
+export interface SelectMapRequest {
+  code: string;
+  mapId: string;
+}
+
 export interface KickPlayerRequest {
   code: string;
   targetSessionId: PlayerSessionId;
@@ -49,6 +54,7 @@ export interface RoomState {
   minPlayers: number;
   maxPlayers: number;
   status: RoomStatus;
+  mapId: string;
 }
 
 export type AckResponse<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -58,6 +64,7 @@ export interface ClientToServerEvents {
   join_room: (payload: JoinRoomRequest, ack: (res: AckResponse<RoomState>) => void) => void;
   rejoin: (payload: RejoinRequest, ack: (res: AckResponse<RoomState>) => void) => void;
   start_game: (payload: StartGameRequest, ack: (res: AckResponse<null>) => void) => void;
+  select_map: (payload: SelectMapRequest, ack: (res: AckResponse<null>) => void) => void;
   kick_player: (payload: KickPlayerRequest, ack: (res: AckResponse<null>) => void) => void;
   leave_room: (payload: LeaveRoomRequest) => void;
   game_intent: (payload: GameIntentRequest, ack: (res: AckResponse<null>) => void) => void;
