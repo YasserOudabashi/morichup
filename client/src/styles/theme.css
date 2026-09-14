@@ -364,6 +364,11 @@ body {
   text-transform: uppercase;
 }
 
+.text-input--small {
+  padding: 8px 10px;
+  width: 100px;
+}
+
 /* Bottoni */
 
 .btn {
@@ -404,6 +409,18 @@ body {
 .btn--ghost:not(:disabled):hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.btn--danger {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1.5px solid var(--color-danger);
+  width: 100%;
+}
+
+.btn--danger:not(:disabled):hover {
+  background: var(--color-danger);
+  color: #fff;
 }
 
 .btn--small {
@@ -684,6 +701,56 @@ body {
   font-weight: 600;
 }
 
+/* Debiti (Fase 5) */
+
+.debt-panel {
+  border-bottom: 2px solid var(--color-danger);
+}
+
+.debt-panel__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-danger);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.debt-panel__owed {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.debt-panel__properties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Aste (Fase 5) */
+
+.auction-panel__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.auction-panel__tile,
+.auction-panel__seller,
+.auction-panel__bid {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.auction-panel .button-row {
+  align-items: center;
+}
+
 .event-log {
   flex: 0 1 180px;
   overflow-y: auto;
@@ -830,6 +897,25 @@ body {
 
 .accusation-card__text {
   margin: 0;
+}
+
+.my-property-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.my-property-row__name {
+  color: var(--color-text);
+}
+
+.my-property-row__form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .accusation-card__tally {

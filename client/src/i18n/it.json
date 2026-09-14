@@ -113,5 +113,39 @@
   "accusation.alreadyVoted": "Hai già votato",
   "accusation.notEligible": "Non puoi votare su questa accusa",
   "accusation.resolvedGuilty": "Colpevole — multa di ${amount} pagata",
-  "accusation.resolvedNotGuilty": "Non colpevole — la promessa resta valida"
+  "accusation.resolvedNotGuilty": "Non colpevole — la promessa resta valida",
+
+  "debt.title": "Debiti da saldare",
+  "debt.owed": "Devi ${amount}",
+  "debt.sellProperty": "Vendi {tile} (${price})",
+  "debt.noPropertiesLeft": "Non hai più proprietà da vendere",
+  "debt.declareBankruptcy": "Dichiara bancarotta",
+  "debt.bankruptcyConfirm": "Sei sicuro? Perderai tutte le proprietà rimaste e non potrai più giocare.",
+
+  "auction.panelTitle": "Asta in corso",
+  "auction.forTile": "In asta: {tile}",
+  "auction.sellerNote": "Messa in vendita da {seller} (minimo ${min})",
+  "auction.currentBid": "Offerta attuale: ${amount} ({bidder})",
+  "auction.noBidsYet": "Nessuna offerta ancora",
+  "auction.yourTurn": "Tocca a te fare un'offerta",
+  "auction.waitingFor": "In attesa dell'offerta di {name}",
+  "auction.placeBid": "Offri",
+  "auction.pass": "Passa",
+
+  "startAuction.button": "Metti all'asta",
+  "startAuction.minimumBidLabel": "Prezzo minimo",
+  "startAuction.confirm": "Avvia asta",
+  "startAuction.cancel": "Annulla",
+
+  "myProperties.title": "Le tue proprietà",
+  "myProperties.none": "Non possiedi ancora proprietà",
+
+  "log.debtIncurred": "{name} non riesce a pagare e resta in debito di ${amount}",
+  "log.propertySoldToBank": "{name} vende {tile} alla banca per ${amount}",
+  "log.debtResolved": "{name} ha saldato tutti i debiti",
+  "log.auctionStarted": "Asta avviata su {tile}",
+  "log.auctionBid": "{name} offre ${amount}",
+  "log.auctionPassed": "{name} passa",
+  "log.auctionEndedWon": "{name} si aggiudica {tile} per ${amount}",
+  "log.auctionEndedNoSale": "Nessuno si aggiudica {tile}: resta libera"
 }

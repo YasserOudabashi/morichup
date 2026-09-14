@@ -113,5 +113,39 @@
   "accusation.alreadyVoted": "You already voted",
   "accusation.notEligible": "You can't vote on this accusation",
   "accusation.resolvedGuilty": "Guilty — ${amount} fine paid",
-  "accusation.resolvedNotGuilty": "Not guilty — promise stands"
+  "accusation.resolvedNotGuilty": "Not guilty — promise stands",
+
+  "debt.title": "Outstanding debt",
+  "debt.owed": "You owe ${amount}",
+  "debt.sellProperty": "Sell {tile} (${price})",
+  "debt.noPropertiesLeft": "You have no more properties to sell",
+  "debt.declareBankruptcy": "Declare bankruptcy",
+  "debt.bankruptcyConfirm": "Are you sure? You'll lose every property you have left and won't be able to play anymore.",
+
+  "auction.panelTitle": "Auction in progress",
+  "auction.forTile": "Up for auction: {tile}",
+  "auction.sellerNote": "Put up for sale by {seller} (minimum ${min})",
+  "auction.currentBid": "Current bid: ${amount} ({bidder})",
+  "auction.noBidsYet": "No bids yet",
+  "auction.yourTurn": "It's your turn to bid",
+  "auction.waitingFor": "Waiting for {name}'s bid",
+  "auction.placeBid": "Bid",
+  "auction.pass": "Pass",
+
+  "startAuction.button": "Put up for auction",
+  "startAuction.minimumBidLabel": "Minimum price",
+  "startAuction.confirm": "Start auction",
+  "startAuction.cancel": "Cancel",
+
+  "myProperties.title": "Your properties",
+  "myProperties.none": "You don't own any properties yet",
+
+  "log.debtIncurred": "{name} can't pay in full and owes ${amount}",
+  "log.propertySoldToBank": "{name} sells {tile} to the bank for ${amount}",
+  "log.debtResolved": "{name} settled all debts",
+  "log.auctionStarted": "Auction started on {tile}",
+  "log.auctionBid": "{name} bids ${amount}",
+  "log.auctionPassed": "{name} passes",
+  "log.auctionEndedWon": "{name} wins {tile} for ${amount}",
+  "log.auctionEndedNoSale": "Nobody wins {tile}: it stays unowned"
 }

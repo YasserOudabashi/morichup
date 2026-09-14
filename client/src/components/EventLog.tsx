@@ -92,6 +92,26 @@ function describe(
       const accusedName = accusation ? nameOf(players, accusation.accusedId) : "?";
       return t("log.accusationResolvedGuilty", { name: accusedName, amount: event.penaltyAmount });
     }
+    case "DEBT_INCURRED":
+      return t("log.debtIncurred", { name: nameOf(players, event.playerId), amount: event.amount });
+    case "PROPERTY_SOLD_TO_BANK":
+      return t("log.propertySoldToBank", {
+        name: nameOf(players, event.playerId),
+        tile: tileName(board, event.tileId),
+        amount: event.amount,
+      });
+    case "DEBT_RESOLVED":
+      return t("log.debtResolved", { name: nameOf(players, event.playerId) });
+    case "AUCTION_STARTED":
+      return t("log.auctionStarted", { tile: tileName(board, event.tileId) });
+    case "AUCTION_BID":
+      return t("log.auctionBid", { name: nameOf(players, event.playerId), amount: event.amount });
+    case "AUCTION_PASSED":
+      return t("log.auctionPassed", { name: nameOf(players, event.playerId) });
+    case "AUCTION_ENDED":
+      return event.winnerId
+        ? t("log.auctionEndedWon", { name: nameOf(players, event.winnerId), tile: tileName(board, event.tileId), amount: event.amount })
+        : t("log.auctionEndedNoSale", { tile: tileName(board, event.tileId) });
     default:
       return null;
   }

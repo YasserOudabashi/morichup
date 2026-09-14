@@ -13,6 +13,8 @@ type ModalState = { mode: "propose" } | { mode: "counter"; tradeId: string };
 
 export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPanelProps) {
   const [modalState, setModalState] = useState<ModalState | null>(null);
+  const [auctionFormTileId, setAuctionFormTileId] = useState<string | null>(null);
+  const [minBid, setMinBid] = useState(0);
 
   function nameOf(id: string): string {
     return gameState.players.find((p) => p.sessionId === id)?.nickname ?? id;
@@ -34,6 +36,18 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
   const openAccusations = gameState.accusations.filter((a) => a.status === "voting");
   const existingTradeForModal =
     modalState?.mode === "counter" ? gameState.trades.find((tr) => tr.id === modalState.tradeId) : undefined;
+
+  const me = gameState.players.find((p) => p.sessionId === sessionId);
+  const canStartAuction = me?.status === "active" && gameState.auction === null && gameState.state !== "GAME_OVER";
+  const myTiles = (me?.properties ?? [])
+    .map((id) => gameState.board.tiles.find((tile) => tile.id === id))
+    .filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
+
+  function confirmStartAuction(tileId: string) {
+    onIntent({ type: "START_PLAYER_AUCTION", tileId, minimumBid: Math.max(0, minBid) });
+    setAuctionFormTileId(null);
+    setMinBid(0);
+  }
 
   return (
     <div className="social-panel">
@@ -168,6 +182,44 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
           </div>
         );
       })}
+
+      <h3 className="section-label social-panel__section">{t("myProperties.title")}</h3>
+      {myTiles.length === 0 && <p className="waiting-notice">{t("myProperties.none")}</p>}
+      {myTiles.map((tile) => (
+        <div key={tile.id} className="my-property-row">
+          <span className="my-property-row__name">{tile.name}</span>
+          {canStartAuction &&
+            (auctionFormTileId === tile.id ? (
+              <div className="my-property-row__form">
+                <input
+                  type="number"
+                  className="text-input text-input--small"
+                  min={0}
+                  value={minBid}
+                  onChange={(e) => setMinBid(Number(e.target.value))}
+                  placeholder={t("startAuction.minimumBidLabel")}
+                />
+                <button type="button" className="btn btn--primary btn--small" onClick={() => confirmStartAuction(tile.id)}>
+                  {t("startAuction.confirm")}
+                </button>
+                <button type="button" className="btn btn--ghost btn--small" onClick={() => setAuctionFormTileId(null)}>
+                  {t("startAuction.cancel")}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--ghost btn--small"
+                onClick={() => {
+                  setAuctionFormTileId(tile.id);
+                  setMinBid(0);
+                }}
+              >
+                {t("startAuction.button")}
+              </button>
+            ))}
+        </div>
+      ))}
 
       {modalState && (
         <TradeModal
