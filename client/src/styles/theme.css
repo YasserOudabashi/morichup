@@ -1,5 +1,8 @@
-/* Tema scuro di default (identità principale del prodotto). */
+/* Tema scuro di default (identità principale del prodotto). color-scheme fa sì che i
+   controlli nativi del browser (popup delle <select>, spinner dei numeri, scrollbar)
+   siano scuri di default invece di lampeggiare bianchi all'apertura. */
 :root {
+  color-scheme: dark;
   --color-bg: #0f1117;
   --color-surface: #1a1d29;
   --color-surface-raised: #232738;
