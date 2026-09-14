@@ -743,7 +743,10 @@ export class GameEngine {
       this.state.state = "GAME_OVER";
       this.state.winnerId = winnerId;
       events.push({ type: "GAME_OVER", winnerId });
-    } else if (this.state.currentTurnPlayerId === playerId && this.state.state === "DEBT_RESOLUTION") {
+    } else if (this.state.currentTurnPlayerId === playerId && !this.state.auction) {
+      // Il bancarotta può capitare anche fuori da DEBT_RESOLUTION (es. multa da un
+      // contratto sociale mentre lo stato è ancora ROLLING/PLAYER_DECISION): se era
+      // comunque il suo turno, va passato al prossimo giocatore in ogni caso.
       events.push({ type: "TURN_ENDED", playerId, extraTurn: false });
       this.pendingExtraRoll = false;
       this.advanceToNextPlayer();

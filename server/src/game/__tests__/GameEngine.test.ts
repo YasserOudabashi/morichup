@@ -265,6 +265,52 @@ test("bancarotta: chi non può saldare il debito può dichiararla esplicitamente
   assert.equal(engine.getState().winnerId, "p0");
 });
 
+test("bancarotta fuori da DEBT_RESOLUTION (es. multa da contratto) passa comunque il turno se era il suo", () => {
+  // Con 3 giocatori la partita non finisce (restano 2 attivi): a differenza del test
+  // sopra, qui il debito nasce da un'azione fuori turno (multa da promessa infranta)
+  // mentre lo stato resta ROLLING, non DEBT_RESOLUTION — il caso che aveva scoperto
+  // il bug: advanceToNextPlayer non scattava perché il codice controllava solo
+  // state === "DEBT_RESOLUTION", lasciando un giocatore bancarotta come "di turno".
+  const board = buildTestBoard();
+  const players = buildTestPlayers(3);
+  const engine = new GameEngine("room", board, players, 0, { dice: new ScriptedDice([]) });
+  assert.equal(engine.getState().currentTurnPlayerId, "p0");
+  assert.equal(engine.getState().state, "ROLLING");
+
+  // p0 (di turno) regala quasi tutto il contante a p1, con una promessa: resta con $1.
+  const [proposed] = engine.applyIntent("p0", {
+    type: "PROPOSE_TRADE",
+    toPlayerId: "p1",
+    give: { cash: 1499, propertyIds: [] },
+    receive: { cash: 0, propertyIds: [] },
+    specialConditions: "promessa di prova",
+  });
+  const tradeId = (proposed as any).trade.id;
+  engine.applyIntent("p1", { type: "ACCEPT_TRADE", tradeId });
+  assert.equal(engine.getState().players[0].money, 1);
+
+  // p1 segnala p0, p2 vota colpevole: multa di $100, p0 può pagarne solo $1.
+  const [reportEvent] = engine.applyIntent("p1", { type: "REPORT_BROKEN_PROMISE", contractId: engine.getState().contracts[0].id });
+  const accusationId = (reportEvent as any).accusation.id;
+  const voteEvents = engine.applyIntent("p2", { type: "VOTE_ACCUSATION", accusationId, vote: "guilty" });
+  assert.ok(voteEvents.some((e) => e.type === "DEBT_INCURRED" && e.playerId === "p0" && e.amount === 99));
+  assert.equal(engine.getState().players[0].pendingDebts.length, 1);
+
+  // Lo stato non è mai passato a DEBT_RESOLUTION (il debito è nato fuori dal proprio turno):
+  // p0 è ancora "di turno" pur essendo indebitato.
+  assert.equal(engine.getState().state, "ROLLING");
+  assert.equal(engine.getState().currentTurnPlayerId, "p0");
+
+  const events = engine.applyIntent("p0", { type: "DECLARE_BANKRUPTCY" });
+  assert.ok(events.some((e) => e.type === "PLAYER_BANKRUPT" && e.playerId === "p0"));
+  assert.equal(engine.getState().players[0].status, "bankrupt");
+
+  // Il bug: senza il fix, qui currentTurnPlayerId sarebbe rimasto "p0" (bancarotta,
+  // senza soldi né proprietà) invece di passare a p1.
+  assert.equal(engine.getState().currentTurnPlayerId, "p1");
+  assert.equal(engine.getState().state, "ROLLING");
+});
+
 test("vendere una proprietà alla banca copre il debito e sblocca il turno", () => {
   const board = buildTestBoard();
   const players = buildTestPlayers(2);
