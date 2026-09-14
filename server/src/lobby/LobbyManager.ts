@@ -185,7 +185,10 @@ export class LobbyManager {
       throw new Error(`Servono almeno ${room.minPlayers} giocatori connessi`);
     }
 
-    const board = getMapById(room.mapId);
+    // getMapById ritorna sempre lo stesso oggetto (AVAILABLE_MAPS è un registro condiviso,
+    // non un template): senza clonarlo, tutte le partite sulla stessa mappa muterebbero
+    // in place lo stesso BoardConfig, mischiando ownerId/case/hotel tra partite diverse.
+    const board = structuredClone(getMapById(room.mapId));
     const enginePlayers = [...room.players.values()].map((p, i) =>
       createPlayer(p.sessionId, p.nickname, PLAYER_COLORS[i % PLAYER_COLORS.length], board.rules.startingMoney)
     );

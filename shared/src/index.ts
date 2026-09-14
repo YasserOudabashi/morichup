@@ -209,7 +209,9 @@ export type ClientIntent =
   | { type: "DECLARE_BANKRUPTCY" }
   | { type: "PLACE_BID"; amount: number }
   | { type: "PASS_AUCTION" }
-  | { type: "START_PLAYER_AUCTION"; tileId: string; minimumBid: number };
+  | { type: "START_PLAYER_AUCTION"; tileId: string; minimumBid: number }
+  | { type: "BUILD_HOUSE"; tileId: string }
+  | { type: "SELL_HOUSE"; tileId: string };
 
 // Event: server -> client. Elenco iniziale, estendere per fase.
 export type ServerEvent =
@@ -245,7 +247,10 @@ export type ServerEvent =
   | { type: "AUCTION_STARTED"; tileId: string; turnOrder: PlayerSessionId[] }
   | { type: "AUCTION_BID"; playerId: PlayerSessionId; amount: number }
   | { type: "AUCTION_PASSED"; playerId: PlayerSessionId }
-  | { type: "AUCTION_ENDED"; tileId: string; winnerId: PlayerSessionId | null; amount: number };
+  | { type: "AUCTION_ENDED"; tileId: string; winnerId: PlayerSessionId | null; amount: number }
+  | { type: "HOUSE_BUILT"; playerId: PlayerSessionId; tileId: string; houses: number }
+  | { type: "HOTEL_BUILT"; playerId: PlayerSessionId; tileId: string }
+  | { type: "HOUSE_SOLD"; playerId: PlayerSessionId; tileId: string; amount: number };
 
 export * from "./maps/index";
 export * from "./socket";

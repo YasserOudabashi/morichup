@@ -97,30 +97,40 @@ successiva (nessuna fase viene concatenata automaticamente).
   client; segnalazione della promessa infranta; voto dell'unico giocatore
   eleggibile; multa applicata e sincronizzata ovunque.
 
-## Fase 5 — Bancarotta, aste, vittoria
+## Fase 5 — Bancarotta, debiti, aste, multi-mappa, tema scuro, deploy ✅
 
-- `BankruptcyEngine` (liquidazione parziale, debt resolution).
-- `AuctionEngine`.
-- `VictoryEngine` e game-over screen.
+- Bancarotta vera con trattativa del debito (`pendingDebts`, vendita diretta
+  alla banca, `DECLARE_BANKRUPTCY`), sistema aste completo (banca e
+  giocatore-iniziato con prezzo minimo).
+- 4 mappe (Classic/Extended/Fortune/Quick) selezionabili dall'host in lobby.
+- Tema scuro di default, evidenziazione proprietà al hover, bandiere per
+  ogni casella-nazione.
+- Setup di deploy (client Vercel, server always-on separato) e fix del
+  comando di produzione del server.
 
-## Fase 6 — Chat & feature sociali
+## Fasi 6-12 — vedi `docs/PRD_FASE6.md`
 
-- Global chat, whisper, reactions, moderazione base.
-- Tomato system.
+Le fasi seguenti sono state ripianificate con maggiore dettaglio (user
+stories, requisiti puntuali, criteri di accettazione) in
+`docs/PRD_FASE6.md`, che sostituisce gli stub sotto. Riepilogo rapido, in
+ordine di implementazione consigliato:
 
-## Fase 7 — Map system & editor
-
-- `MapValidator`, export/import JSON.
-- Map editor visuale (dimensioni 8×8–15×15, tile types completi).
-- Modalità Extended / Fortune / Custom.
-
-## Fase 8 — i18n completo, polish, deploy
-
-- Dizionari EN/IT completi su tutte le superfici (menu, lobby, partita,
-  editor, errori, notifiche).
-- Animazioni movimento/dadi, polish UI/HUD.
-- Deploy (Docker, VPS) — dettagli da definire quando si arriva a questa
-  fase.
+- **Fase 6 — Costruzione di case e hotel**: priorità immediata, unica vera
+  lacuna rispetto al game engine core già previsto dalla PRD originale (§13).
+- **Fase 7 — Regole economiche opzionali**: ipoteca (opzionale, off di
+  default), jackpot al Parcheggio Gratuito, modalità "quick game" a
+  tempo/turni limitati.
+- **Fase 8 — Feature sociali**: chat di stanza, modalità spettatore,
+  rivincita a fine partita.
+- **Fase 9 — Editor di mappe**: `MapValidator`, editor visuale, export/import
+  JSON (già pianificata come Fase 7 nella versione precedente di questa
+  roadmap, mai iniziata).
+- **Fase 10 — Personalizzazione, UX, accessibilità**: supporto mobile reale,
+  animazioni movimento/dadi, audio, notifica turno, avatar, accessibilità.
+- **Fase 11 — Dati di partita**: cronologia e replay, salvati lato client
+  (nessun database server-side).
+- **Fase 12 — Infrastruttura & qualità**: test automatici lato client,
+  pipeline CI, pulizia stanze abbandonate, stanze con password.
 
 ---
 

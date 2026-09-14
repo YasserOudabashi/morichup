@@ -109,3 +109,24 @@ test("l'host può scegliere la mappa, e la partita parte su quella mappa", () =>
   assert.equal(state.board.id, "extended");
   assert.equal(state.board.width, 15);
 });
+
+test("due partite sulla stessa mappa hanno board indipendenti (nessuno stato condiviso tra stanze)", () => {
+  const { manager } = buildManager();
+
+  const roomA = manager.createRoom("a1", "Alice", "sockA1");
+  manager.joinRoom(roomA.code, "a2", "Bruno", "sockA2");
+  manager.startGame(roomA.code, "a1");
+  const engineA = manager.getEngine(roomA.code)!;
+  const tileId = engineA.getState().board.tiles.find((t) => t.type === "property")!.id;
+  engineA.getState().board.tiles.find((t) => t.id === tileId)!.ownerId = "a1";
+  engineA.getState().board.tiles.find((t) => t.id === tileId)!.houses = 3;
+
+  const roomB = manager.createRoom("b1", "Carla", "sockB1");
+  manager.joinRoom(roomB.code, "b2", "Dario", "sockB2");
+  manager.startGame(roomB.code, "b1");
+  const engineB = manager.getEngine(roomB.code)!;
+
+  const sameTileInB = engineB.getState().board.tiles.find((t) => t.id === tileId)!;
+  assert.equal(sameTileInB.ownerId, null);
+  assert.equal(sameTileInB.houses, 0);
+});

@@ -67,11 +67,13 @@ export function buildTestBoard(): BoardConfig {
       { id: "t0", type: "start", name: "Go", position },
       {
         id: "t1", type: "property", name: "A1", position, group: "grp", groupColor: "#000",
-        purchasePrice: 100, baseRent: 10, ownerId: null, houses: 0, hotel: false, mortgaged: false,
+        purchasePrice: 100, baseRent: 10, rentLevels: [30, 60, 90, 120], houseCost: 50, hotelCost: 50,
+        ownerId: null, houses: 0, hotel: false, mortgaged: false,
       },
       {
         id: "t2", type: "property", name: "A2", position, group: "grp", groupColor: "#000",
-        purchasePrice: 100, baseRent: 10, ownerId: null, houses: 0, hotel: false, mortgaged: false,
+        purchasePrice: 100, baseRent: 10, rentLevels: [30, 60, 90, 120], houseCost: 50, hotelCost: 50,
+        ownerId: null, houses: 0, hotel: false, mortgaged: false,
       },
       { id: "t3", type: "railroad", name: "R1", position, purchasePrice: 200, baseRent: 25, ownerId: null, mortgaged: false },
       { id: "t4", type: "incomeTax", name: "Tax", position, amount: 50 },

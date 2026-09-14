@@ -22,9 +22,10 @@ import {
   CONTRACT_PENALTY,
   DOUBLES_TO_JAIL,
   JAIL_FINE,
+  MAX_HOUSES,
   MAX_JAIL_ATTEMPTS,
 } from "./GameRules";
-import { computeRent, isPropertyLike } from "./Tile";
+import { buildingLevel, computeRent, groupTilesOf, isPropertyLike, ownsFullGroup } from "./Tile";
 import { executeTrade, validateAssetsOwnership } from "./TradeEngine";
 import { checkVictory } from "./VictoryEngine";
 
@@ -106,6 +107,10 @@ export class GameEngine {
         return this.handlePassAuction(playerId);
       case "START_PLAYER_AUCTION":
         return this.handleStartPlayerAuction(playerId, intent.tileId, intent.minimumBid);
+      // Vendere case è come vendere proprietà alla banca: sempre permesso nel
+      // proprio turno, e fuori turno solo per risolvere un debito pendente.
+      case "SELL_HOUSE":
+        return this.handleSellHouse(playerId, intent.tileId);
     }
 
     if (playerId !== this.state.currentTurnPlayerId) {
@@ -126,6 +131,8 @@ export class GameEngine {
         return this.handleDeclineProperty(player, intent.tileId);
       case "END_TURN":
         return this.handleEndTurn(player);
+      case "BUILD_HOUSE":
+        return this.handleBuildHouse(player, intent.tileId);
       default:
         throw new Error("Intent non gestito in questa fase");
     }
@@ -696,16 +703,92 @@ export class GameEngine {
     }
     const tile = this.state.board.tiles.find((t) => t.id === tileId);
     if (!tile || tile.ownerId !== playerId) throw new Error("Non possiedi questa proprietà");
+    if (buildingLevel(tile) > 0) {
+      throw new Error("Vendi prima le case/hotel su questa proprietà");
+    }
 
     const sellPrice = Math.floor((tile.purchasePrice ?? 0) / 2);
     player.money += sellPrice;
     tile.ownerId = null;
-    tile.houses = 0;
-    tile.hotel = false;
     tile.mortgaged = false;
     player.properties = player.properties.filter((id) => id !== tileId);
 
     const events: ServerEvent[] = [{ type: "PROPERTY_SOLD_TO_BANK", playerId, tileId, amount: sellPrice }];
+    events.push(...this.tryResolveDebts(player));
+    return events;
+  }
+
+  /** PRD Fase 6, US-601/602: solo nel proprio turno, solo con l'intero gruppo colore posseduto,
+   * e con la regola "even building" (mai più di 1 livello di scarto nel gruppo). */
+  private handleBuildHouse(player: Player, tileId: string): ServerEvent[] {
+    const tile = this.state.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.type !== "property" || tile.ownerId !== player.sessionId) {
+      throw new Error("Non possiedi questa proprietà");
+    }
+    if (!tile.group || !ownsFullGroup(this.state.board, player.sessionId, tile.group)) {
+      throw new Error("Devi possedere l'intero gruppo colore per costruire");
+    }
+    if (tile.mortgaged) throw new Error("Proprietà ipotecata: non puoi costruirci sopra");
+
+    const level = buildingLevel(tile);
+    if (level > MAX_HOUSES) throw new Error("Questa proprietà ha già un hotel");
+
+    const group = groupTilesOf(this.state.board, tile);
+    const minLevel = Math.min(...group.map(buildingLevel));
+    if (level > minLevel) {
+      throw new Error("Costruzione non bilanciata: costruisci prima sulle altre proprietà del gruppo");
+    }
+
+    if (level === MAX_HOUSES) {
+      const cost = tile.hotelCost ?? 0;
+      if (player.money < cost) throw new Error("Fondi insufficienti per l'hotel");
+      player.money -= cost;
+      tile.hotel = true;
+      tile.houses = 0;
+      return [{ type: "HOTEL_BUILT", playerId: player.sessionId, tileId }];
+    }
+
+    const cost = tile.houseCost ?? 0;
+    if (player.money < cost) throw new Error("Fondi insufficienti per la casa");
+    player.money -= cost;
+    tile.houses = level + 1;
+    return [{ type: "HOUSE_BUILT", playerId: player.sessionId, tileId, houses: tile.houses }];
+  }
+
+  /** PRD Fase 6, US-603: sempre disponibile nel proprio turno; fuori turno solo per
+   * risolvere un debito pendente, come SELL_PROPERTY_TO_BANK. */
+  private handleSellHouse(playerId: PlayerSessionId, tileId: string): ServerEvent[] {
+    const player = this.findPlayer(playerId);
+    const isMyTurn = playerId === this.state.currentTurnPlayerId;
+    if (!isMyTurn && player.pendingDebts.length === 0) {
+      throw new Error("Puoi vendere case solo nel tuo turno, o fuori turno per saldare un debito");
+    }
+    const tile = this.state.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.type !== "property" || tile.ownerId !== playerId) {
+      throw new Error("Non possiedi questa proprietà");
+    }
+
+    const level = buildingLevel(tile);
+    if (level === 0) throw new Error("Nessuna casa da vendere su questa proprietà");
+
+    const group = groupTilesOf(this.state.board, tile);
+    const maxLevel = Math.max(...group.map(buildingLevel));
+    if (level < maxLevel) {
+      throw new Error("Vendita non bilanciata: vendi prima dalle proprietà più costruite del gruppo");
+    }
+
+    let amount: number;
+    if (level === MAX_HOUSES + 1) {
+      amount = Math.floor((tile.hotelCost ?? 0) / 2);
+      tile.hotel = false;
+      tile.houses = MAX_HOUSES;
+    } else {
+      amount = Math.floor((tile.houseCost ?? 0) / 2);
+      tile.houses = level - 1;
+    }
+    player.money += amount;
+
+    const events: ServerEvent[] = [{ type: "HOUSE_SOLD", playerId, tileId, amount }];
     events.push(...this.tryResolveDebts(player));
     return events;
   }
@@ -769,6 +852,7 @@ export class GameEngine {
     if (player.status !== "active") throw new Error("Devi essere un giocatore attivo per avviare un'asta");
     const tile = this.state.board.tiles.find((t) => t.id === tileId);
     if (!tile || tile.ownerId !== playerId) throw new Error("Non possiedi questa proprietà");
+    if (buildingLevel(tile) > 0) throw new Error("Vendi prima le case/hotel su questa proprietà");
     if (minimumBid < 0) throw new Error("Il prezzo minimo non può essere negativo");
 
     return this.beginAuction(tileId, playerId, Math.floor(minimumBid), playerId);

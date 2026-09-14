@@ -13,6 +13,7 @@ interface TileProps {
 
 export default function Tile({ tile, players, isCorner, isHighlighted, highlightColor }: TileProps) {
   const flag = tile.type === "property" ? flagFor(tile.name) : null;
+  const buildings = tile.hotel ? "🏨" : tile.houses ? "🏠".repeat(tile.houses) : null;
 
   return (
     <div
@@ -34,6 +35,11 @@ export default function Tile({ tile, players, isCorner, isHighlighted, highlight
       <span className="board-tile__name">{tile.name}</span>
       {tile.purchasePrice !== undefined && (
         <span className="board-tile__price">${tile.purchasePrice}</span>
+      )}
+      {buildings && (
+        <span className="board-tile__buildings" aria-hidden="true">
+          {buildings}
+        </span>
       )}
       <div className="board-tile__tokens">
         {players.map((player, i) => (
