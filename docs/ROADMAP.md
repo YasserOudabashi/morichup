@@ -3,7 +3,7 @@
 Ogni fase termina con verifica e approvazione esplicita prima di iniziare la
 successiva (nessuna fase viene concatenata automaticamente).
 
-## Fase 0 — Scaffolding (questa fase)
+## Fase 0 — Scaffolding ✅
 
 - Repository, struttura cartelle, documentazione (PRD, architettura,
   roadmap).
@@ -11,13 +11,17 @@ successiva (nessuna fase viene concatenata automaticamente).
   minimi, senza logica di gioco.
 - Nessuna feature giocabile.
 
-## Fase 1 — Board classica statica (single player, no network)
+## Fase 1 — Board classica statica (single player, no network) ✅
 
-- `BoardConfig` della mappa Classic (10×10, caselle standard) come dato
-  statico.
-- Board renderer React (griglia, caselle, token) senza engine di gioco.
-- HUD statico (player list, azioni disabilitate).
-- Obiettivo: vedere la board classica renderizzata correttamente.
+- `BoardConfig` della mappa Classic: 40 caselle, griglia 11×11 (layout
+  strutturale identico al Monopoly tradizionale), tema "paesi del mondo",
+  in `shared/src/maps/classic.ts` — dato puro, nessuna logica hardcoded nei
+  componenti.
+- Board renderer React (griglia CSS Grid, caselle con gruppo/prezzo, token
+  giocatore con offset per lo stacking) senza engine di gioco.
+- HUD statico (player list con dati finti, nessuna azione ancora attiva).
+- Notice "Desktop recommended" sotto i 900px, come da requisito piattaforma.
+- Verificato visivamente in browser (screenshot desktop + mobile).
 
 ## Fase 2 — Game engine locale (no network)
 

@@ -32,20 +32,29 @@ export type TileType =
   | "randomEvent"
   | "customEvent";
 
+export interface TilePosition {
+  x: number;
+  y: number;
+}
+
 export interface Tile {
   id: string;
   type: TileType;
   name: string;
+  position: TilePosition;
   group?: string;
+  groupColor?: string;
   purchasePrice?: number;
   baseRent?: number;
   rentLevels?: number[];
   houseCost?: number;
   hotelCost?: number;
-  ownerId?: PlayerSessionId;
+  ownerId?: PlayerSessionId | null;
   houses?: number;
   hotel?: boolean;
   mortgaged?: boolean;
+  /** Importo fisso per le caselle tassa (incomeTax / luxuryTax). */
+  amount?: number;
 }
 
 export interface BoardConfig {
@@ -106,3 +115,5 @@ export type ServerEvent =
   | { type: "DICE_RESULT"; playerId: PlayerSessionId; values: [number, number] }
   | { type: "PLAYER_DISCONNECTED"; playerId: PlayerSessionId; timeoutSeconds: number }
   | { type: "PLAYER_RECONNECTED"; playerId: PlayerSessionId };
+
+export { classicBoard } from "./maps/classic";

@@ -1,4 +1,6 @@
 {
   "app.title": "Morichup",
-  "app.scaffoldNotice": "Scaffold del progetto — il gameplay arriva nelle prossime fasi."
+  "app.scaffoldNotice": "Fase 1 — anteprima statica della board Classic, ancora senza logica di gioco.",
+  "hud.players": "Giocatori",
+  "app.desktopOnly": "Morichup si gioca meglio su uno schermo desktop più grande. Ridimensiona la finestra o cambia dispositivo."
 }
