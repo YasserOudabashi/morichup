@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -b",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "simulate": "tsx src/simulate.ts"
   },
@@ -14,13 +14,13 @@
     "@morichup/shared": "*",
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
+    "tsx": "^4.16.2",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.10",
     "@types/uuid": "^9.0.8",
-    "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   }
 }
