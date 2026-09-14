@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { PlayerSessionId, RoomState } from "@morichup/shared";
+import { AVAILABLE_MAPS, type PlayerSessionId, type RoomState } from "@morichup/shared";
 import { t } from "../i18n";
 import { buildJoinUrl } from "../lib/url";
 
@@ -7,11 +7,12 @@ interface LobbyProps {
   room: RoomState;
   sessionId: PlayerSessionId;
   onStart: () => void;
+  onSelectMap: (mapId: string) => void;
   onKick: (targetSessionId: PlayerSessionId) => void;
   onLeave: () => void;
 }
 
-export default function Lobby({ room, sessionId, onStart, onKick, onLeave }: LobbyProps) {
+export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, onLeave }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   const isHost = room.players.find((p) => p.sessionId === sessionId)?.isHost ?? false;
   const connectedCount = room.players.filter((p) => p.connected).length;
@@ -38,6 +39,27 @@ export default function Lobby({ room, sessionId, onStart, onKick, onLeave }: Lob
           <button type="button" className="btn btn--ghost btn--small" onClick={handleCopyLink}>
             {copied ? t("lobby.linkCopied") : t("lobby.copyLink")}
           </button>
+        </div>
+
+        <h2 className="section-label">{t("lobby.map")}</h2>
+        <div className="map-picker">
+          {AVAILABLE_MAPS.map((map) => {
+            const selected = map.id === room.mapId;
+            return (
+              <button
+                key={map.id}
+                type="button"
+                className={`map-picker__option${selected ? " map-picker__option--selected" : ""}`}
+                disabled={!isHost}
+                onClick={() => onSelectMap(map.id)}
+              >
+                <span className="map-picker__name">{map.name}</span>
+                <span className="map-picker__size">
+                  {map.width}x{map.height} · {map.tiles.length} {t("lobby.mapTiles")}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <h2 className="section-label">

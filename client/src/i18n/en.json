@@ -22,6 +22,8 @@
   "lobby.roomCode": "Room code",
   "lobby.copyLink": "Copy invite link",
   "lobby.linkCopied": "Link copied!",
+  "lobby.map": "Map",
+  "lobby.mapTiles": "tiles",
   "lobby.players": "Players",
   "lobby.host": "Host",
   "lobby.you": "you",

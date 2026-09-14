@@ -18,6 +18,7 @@ export interface ConnectionState {
   createRoom: (nickname: string) => void;
   joinRoom: (code: string, nickname: string) => void;
   startGame: () => void;
+  selectMap: (mapId: string) => void;
   kickPlayer: (targetSessionId: PlayerSessionId) => void;
   leaveRoom: () => void;
   sendIntent: (intent: ClientIntent) => void;
@@ -107,6 +108,14 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     });
   }, []);
 
+  const selectMap = useCallback((mapId: string) => {
+    const code = roomCodeRef.current;
+    if (!code) return;
+    getSocket().emit("select_map", { code, mapId }, (res) => {
+      if (!res.ok) setError(res.error);
+    });
+  }, []);
+
   const kickPlayer = useCallback((targetSessionId: PlayerSessionId) => {
     const code = roomCodeRef.current;
     if (!code) return;
@@ -147,6 +156,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     createRoom,
     joinRoom,
     startGame,
+    selectMap,
     kickPlayer,
     leaveRoom,
     sendIntent,

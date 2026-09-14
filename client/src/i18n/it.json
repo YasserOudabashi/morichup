@@ -22,6 +22,8 @@
   "lobby.roomCode": "Codice stanza",
   "lobby.copyLink": "Copia link invito",
   "lobby.linkCopied": "Link copiato!",
+  "lobby.map": "Mappa",
+  "lobby.mapTiles": "caselle",
   "lobby.players": "Giocatori",
   "lobby.host": "Host",
   "lobby.you": "tu",

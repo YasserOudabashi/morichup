@@ -44,6 +44,7 @@ export default function App() {
           room={conn.roomState}
           sessionId={sessionId}
           onStart={conn.startGame}
+          onSelectMap={conn.selectMap}
           onKick={conn.kickPlayer}
           onLeave={conn.leaveRoom}
         />
