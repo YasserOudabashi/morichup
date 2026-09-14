@@ -142,6 +142,10 @@
   "myProperties.title": "Le tue proprietà",
   "myProperties.none": "Non possiedi ancora proprietà",
 
+  "building.buildHouse": "Costruisci casa (${cost})",
+  "building.buildHotel": "Costruisci hotel (${cost})",
+  "building.sell": "Vendi edificio (+${amount})",
+
   "log.debtIncurred": "{name} non riesce a pagare e resta in debito di ${amount}",
   "log.propertySoldToBank": "{name} vende {tile} alla banca per ${amount}",
   "log.debtResolved": "{name} ha saldato tutti i debiti",
@@ -149,5 +153,8 @@
   "log.auctionBid": "{name} offre ${amount}",
   "log.auctionPassed": "{name} passa",
   "log.auctionEndedWon": "{name} si aggiudica {tile} per ${amount}",
-  "log.auctionEndedNoSale": "Nessuno si aggiudica {tile}: resta libera"
+  "log.auctionEndedNoSale": "Nessuno si aggiudica {tile}: resta libera",
+  "log.houseBuilt": "{name} costruisce una casa su {tile} ({houses}/4)",
+  "log.hotelBuilt": "{name} costruisce un hotel su {tile}",
+  "log.houseSold": "{name} vende un edificio su {tile} per ${amount}"
 }

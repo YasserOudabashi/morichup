@@ -43,6 +43,20 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
     .map((id) => gameState.board.tiles.find((tile) => tile.id === id))
     .filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
 
+  const isMyTurn = gameState.currentTurnPlayerId === sessionId;
+  const hasPendingDebt = (me?.pendingDebts.length ?? 0) > 0;
+
+  function buildingLevel(tile: (typeof myTiles)[number]): number {
+    return tile.hotel ? 5 : (tile.houses ?? 0);
+  }
+
+  function ownsFullGroup(tile: (typeof myTiles)[number]): boolean {
+    if (!tile.group) return false;
+    return gameState.board.tiles
+      .filter((t) => t.type === "property" && t.group === tile.group)
+      .every((t) => t.ownerId === sessionId);
+  }
+
   function confirmStartAuction(tileId: string) {
     onIntent({ type: "START_PLAYER_AUCTION", tileId, minimumBid: Math.max(0, minBid) });
     setAuctionFormTileId(null);
@@ -185,9 +199,40 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
 
       <h3 className="section-label social-panel__section">{t("myProperties.title")}</h3>
       {myTiles.length === 0 && <p className="waiting-notice">{t("myProperties.none")}</p>}
-      {myTiles.map((tile) => (
+      {myTiles.map((tile) => {
+        const level = buildingLevel(tile);
+        const canBuild = tile.type === "property" && ownsFullGroup(tile) && level < 5 && isMyTurn;
+        const canSell = tile.type === "property" && level > 0 && (isMyTurn || hasPendingDebt);
+        const nextCost = level === 4 ? tile.hotelCost : tile.houseCost;
+        const sellRefund = Math.floor((level === 5 ? (tile.hotelCost ?? 0) : (tile.houseCost ?? 0)) / 2);
+        return (
         <div key={tile.id} className="my-property-row">
-          <span className="my-property-row__name">{tile.name}</span>
+          <span className="my-property-row__name">
+            {tile.name}
+            {level > 0 && <span className="my-property-row__buildings"> {level === 5 ? "🏨" : "🏠".repeat(level)}</span>}
+          </span>
+          {(canBuild || canSell) && (
+            <div className="my-property-row__building-actions">
+              {canBuild && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() => onIntent({ type: "BUILD_HOUSE", tileId: tile.id })}
+                >
+                  {level === 4 ? t("building.buildHotel", { cost: nextCost ?? 0 }) : t("building.buildHouse", { cost: nextCost ?? 0 })}
+                </button>
+              )}
+              {canSell && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() => onIntent({ type: "SELL_HOUSE", tileId: tile.id })}
+                >
+                  {t("building.sell", { amount: sellRefund })}
+                </button>
+              )}
+            </div>
+          )}
           {canStartAuction &&
             (auctionFormTileId === tile.id ? (
               <div className="my-property-row__form">
@@ -219,7 +264,8 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
               </button>
             ))}
         </div>
-      ))}
+        );
+      })}
 
       {modalState && (
         <TradeModal

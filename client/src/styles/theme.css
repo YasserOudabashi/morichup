@@ -230,6 +230,15 @@ body {
   line-height: 1;
 }
 
+.board-tile__buildings {
+  position: absolute;
+  top: 8px;
+  left: 2px;
+  font-size: 0.5rem;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
 .board-tile__name {
   margin-top: 4px;
 }
@@ -958,6 +967,7 @@ body {
 .my-property-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
   padding: 4px 0;
@@ -966,6 +976,16 @@ body {
 
 .my-property-row__name {
   color: var(--color-text);
+}
+
+.my-property-row__buildings {
+  font-size: 0.75rem;
+}
+
+.my-property-row__building-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .my-property-row__form {

@@ -112,6 +112,12 @@ function describe(
       return event.winnerId
         ? t("log.auctionEndedWon", { name: nameOf(players, event.winnerId), tile: tileName(board, event.tileId), amount: event.amount })
         : t("log.auctionEndedNoSale", { tile: tileName(board, event.tileId) });
+    case "HOUSE_BUILT":
+      return t("log.houseBuilt", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId), houses: event.houses });
+    case "HOTEL_BUILT":
+      return t("log.hotelBuilt", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId) });
+    case "HOUSE_SOLD":
+      return t("log.houseSold", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId), amount: event.amount });
     default:
       return null;
   }

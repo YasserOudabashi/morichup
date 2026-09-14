@@ -142,6 +142,10 @@
   "myProperties.title": "Your properties",
   "myProperties.none": "You don't own any properties yet",
 
+  "building.buildHouse": "Build house (${cost})",
+  "building.buildHotel": "Build hotel (${cost})",
+  "building.sell": "Sell building (+${amount})",
+
   "log.debtIncurred": "{name} can't pay in full and owes ${amount}",
   "log.propertySoldToBank": "{name} sells {tile} to the bank for ${amount}",
   "log.debtResolved": "{name} settled all debts",
@@ -149,5 +153,8 @@
   "log.auctionBid": "{name} bids ${amount}",
   "log.auctionPassed": "{name} passes",
   "log.auctionEndedWon": "{name} wins {tile} for ${amount}",
-  "log.auctionEndedNoSale": "Nobody wins {tile}: it stays unowned"
+  "log.auctionEndedNoSale": "Nobody wins {tile}: it stays unowned",
+  "log.houseBuilt": "{name} builds a house on {tile} ({houses}/4)",
+  "log.hotelBuilt": "{name} builds a hotel on {tile}",
+  "log.houseSold": "{name} sells a building on {tile} for ${amount}"
 }
