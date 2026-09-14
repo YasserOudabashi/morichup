@@ -1,4 +1,5 @@
 import type {
+  AuctionState,
   BoardConfig,
   ClientIntent,
   Contract,
@@ -10,6 +11,7 @@ import type {
   TradeAssets,
   TradeOffer,
 } from "@morichup/shared";
+import { computeAuctionTurnOrder } from "./AuctionEngine";
 import { getTileAt, movePosition } from "./Board";
 import { CardEngine, type Card, type CardDeckSource, type DeckName } from "./CardEngine";
 import { eligibleVoters, isGuiltyVerdict, tallyVotes } from "./ContractEngine";
@@ -90,6 +92,20 @@ export class GameEngine {
         return this.handleReportBrokenPromise(playerId, intent.contractId);
       case "VOTE_ACCUSATION":
         return this.handleVoteAccusation(playerId, intent.accusationId, intent.vote);
+      // Anche la trattativa del debito è svincolata dal turno: un giocatore in
+      // debito (magari per una carta "Chairman" pagata fuori dal proprio turno)
+      // deve potersi liberare in qualunque momento (PRD §29).
+      case "SELL_PROPERTY_TO_BANK":
+        return this.handleSellPropertyToBank(playerId, intent.tileId);
+      case "DECLARE_BANKRUPTCY":
+        return this.handleDeclareBankruptcy(playerId);
+      // Le offerte d'asta seguono il turno interno all'asta, non quello di gioco.
+      case "PLACE_BID":
+        return this.handlePlaceBid(playerId, intent.amount);
+      case "PASS_AUCTION":
+        return this.handlePassAuction(playerId);
+      case "START_PLAYER_AUCTION":
+        return this.handleStartPlayerAuction(playerId, intent.tileId, intent.minimumBid);
     }
 
     if (playerId !== this.state.currentTurnPlayerId) {
@@ -143,12 +159,10 @@ export class GameEngine {
         if (player.jailTurns >= MAX_JAIL_ATTEMPTS) {
           const { events: payEvents } = this.payAmount(player, null, JAIL_FINE);
           events.push(...payEvents);
-          if (player.status !== "bankrupt") {
-            player.inJail = false;
-            player.jailTurns = 0;
-            events.push({ type: "LEFT_JAIL", playerId: player.sessionId, method: "paid" });
-            events.push(...this.moveAndResolve(player, d1 + d2));
-          }
+          player.inJail = false;
+          player.jailTurns = 0;
+          events.push({ type: "LEFT_JAIL", playerId: player.sessionId, method: "paid" });
+          events.push(...this.moveAndResolve(player, d1 + d2));
         }
         // Se jailTurns < MAX_JAIL_ATTEMPTS: resta in prigione, nessun movimento questo turno.
       }
@@ -183,15 +197,11 @@ export class GameEngine {
     const { events: payEvents } = this.payAmount(player, null, JAIL_FINE);
     events.push(...payEvents);
 
-    if (player.status === "bankrupt") {
-      events.push({ type: "TURN_ENDED", playerId: player.sessionId, extraTurn: false });
-      this.advanceToNextPlayer();
-    } else {
-      player.inJail = false;
-      player.jailTurns = 0;
-      events.push({ type: "LEFT_JAIL", playerId: player.sessionId, method: "paid" });
-      // Resta in ROLLING: il giocatore tira comunque i dadi per muoversi questo turno.
-    }
+    player.inJail = false;
+    player.jailTurns = 0;
+    events.push({ type: "LEFT_JAIL", playerId: player.sessionId, method: "paid" });
+    // Se non bastavano i soldi resta comunque un debito da risolvere: blocca il turno.
+    this.applyDebtBlockIfCurrentTurn(player);
     return events;
   }
 
@@ -241,7 +251,13 @@ export class GameEngine {
       throw new Error("Nessuna decisione in sospeso per questa casella");
     }
     this.state.pendingDecision = null;
-    return [{ type: "PROPERTY_DECLINED", playerId: player.sessionId, tileId }];
+    const events: ServerEvent[] = [{ type: "PROPERTY_DECLINED", playerId: player.sessionId, tileId }];
+
+    if (this.state.board.rules.auctionOnDecline) {
+      const tile = this.state.board.tiles.find((t) => t.id === tileId);
+      if (tile) events.push(...this.startAuction(tile));
+    }
+    return events;
   }
 
   private handleEndTurn(player: Player): ServerEvent[] {
@@ -333,6 +349,9 @@ export class GameEngine {
     this.state.trades = this.state.trades.filter((t) => t.id !== tradeId);
 
     const events: ServerEvent[] = [{ type: "TRADE_ACCEPTED", tradeId, byPlayerId: playerId }];
+    // Il denaro incassato dallo scambio può bastare a coprire un debito pendente.
+    events.push(...this.tryResolveDebts(giver));
+    events.push(...this.tryResolveDebts(receiver));
 
     if (trade.specialConditions.trim()) {
       const contract: Contract = {
@@ -478,7 +497,10 @@ export class GameEngine {
     const events: ServerEvent[] = [
       { type: "PLAYER_MOVED", playerId: player.sessionId, from, to, passedGo },
     ];
-    if (passedGo) player.money += board.rules.passingStartBonus;
+    if (passedGo) {
+      player.money += board.rules.passingStartBonus;
+      events.push(...this.tryResolveDebts(player));
+    }
     events.push(...this.resolveLanding(player, to));
     return events;
   }
@@ -494,8 +516,9 @@ export class GameEngine {
           this.state.pendingDecision = { type: "buyOrDecline", tileId: tile.id };
           events.push({ type: "PROPERTY_PURCHASE_OFFER", playerId: player.sessionId, tileId: tile.id });
         } else {
-          // Fondi insufficienti: nessuna offerta d'acquisto (asta non attiva in Classic di default).
+          // Fondi insufficienti: nessuna offerta d'acquisto, si passa eventualmente all'asta.
           events.push({ type: "PROPERTY_DECLINED", playerId: player.sessionId, tileId: tile.id });
+          if (board.rules.auctionOnDecline) events.push(...this.startAuction(tile));
         }
       } else if (tile.ownerId !== player.sessionId && !tile.mortgaged) {
         const owner = this.findPlayer(tile.ownerId);
@@ -562,6 +585,7 @@ export class GameEngine {
       }
       case "collect":
         player.money += card.effect.amount;
+        events.push(...this.tryResolveDebts(player));
         break;
       case "pay": {
         const { events: payEvents } = this.payAmount(player, null, card.effect.amount);
@@ -604,9 +628,11 @@ export class GameEngine {
 
   /**
    * Trasferisce `amount` da payer a payee (o alla banca se payee è null).
-   * Se payer non ha fondi sufficienti: paga solo ciò che ha (regola PRD §30)
-   * e va immediatamente in bancarotta (regola semplificata di Fase 2 — il
-   * BankruptcyEngine con DEBT_RESOLUTION completo arriva in Fase 5).
+   * Se payer non ha fondi sufficienti: paga subito solo ciò che ha (PRD §30)
+   * e il resto diventa un debito pendente — il giocatore NON va in bancarotta
+   * automaticamente. Deve prima provare a vendere proprietà alla banca
+   * (SELL_PROPERTY_TO_BANK) o negoziare (Fase 4); la bancarotta scatta solo
+   * se la dichiara esplicitamente (DECLARE_BANKRUPTCY), vedi PRD §28-31.
    */
   private payAmount(
     payer: Player,
@@ -616,40 +642,226 @@ export class GameEngine {
     if (amount <= 0) return { events: [], paid: 0 };
     const paid = Math.min(amount, payer.money);
     payer.money -= paid;
-    if (payee) payee.money += paid;
-
     const events: ServerEvent[] = [];
-    if (paid < amount) {
-      payer.status = "bankrupt";
-      for (const tileId of payer.properties) {
-        const tile = this.state.board.tiles.find((t) => t.id === tileId);
-        if (tile) {
-          tile.ownerId = null;
-          tile.houses = 0;
-          tile.hotel = false;
-          tile.mortgaged = false;
-        }
-      }
-      payer.properties = [];
-      events.push({ type: "PLAYER_BANKRUPT", playerId: payer.sessionId });
+    if (payee) {
+      payee.money += paid;
+      events.push(...this.tryResolveDebts(payee));
+    }
 
-      const winnerId = checkVictory(this.state.players);
-      if (winnerId) {
-        this.state.state = "GAME_OVER";
-        this.state.winnerId = winnerId;
-        events.push({ type: "GAME_OVER", winnerId });
-      }
+    const shortfall = amount - paid;
+    if (shortfall > 0) {
+      payer.pendingDebts.push({ amount: shortfall, payeeId: payee?.sessionId ?? null });
+      events.push({
+        type: "DEBT_INCURRED",
+        playerId: payer.sessionId,
+        amount: shortfall,
+        payeeId: payee?.sessionId ?? null,
+      });
     }
     return { events, paid };
   }
 
-  private finalizeAfterAction(events: ServerEvent[]): void {
-    if (this.state.state === "GAME_OVER") return;
-    const player = this.currentPlayer();
-    if (player.status === "bankrupt") {
-      events.push({ type: "TURN_ENDED", playerId: player.sessionId, extraTurn: false });
+  /** Salda i debiti pendenti (in ordine) finché il denaro disponibile basta. */
+  private tryResolveDebts(player: Player): ServerEvent[] {
+    if (player.pendingDebts.length === 0) return []; // niente da fare: non generare eventi fantasma
+    while (player.pendingDebts.length > 0 && player.money >= player.pendingDebts[0].amount) {
+      const debt = player.pendingDebts.shift()!;
+      player.money -= debt.amount;
+      if (debt.payeeId) {
+        const payee = this.findPlayer(debt.payeeId);
+        payee.money += debt.amount;
+      }
+    }
+    if (player.pendingDebts.length > 0) return [];
+
+    const events: ServerEvent[] = [{ type: "DEBT_RESOLVED", playerId: player.sessionId }];
+    if (this.state.currentTurnPlayerId === player.sessionId && this.state.state === "DEBT_RESOLUTION") {
+      this.state.state = "PLAYER_DECISION";
+    }
+    return events;
+  }
+
+  /** Se il debitore è il giocatore di turno, blocca ROLL_DICE/END_TURN finché non salda. */
+  private applyDebtBlockIfCurrentTurn(player: Player): void {
+    if (this.state.state === "GAME_OVER" || this.state.auction) return;
+    if (this.state.currentTurnPlayerId === player.sessionId && player.pendingDebts.length > 0) {
+      this.state.state = "DEBT_RESOLUTION";
+    }
+  }
+
+  private handleSellPropertyToBank(playerId: PlayerSessionId, tileId: string): ServerEvent[] {
+    const player = this.findPlayer(playerId);
+    if (player.pendingDebts.length === 0) {
+      throw new Error("Nessun debito da risolvere: non puoi vendere alla banca in questo momento");
+    }
+    const tile = this.state.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.ownerId !== playerId) throw new Error("Non possiedi questa proprietà");
+
+    const sellPrice = Math.floor((tile.purchasePrice ?? 0) / 2);
+    player.money += sellPrice;
+    tile.ownerId = null;
+    tile.houses = 0;
+    tile.hotel = false;
+    tile.mortgaged = false;
+    player.properties = player.properties.filter((id) => id !== tileId);
+
+    const events: ServerEvent[] = [{ type: "PROPERTY_SOLD_TO_BANK", playerId, tileId, amount: sellPrice }];
+    events.push(...this.tryResolveDebts(player));
+    return events;
+  }
+
+  private handleDeclareBankruptcy(playerId: PlayerSessionId): ServerEvent[] {
+    const player = this.findPlayer(playerId);
+    if (player.pendingDebts.length === 0) throw new Error("Non hai debiti da risolvere");
+    if (player.status !== "active") throw new Error("Giocatore non attivo");
+
+    // PRD §30: al creditore non è garantito il totale originario, solo la liquidità disponibile ora.
+    for (const debt of player.pendingDebts) {
+      const paid = Math.min(player.money, debt.amount);
+      player.money -= paid;
+      if (debt.payeeId) {
+        const payee = this.findPlayer(debt.payeeId);
+        payee.money += paid;
+      }
+    }
+    player.pendingDebts = [];
+    player.status = "bankrupt";
+    for (const tileId of player.properties) {
+      const tile = this.state.board.tiles.find((t) => t.id === tileId);
+      if (tile) {
+        tile.ownerId = null;
+        tile.houses = 0;
+        tile.hotel = false;
+        tile.mortgaged = false;
+      }
+    }
+    player.properties = [];
+
+    const events: ServerEvent[] = [{ type: "PLAYER_BANKRUPT", playerId }];
+    const winnerId = checkVictory(this.state.players);
+    if (winnerId) {
+      this.state.state = "GAME_OVER";
+      this.state.winnerId = winnerId;
+      events.push({ type: "GAME_OVER", winnerId });
+    } else if (this.state.currentTurnPlayerId === playerId && this.state.state === "DEBT_RESOLUTION") {
+      events.push({ type: "TURN_ENDED", playerId, extraTurn: false });
       this.pendingExtraRoll = false;
       this.advanceToNextPlayer();
+    }
+    return events;
+  }
+
+  // --- Aste ------------------------------------------------------------
+
+  /** Asta della banca su una proprietà rifiutata (nessun venditore, nessun minimo). */
+  private startAuction(tile: { id: string }): ServerEvent[] {
+    return this.beginAuction(tile.id, null, 0, this.state.currentTurnPlayerId);
+  }
+
+  /** Un giocatore mette all'asta una propria proprietà con un prezzo minimo (PRD-adiacente,
+   * richiesto esplicitamente): disponibile in qualsiasi momento, come il trading. */
+  private handleStartPlayerAuction(playerId: PlayerSessionId, tileId: string, minimumBid: number): ServerEvent[] {
+    if (this.state.auction) throw new Error("È già in corso un'altra asta");
+    const player = this.findPlayer(playerId);
+    if (player.status !== "active") throw new Error("Devi essere un giocatore attivo per avviare un'asta");
+    const tile = this.state.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.ownerId !== playerId) throw new Error("Non possiedi questa proprietà");
+    if (minimumBid < 0) throw new Error("Il prezzo minimo non può essere negativo");
+
+    return this.beginAuction(tileId, playerId, Math.floor(minimumBid), playerId);
+  }
+
+  private beginAuction(
+    tileId: string,
+    sellerId: PlayerSessionId | null,
+    minimumBid: number,
+    startAfterId: PlayerSessionId | null
+  ): ServerEvent[] {
+    if (this.state.auction) return []; // difensivo: non dovrebbe mai capitare
+    const turnOrder = computeAuctionTurnOrder(this.state.players, startAfterId).filter((id) => id !== sellerId);
+    if (turnOrder.length === 0) {
+      if (sellerId) throw new Error("Serve almeno un altro giocatore attivo per fare un'asta");
+      return []; // asta della banca: nessun altro partecipante, la proprietà resta alla banca
+    }
+
+    const auction: AuctionState = {
+      tileId,
+      currentBid: 0,
+      currentBidderId: null,
+      turnOrder,
+      turnIndex: 0,
+      sellerId,
+      minimumBid,
+    };
+    this.state.auction = auction;
+    this.state.state = "AUCTION";
+    return [{ type: "AUCTION_STARTED", tileId, turnOrder }];
+  }
+
+  private handlePlaceBid(playerId: PlayerSessionId, amount: number): ServerEvent[] {
+    const auction = this.state.auction;
+    if (!auction) throw new Error("Nessuna asta in corso");
+    if (auction.turnOrder[auction.turnIndex] !== playerId) throw new Error("Non è il tuo turno d'asta");
+    const player = this.findPlayer(playerId);
+    if (amount <= auction.currentBid) throw new Error("L'offerta deve superare quella attuale");
+    if (amount > player.money) throw new Error("Fondi insufficienti per questa offerta");
+
+    auction.currentBid = amount;
+    auction.currentBidderId = playerId;
+    auction.turnIndex++;
+
+    const events: ServerEvent[] = [{ type: "AUCTION_BID", playerId, amount }];
+    events.push(...this.maybeEndAuction());
+    return events;
+  }
+
+  private handlePassAuction(playerId: PlayerSessionId): ServerEvent[] {
+    const auction = this.state.auction;
+    if (!auction) throw new Error("Nessuna asta in corso");
+    if (auction.turnOrder[auction.turnIndex] !== playerId) throw new Error("Non è il tuo turno d'asta");
+
+    auction.turnIndex++;
+    const events: ServerEvent[] = [{ type: "AUCTION_PASSED", playerId }];
+    events.push(...this.maybeEndAuction());
+    return events;
+  }
+
+  /** Asta a giro singolo (semplificazione Fase 5): un turno a testa, poi vince l'offerta più alta
+   * (se è stata fatta almeno un'offerta e, per le aste tra giocatori, se supera il minimo). */
+  private maybeEndAuction(): ServerEvent[] {
+    const auction = this.state.auction;
+    if (!auction || auction.turnIndex < auction.turnOrder.length) return [];
+
+    const events: ServerEvent[] = [];
+    const tile = this.state.board.tiles.find((t) => t.id === auction.tileId);
+    const saleValid = auction.currentBidderId && tile && auction.currentBid >= auction.minimumBid;
+
+    if (saleValid && auction.currentBidderId && tile) {
+      const winner = this.findPlayer(auction.currentBidderId);
+      winner.money -= auction.currentBid;
+      tile.ownerId = winner.sessionId;
+      winner.properties.push(tile.id);
+      if (auction.sellerId) {
+        const seller = this.findPlayer(auction.sellerId);
+        seller.money += auction.currentBid;
+        seller.properties = seller.properties.filter((id) => id !== tile.id);
+        events.push(...this.tryResolveDebts(seller));
+      }
+      events.push({ type: "AUCTION_ENDED", tileId: auction.tileId, winnerId: winner.sessionId, amount: auction.currentBid });
+    } else {
+      // Nessuna offerta, o (asta tra giocatori) nessuna ha raggiunto il minimo: niente vendita.
+      events.push({ type: "AUCTION_ENDED", tileId: auction.tileId, winnerId: null, amount: 0 });
+    }
+    this.state.auction = null;
+    this.finalizeAfterAction(events);
+    return events;
+  }
+
+  private finalizeAfterAction(events: ServerEvent[]): void {
+    if (this.state.state === "GAME_OVER" || this.state.auction) return;
+    const player = this.currentPlayer();
+    if (player.pendingDebts.length > 0) {
+      this.state.state = "DEBT_RESOLUTION";
     } else {
       this.state.state = "PLAYER_DECISION";
     }

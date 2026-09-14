@@ -12,5 +12,6 @@ export function createInitialState(roomCode: string, board: BoardConfig, players
     trades: [],
     contracts: [],
     accusations: [],
+    auction: null,
   };
 }

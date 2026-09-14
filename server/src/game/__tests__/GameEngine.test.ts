@@ -219,7 +219,7 @@ test("tre tentativi falliti in prigione forzano il pagamento della cauzione", ()
   assert.equal(player.money, 1500 - 50);
 });
 
-test("bancarotta: chi non può pagare il rent viene eliminato e si controlla la vittoria", () => {
+test("debito parziale: chi non può pagare tutto il rent resta bloccato in DEBT_RESOLUTION", () => {
   const board = buildTestBoard();
   const players = buildTestPlayers(2);
   tileById(board, "t7").ownerId = "p0";
@@ -231,14 +231,63 @@ test("bancarotta: chi non può pagare il rent viene eliminato e si controlla la 
   engine.getState().currentTurnPlayerId = "p1";
 
   const events = engine.applyIntent("p1", { type: "ROLL_DICE" });
+  assert.ok(events.some((e) => e.type === "DEBT_INCURRED" && e.playerId === "p1" && e.amount === 10));
+  assert.equal(engine.getState().players[1].money, 0);
+  assert.equal(engine.getState().players[0].money, 1500 + 5); // il creditore riceve subito quel poco che c'è (PRD §30)
+  assert.equal(engine.getState().state, "DEBT_RESOLUTION");
+  assert.deepEqual(engine.getState().players[1].pendingDebts, [{ amount: 10, payeeId: "p0" }]);
+
+  // Bloccato: non può tirare né finire il turno finché non salda.
+  assert.throws(() => engine.applyIntent("p1", { type: "ROLL_DICE" }));
+  assert.throws(() => engine.applyIntent("p1", { type: "END_TURN" }));
+});
+
+test("bancarotta: chi non può saldare il debito può dichiararla esplicitamente, e si controlla la vittoria", () => {
+  const board = buildTestBoard();
+  const players = buildTestPlayers(2);
+  tileById(board, "t7").ownerId = "p0";
+  players[0].properties = ["t7"];
+  players[1].money = 5;
+
+  const engine = new GameEngine("room", board, players, 0, { dice: new ScriptedDice([[3, 4]]) });
+  engine.getState().currentTurnPlayerId = "p1";
+  engine.applyIntent("p1", { type: "ROLL_DICE" }); // incorre nel debito, vedi test sopra
+
+  const events = engine.applyIntent("p1", { type: "DECLARE_BANKRUPTCY" });
   assert.ok(events.some((e) => e.type === "PLAYER_BANKRUPT" && e.playerId === "p1"));
   assert.ok(events.some((e) => e.type === "GAME_OVER" && e.winnerId === "p0"));
 
   assert.equal(engine.getState().players[1].status, "bankrupt");
   assert.equal(engine.getState().players[1].money, 0);
-  assert.equal(engine.getState().players[0].money, 1500 + 5);
+  assert.deepEqual(engine.getState().players[1].pendingDebts, []);
+  assert.equal(engine.getState().players[0].money, 1500 + 5); // niente di più: non c'era altro da dare
   assert.equal(engine.getState().state, "GAME_OVER");
   assert.equal(engine.getState().winnerId, "p0");
+});
+
+test("vendere una proprietà alla banca copre il debito e sblocca il turno", () => {
+  const board = buildTestBoard();
+  const players = buildTestPlayers(2);
+  tileById(board, "t7").ownerId = "p0"; // rent 15, pagata da p1
+  players[0].properties = ["t7"];
+  tileById(board, "t2").ownerId = "p1"; // p1 possiede una proprietà da vendere (prezzo 100 -> 50 alla banca)
+  players[1].properties = ["t2"];
+  players[1].money = 5;
+
+  const engine = new GameEngine("room", board, players, 0, { dice: new ScriptedDice([[3, 4]]) });
+  engine.getState().currentTurnPlayerId = "p1";
+  engine.applyIntent("p1", { type: "ROLL_DICE" }); // debito di 10
+
+  const sellEvents = engine.applyIntent("p1", { type: "SELL_PROPERTY_TO_BANK", tileId: "t2" });
+  assert.ok(sellEvents.some((e) => e.type === "PROPERTY_SOLD_TO_BANK" && e.amount === 50));
+  assert.ok(sellEvents.some((e) => e.type === "DEBT_RESOLVED"));
+  assert.equal(engine.getState().players[1].pendingDebts.length, 0);
+  assert.equal(tileById(board, "t2").ownerId, null);
+  assert.equal(engine.getState().state, "PLAYER_DECISION");
+
+  // Ora può finire il turno normalmente.
+  const endEvents = engine.applyIntent("p1", { type: "END_TURN" });
+  assert.ok(endEvents.some((e) => e.type === "TURN_ENDED"));
 });
 
 test("validazione: non si può agire fuori dal proprio turno", () => {

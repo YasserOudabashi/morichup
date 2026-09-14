@@ -83,7 +83,10 @@ export function registerSocketServer(io: AppServer): void {
     const state = engine.getState();
 
     const awaitingAction =
-      state.state === "ROLLING" || (state.state === "PLAYER_DECISION" && state.pendingDecision !== null);
+      state.state === "ROLLING" ||
+      (state.state === "PLAYER_DECISION" && state.pendingDecision !== null) ||
+      state.state === "DEBT_RESOLUTION" ||
+      state.state === "AUCTION";
     const seconds = state.board.rules.turnTimerSeconds;
 
     if (!awaitingAction || seconds === "off" || state.state === "GAME_OVER") {
@@ -104,20 +107,28 @@ export function registerSocketServer(io: AppServer): void {
     const engine = lobbyManager.getEngine(code);
     if (!engine) return;
     const state = engine.getState();
-    const playerId = state.currentTurnPlayerId;
-    if (!playerId) return;
 
     let events: ServerEvent[] = [];
     try {
-      if (state.pendingDecision?.type === "buyOrDecline") {
-        events = engine.applyIntent(playerId, { type: "DECLINE_PROPERTY", tileId: state.pendingDecision.tileId });
-      } else if (state.state === "ROLLING") {
-        events = engine.applyIntent(playerId, { type: "ROLL_DICE" });
-      } else if (state.state === "PLAYER_DECISION") {
-        events = engine.applyIntent(playerId, { type: "END_TURN" });
+      if (state.state === "AUCTION" && state.auction) {
+        // Il turno dell'asta segue il proprio ordine, non necessariamente il giocatore di turno.
+        const bidderId = state.auction.turnOrder[state.auction.turnIndex];
+        if (bidderId) events = engine.applyIntent(bidderId, { type: "PASS_AUCTION" });
+      } else {
+        const playerId = state.currentTurnPlayerId;
+        if (!playerId) return;
+        if (state.state === "DEBT_RESOLUTION") {
+          events = engine.applyIntent(playerId, { type: "DECLARE_BANKRUPTCY" });
+        } else if (state.pendingDecision?.type === "buyOrDecline") {
+          events = engine.applyIntent(playerId, { type: "DECLINE_PROPERTY", tileId: state.pendingDecision.tileId });
+        } else if (state.state === "ROLLING") {
+          events = engine.applyIntent(playerId, { type: "ROLL_DICE" });
+        } else if (state.state === "PLAYER_DECISION") {
+          events = engine.applyIntent(playerId, { type: "END_TURN" });
+        }
       }
     } catch {
-      // Lo stato è cambiato nel frattempo (es. bancarotta già gestita altrove): ignora.
+      // Lo stato è cambiato nel frattempo (es. debito già risolto altrove): ignora.
     }
 
     if (events.length > 0) io.to(code).emit("game_events", events);

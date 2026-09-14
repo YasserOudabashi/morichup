@@ -17,6 +17,15 @@ export interface Player {
   /** Doppi consecutivi ottenuti nel turno corrente (3 di fila manda in prigione). */
   consecutiveDoubles: number;
   getOutOfJailFreeCards: number;
+  /** Debiti non ancora coperti (PRD §28-30): il giocatore resta bloccato finché
+   * non li salda vendendo proprietà alla banca o dichiara bancarotta. */
+  pendingDebts: PendingDebt[];
+}
+
+export interface PendingDebt {
+  amount: number;
+  /** null = dovuto alla banca (tasse, carte, cauzione, multe). */
+  payeeId: PlayerSessionId | null;
 }
 
 export type TileType =
@@ -150,6 +159,22 @@ export interface ContractAccusation {
   votes: Record<PlayerSessionId, "guilty" | "notGuilty">;
 }
 
+// --- Aste (Fase 5) -----------------------------------------------------
+
+export interface AuctionState {
+  tileId: string;
+  currentBid: number;
+  currentBidderId: PlayerSessionId | null;
+  /** Un solo giro: ogni giocatore agisce una volta, nell'ordine qui indicato. */
+  turnOrder: PlayerSessionId[];
+  turnIndex: number;
+  /** null = asta della banca (proprietà rifiutata); altrimenti il giocatore che
+   * ha messo in vendita una propria proprietà, a cui va il ricavato. */
+  sellerId: PlayerSessionId | null;
+  /** Prezzo minimo sotto il quale il venditore non è obbligato a vendere (solo aste tra giocatori). */
+  minimumBid: number;
+}
+
 export interface GameState {
   roomCode: string;
   board: BoardConfig;
@@ -162,6 +187,7 @@ export interface GameState {
   trades: TradeOffer[];
   contracts: Contract[];
   accusations: ContractAccusation[];
+  auction: AuctionState | null;
 }
 
 // Intent: client -> server. Elenco iniziale, estendere per fase.
@@ -178,7 +204,12 @@ export type ClientIntent =
   | { type: "REJECT_TRADE"; tradeId: string }
   | { type: "CANCEL_TRADE"; tradeId: string }
   | { type: "REPORT_BROKEN_PROMISE"; contractId: string }
-  | { type: "VOTE_ACCUSATION"; accusationId: string; vote: "guilty" | "notGuilty" };
+  | { type: "VOTE_ACCUSATION"; accusationId: string; vote: "guilty" | "notGuilty" }
+  | { type: "SELL_PROPERTY_TO_BANK"; tileId: string }
+  | { type: "DECLARE_BANKRUPTCY" }
+  | { type: "PLACE_BID"; amount: number }
+  | { type: "PASS_AUCTION" }
+  | { type: "START_PLAYER_AUCTION"; tileId: string; minimumBid: number };
 
 // Event: server -> client. Elenco iniziale, estendere per fase.
 export type ServerEvent =
@@ -207,7 +238,14 @@ export type ServerEvent =
   | { type: "CONTRACT_CREATED"; contract: Contract }
   | { type: "PROMISE_REPORTED"; accusation: ContractAccusation }
   | { type: "ACCUSATION_VOTE_CAST"; accusationId: string; voterId: PlayerSessionId }
-  | { type: "ACCUSATION_RESOLVED"; accusationId: string; guilty: boolean; penaltyAmount: number };
+  | { type: "ACCUSATION_RESOLVED"; accusationId: string; guilty: boolean; penaltyAmount: number }
+  | { type: "DEBT_INCURRED"; playerId: PlayerSessionId; amount: number; payeeId: PlayerSessionId | null }
+  | { type: "PROPERTY_SOLD_TO_BANK"; playerId: PlayerSessionId; tileId: string; amount: number }
+  | { type: "DEBT_RESOLVED"; playerId: PlayerSessionId }
+  | { type: "AUCTION_STARTED"; tileId: string; turnOrder: PlayerSessionId[] }
+  | { type: "AUCTION_BID"; playerId: PlayerSessionId; amount: number }
+  | { type: "AUCTION_PASSED"; playerId: PlayerSessionId }
+  | { type: "AUCTION_ENDED"; tileId: string; winnerId: PlayerSessionId | null; amount: number };
 
 export { classicBoard } from "./maps/classic";
 export * from "./socket";
