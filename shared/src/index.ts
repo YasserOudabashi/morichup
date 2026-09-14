@@ -11,6 +11,12 @@ export interface Player {
   position: number;
   properties: string[];
   status: "active" | "disconnected" | "afk" | "spectator" | "bankrupt";
+  inJail: boolean;
+  /** Tentativi di uscita falliti nel turno corrente in prigione (max 3, vedi GameRules). */
+  jailTurns: number;
+  /** Doppi consecutivi ottenuti nel turno corrente (3 di fila manda in prigione). */
+  consecutiveDoubles: number;
+  getOutOfJailFreeCards: number;
 }
 
 export type TileType =
@@ -94,17 +100,25 @@ export type GameStateMachineState =
   | "GAME_OVER"
   | "SPECTATING";
 
+/** Decisione obbligatoria che blocca END_TURN finché non viene risolta. */
+export type PendingDecision = { type: "buyOrDecline"; tileId: string } | null;
+
 export interface GameState {
   roomCode: string;
   board: BoardConfig;
   players: Player[];
   currentTurnPlayerId: PlayerSessionId | null;
   state: GameStateMachineState;
+  lastDiceRoll?: [number, number];
+  pendingDecision: PendingDecision;
+  winnerId?: PlayerSessionId;
 }
 
 // Intent: client -> server. Elenco iniziale, estendere per fase.
 export type ClientIntent =
   | { type: "ROLL_DICE" }
+  | { type: "PAY_BAIL" }
+  | { type: "USE_JAIL_CARD" }
   | { type: "BUY_PROPERTY"; tileId: string }
   | { type: "DECLINE_PROPERTY"; tileId: string }
   | { type: "END_TURN" };
@@ -112,7 +126,19 @@ export type ClientIntent =
 // Event: server -> client. Elenco iniziale, estendere per fase.
 export type ServerEvent =
   | { type: "STATE_UPDATE"; state: GameState }
-  | { type: "DICE_RESULT"; playerId: PlayerSessionId; values: [number, number] }
+  | { type: "DICE_RESULT"; playerId: PlayerSessionId; values: [number, number]; isDouble: boolean }
+  | { type: "PLAYER_MOVED"; playerId: PlayerSessionId; from: number; to: number; passedGo: boolean }
+  | { type: "PROPERTY_PURCHASE_OFFER"; playerId: PlayerSessionId; tileId: string }
+  | { type: "PROPERTY_PURCHASED"; playerId: PlayerSessionId; tileId: string; price: number }
+  | { type: "PROPERTY_DECLINED"; playerId: PlayerSessionId; tileId: string }
+  | { type: "RENT_PAID"; fromPlayerId: PlayerSessionId; toPlayerId: PlayerSessionId; tileId: string; amount: number }
+  | { type: "TAX_PAID"; playerId: PlayerSessionId; amount: number }
+  | { type: "CARD_DRAWN"; playerId: PlayerSessionId; deck: "fortune" | "communityChest"; text: string }
+  | { type: "SENT_TO_JAIL"; playerId: PlayerSessionId; reason: "tile" | "threeDoubles" }
+  | { type: "LEFT_JAIL"; playerId: PlayerSessionId; method: "paid" | "doubles" | "card" }
+  | { type: "PLAYER_BANKRUPT"; playerId: PlayerSessionId }
+  | { type: "TURN_ENDED"; playerId: PlayerSessionId; extraTurn: boolean }
+  | { type: "GAME_OVER"; winnerId: PlayerSessionId }
   | { type: "PLAYER_DISCONNECTED"; playerId: PlayerSessionId; timeoutSeconds: number }
   | { type: "PLAYER_RECONNECTED"; playerId: PlayerSessionId };
 

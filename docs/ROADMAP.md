@@ -23,13 +23,23 @@ successiva (nessuna fase viene concatenata automaticamente).
 - Notice "Desktop recommended" sotto i 900px, come da requisito piattaforma.
 - Verificato visivamente in browser (screenshot desktop + mobile).
 
-## Fase 2 — Game engine locale (no network)
+## Fase 2 — Game engine locale (no network) ✅
 
-- Implementazione `GameEngine`, `GameState`, `DiceEngine`, `Board`/`Tile`
-  in `server/src/game/` con test unitari deterministici.
-- Turn flow completo (roll → move → tile resolution → buy/decline → end
-  turn) eseguibile in locale (in-memory, singolo processo).
-- Ancora nessuna connessione WebSocket.
+- `GameEngine` authoritative completo: dadi (seedabili), movimento, acquisto/
+  rifiuto proprietà, rent (con raddoppio da monopolio, scaling stazioni/
+  utility), tasse, mazzi Fortune/Treasury (8 carte ciascuno, con logica di
+  ripesca e carte "esci di prigione gratis"), prigione (3 doppi consecutivi,
+  casella Go To Jail, cauzione, carta, 3 tentativi fissi), doppi con turno
+  extra, bancarotta semplificata (pagamento parziale poi eliminazione,
+  proprietà tornano alla banca) e controllo vittoria.
+- Pattern intent/event: `applyIntent(playerId, intent) -> ServerEvent[]`,
+  stessa forma che userà la Fase 3 sopra WebSocket.
+- 29 test automatici deterministici (`node --test`, dadi "scriptati" via
+  dependency injection) su motore, dadi, carte, board e calcolo rent.
+- Demo in console (`npm run simulate --workspace server -- [seed]`) che fa
+  giocare 3 bot sulla vera board Classic stampando ogni evento — verificata
+  a mano prima del commit.
+- Ancora nessuna connessione WebSocket: tutto gira in un solo processo.
 
 ## Fase 3 — Multiplayer real-time
 

@@ -1,5 +1,12 @@
 import type { Player } from "@morichup/shared";
 
+const jailDefaults = {
+  inJail: false,
+  jailTurns: 0,
+  consecutiveDoubles: 0,
+  getOutOfJailFreeCards: 0,
+};
+
 // Dati finti solo per verificare il rendering in Fase 1 (board statica).
 // Player C condivide la casella di Player B per testare lo stacking dei token.
 export const mockPlayers: Player[] = [
@@ -11,6 +18,7 @@ export const mockPlayers: Player[] = [
     position: 0,
     properties: [],
     status: "active",
+    ...jailDefaults,
   },
   {
     sessionId: "mock-b",
@@ -20,6 +28,7 @@ export const mockPlayers: Player[] = [
     position: 11,
     properties: ["tile-1"],
     status: "active",
+    ...jailDefaults,
   },
   {
     sessionId: "mock-c",
@@ -29,6 +38,7 @@ export const mockPlayers: Player[] = [
     position: 11,
     properties: [],
     status: "active",
+    ...jailDefaults,
   },
   {
     sessionId: "mock-d",
@@ -38,5 +48,6 @@ export const mockPlayers: Player[] = [
     position: 25,
     properties: ["tile-6", "tile-8"],
     status: "active",
+    ...jailDefaults,
   },
 ];
