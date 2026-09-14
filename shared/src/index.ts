@@ -140,6 +140,8 @@ export type ServerEvent =
   | { type: "TURN_ENDED"; playerId: PlayerSessionId; extraTurn: boolean }
   | { type: "GAME_OVER"; winnerId: PlayerSessionId }
   | { type: "PLAYER_DISCONNECTED"; playerId: PlayerSessionId; timeoutSeconds: number }
-  | { type: "PLAYER_RECONNECTED"; playerId: PlayerSessionId };
+  | { type: "PLAYER_RECONNECTED"; playerId: PlayerSessionId }
+  | { type: "PLAYER_AFK"; playerId: PlayerSessionId };
 
 export { classicBoard } from "./maps/classic";
+export * from "./socket";

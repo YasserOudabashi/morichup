@@ -409,7 +409,9 @@ export class GameEngine {
     let nextIndex = currentIndex;
     for (let i = 0; i < players.length; i++) {
       nextIndex = (nextIndex + 1) % players.length;
-      if (players[nextIndex].status !== "bankrupt") break;
+      // Salta anche gli AFK (disconnessi oltre la finestra di riconnessione, Fase 3):
+      // restano in partita con i loro asset ma non giocano finché non tornano.
+      if (players[nextIndex].status !== "bankrupt" && players[nextIndex].status !== "afk") break;
     }
     const next = players[nextIndex];
     next.consecutiveDoubles = 0;

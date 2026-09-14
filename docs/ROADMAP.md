@@ -41,12 +41,30 @@ successiva (nessuna fase viene concatenata automaticamente).
   a mano prima del commit.
 - Ancora nessuna connessione WebSocket: tutto gira in un solo processo.
 
-## Fase 3 — Multiplayer real-time
+## Fase 3 — Multiplayer real-time ✅
 
-- Server Socket.IO: lobby, room code, join/create, host system.
-- Collegamento client ↔ server con pattern intent/event authoritative.
-- Reconnection system (60s, `playerSessionId`).
-- Turn timer server-authoritative.
+- `LobbyManager` server-side: stanze in memoria, codice a 6 caratteri,
+  create/join/rejoin, host system (avvio partita, kick in lobby, host
+  trasferito automaticamente se chi crea la stanza si disconnette in lobby).
+- `SocketServer` (Socket.IO, eventi tipizzati end-to-end via `shared/socket.ts`):
+  collega `LobbyManager`/`GameEngine` al client con lo stesso pattern
+  intent/event della Fase 2 (`game_intent` → `ServerEvent[]`).
+- Riconnessione: `playerSessionId` persistente in `localStorage`, rientro
+  automatico dopo reload (`rejoin`), finestra di 60s con countdown broadcast
+  a tutti, conversione automatica in AFK oltre la finestra (skippato nei
+  turni, mantiene gli asset).
+- Turn timer server-authoritative per stanza: se nessuno agisce entro
+  `turnTimerSeconds`, il server applica un fallback (tira/rifiuta/fine
+  turno) — mai una partita bloccata.
+- Client: schermate Landing → Main Menu → Lobby (con link di invito
+  copiabile, lista giocatori, controlli host) → Game (board reale, pannello
+  azioni contestuale, log eventi, barra del turn timer, overlay di game
+  over), tutte curate visivamente e completamente i18n (EN/IT, switch a
+  runtime anche in partita).
+- Verificato con un test end-to-end reale: due contesti browser separati
+  (Playwright) che creano/joinano una stanza, giocano un turno con
+  sincronizzazione realtime confermata, e testano disconnessione +
+  riconnessione automatica.
 
 ## Fase 4 — Trading & contratti sociali
 
