@@ -634,7 +634,7 @@ body {
 /* Pannello laterale di gioco: azioni + log eventi */
 
 .game-side-panel {
-  flex: 0 0 280px;
+  flex: 0 0 340px;
   border-left: 1px solid var(--color-border);
   background: var(--color-surface);
   display: flex;
@@ -669,11 +669,12 @@ body {
 }
 
 .event-log {
-  flex: 1 1 auto;
+  flex: 0 1 180px;
   overflow-y: auto;
   padding: 12px 16px;
   display: flex;
   flex-direction: column; /* newest in cima: l'array eventi è già ordinato dal più recente */
+  border-top: 1px solid var(--color-border);
 }
 
 .event-log__line {
@@ -701,4 +702,182 @@ body {
   font-weight: 700;
   color: var(--color-primary);
   margin: 12px 0 20px;
+}
+
+/* ---------------------------------------------------------------- */
+/* Trading & contratti sociali (Fase 4)                              */
+/* ---------------------------------------------------------------- */
+
+.social-panel {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.social-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.social-panel__header .section-label {
+  margin: 0;
+}
+
+.social-panel__section {
+  margin-top: 8px;
+}
+
+.trade-card {
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.trade-card__parties {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.trade-card__line {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.trade-card__conditions {
+  margin: 2px 0 0;
+  font-style: italic;
+  color: var(--color-text);
+}
+
+.trade-card__other {
+  margin: 0;
+  padding: 6px 4px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.trade-card .button-row {
+  margin-top: 4px;
+}
+
+.contract-card {
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.contract-card__text {
+  margin: 0;
+  font-style: italic;
+}
+
+.contract-card__meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.accusation-card {
+  border: 1.5px solid var(--color-danger);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.accusation-card__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-danger);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.accusation-card__text {
+  margin: 0;
+}
+
+.accusation-card__tally {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+/* Modale generico (usato dal form di scambio) */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 46, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.modal-card {
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+}
+
+.trade-columns {
+  display: flex;
+  gap: 16px;
+}
+
+.trade-column {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trade-property-list {
+  max-height: 140px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trade-property-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.trade-textarea {
+  min-height: 60px;
+  resize: vertical;
+  font-family: inherit;
 }

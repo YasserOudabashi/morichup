@@ -1,10 +1,11 @@
-import type { BoardConfig, Player, ServerEvent } from "@morichup/shared";
+import type { BoardConfig, ContractAccusation, Player, ServerEvent } from "@morichup/shared";
 import { t } from "../i18n";
 
 interface EventLogProps {
   events: ServerEvent[];
   board: BoardConfig;
   players: Player[];
+  accusations: ContractAccusation[];
 }
 
 function nameOf(players: Player[], id: string): string {
@@ -15,7 +16,12 @@ function tileName(board: BoardConfig, id: string): string {
   return board.tiles.find((tile) => tile.id === id)?.name ?? id;
 }
 
-function describe(event: ServerEvent, board: BoardConfig, players: Player[]): string | null {
+function describe(
+  event: ServerEvent,
+  board: BoardConfig,
+  players: Player[],
+  accusations: ContractAccusation[]
+): string | null {
   switch (event.type) {
     case "DICE_RESULT":
       return t(event.isDouble ? "log.diceRolledDouble" : "log.diceRolled", {
@@ -58,13 +64,43 @@ function describe(event: ServerEvent, board: BoardConfig, players: Player[]): st
       return t("log.playerAfk", { name: nameOf(players, event.playerId) });
     case "GAME_OVER":
       return t("log.gameOverWinner", { name: nameOf(players, event.winnerId) });
+    case "TRADE_PROPOSED":
+      return t("log.tradeProposed", { from: nameOf(players, event.trade.fromPlayerId), to: nameOf(players, event.trade.toPlayerId) });
+    case "TRADE_COUNTERED":
+      return t("log.tradeCountered", { from: nameOf(players, event.trade.fromPlayerId), to: nameOf(players, event.trade.toPlayerId) });
+    case "TRADE_ACCEPTED":
+      return t("log.tradeAccepted");
+    case "TRADE_REJECTED":
+      return t("log.tradeRejected");
+    case "TRADE_CANCELLED":
+      return t("log.tradeCancelled");
+    case "CONTRACT_CREATED":
+      return t("log.contractCreated", {
+        a: nameOf(players, event.contract.participants[0]),
+        b: nameOf(players, event.contract.participants[1]),
+      });
+    case "PROMISE_REPORTED":
+      return t("log.promiseReported", {
+        accuser: nameOf(players, event.accusation.accuserId),
+        accused: nameOf(players, event.accusation.accusedId),
+      });
+    case "ACCUSATION_VOTE_CAST":
+      return t("log.accusationVoteCast", { name: nameOf(players, event.voterId) });
+    case "ACCUSATION_RESOLVED": {
+      if (!event.guilty) return t("log.accusationResolvedNotGuilty");
+      const accusation = accusations.find((a) => a.id === event.accusationId);
+      const accusedName = accusation ? nameOf(players, accusation.accusedId) : "?";
+      return t("log.accusationResolvedGuilty", { name: accusedName, amount: event.penaltyAmount });
+    }
     default:
       return null;
   }
 }
 
-export default function EventLog({ events, board, players }: EventLogProps) {
-  const lines = events.map((event, i) => ({ id: i, text: describe(event, board, players) })).filter((l) => l.text);
+export default function EventLog({ events, board, players, accusations }: EventLogProps) {
+  const lines = events
+    .map((event, i) => ({ id: i, text: describe(event, board, players, accusations) }))
+    .filter((l) => l.text);
 
   return (
     <div className="event-log">

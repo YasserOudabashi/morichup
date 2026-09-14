@@ -9,5 +9,8 @@ export function createInitialState(roomCode: string, board: BoardConfig, players
     // TURN_START è istantaneo (vedi docs/ARCHITECTURE.md): si parte già pronti al tiro.
     state: "ROLLING",
     pendingDecision: null,
+    trades: [],
+    contracts: [],
+    accusations: [],
   };
 }

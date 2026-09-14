@@ -16,6 +16,9 @@ type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<strin
  */
 export function registerSocketServer(io: AppServer): void {
   const turnTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  // Chiave "codiceStanza:accusationId": gli id delle accuse sono generati per-partita,
+  // quindi non sono unici tra stanze diverse senza il prefisso.
+  const accusationTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   const lobbyManager = new LobbyManager((code, events) => {
     if (events.length > 0) io.to(code).emit("game_events", events);
@@ -44,9 +47,33 @@ export function registerSocketServer(io: AppServer): void {
     if (roomState.status === "playing" && engine) {
       io.to(code).emit("game_state", engine.getState());
       scheduleTurnTimer(code);
+      scheduleAccusationTimers(code, engine.getState().accusations);
     } else {
       clearRoomTimer(code);
     }
+  }
+
+  /** Programma la risoluzione forzata (PRD §25: "...oppure il timer termina") per ogni
+   * accusa ancora in votazione che non ha già un timer attivo. */
+  function scheduleAccusationTimers(code: string, accusations: { id: string; status: string; deadline: number }[]): void {
+    for (const accusation of accusations) {
+      if (accusation.status !== "voting") continue;
+      const key = `${code}:${accusation.id}`;
+      if (accusationTimers.has(key)) continue;
+      const delay = Math.max(0, accusation.deadline - Date.now());
+      const timer = setTimeout(() => handleAccusationTimeout(code, accusation.id), delay);
+      timer.unref?.();
+      accusationTimers.set(key, timer);
+    }
+  }
+
+  function handleAccusationTimeout(code: string, accusationId: string): void {
+    accusationTimers.delete(`${code}:${accusationId}`);
+    const engine = lobbyManager.getEngine(code);
+    if (!engine) return;
+    const events = engine.forceResolveAccusation(accusationId);
+    if (events.length > 0) io.to(code).emit("game_events", events);
+    broadcastRoomOrGame(code);
   }
 
   function scheduleTurnTimer(code: string): void {

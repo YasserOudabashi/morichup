@@ -4,6 +4,7 @@ import Hud from "./Hud";
 import ActionPanel from "./ActionPanel";
 import TurnTimerBar from "./TurnTimerBar";
 import EventLog from "./EventLog";
+import SocialPanel from "./SocialPanel";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { t } from "../i18n";
 
@@ -38,7 +39,8 @@ export default function GameScreen({ gameState, sessionId, turnDeadline, events,
         </div>
         <aside className="game-side-panel">
           <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
-          <EventLog events={events} board={gameState.board} players={gameState.players} />
+          <SocialPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
+          <EventLog events={events} board={gameState.board} players={gameState.players} accusations={gameState.accusations} />
         </aside>
       </div>
       <div className="desktop-only-notice">{t("app.desktopOnly")}</div>

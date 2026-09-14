@@ -103,6 +103,53 @@ export type GameStateMachineState =
 /** Decisione obbligatoria che blocca END_TURN finché non viene risolta. */
 export type PendingDecision = { type: "buyOrDecline"; tileId: string } | null;
 
+// --- Trading & contratti sociali (Fase 4) -----------------------------
+
+export interface TradeAssets {
+  cash: number;
+  propertyIds: string[];
+}
+
+export type TradeStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+export interface TradeOffer {
+  /** Stabile per tutta la trattativa: le controfferte aggiornano lo stesso oggetto. */
+  id: string;
+  version: number;
+  fromPlayerId: PlayerSessionId;
+  toPlayerId: PlayerSessionId;
+  give: TradeAssets;
+  receive: TradeAssets;
+  specialConditions: string;
+  status: TradeStatus;
+  createdAt: number;
+}
+
+export type ContractStatus = "active" | "disputed" | "cancelled";
+
+export interface Contract {
+  id: string;
+  creatorId: PlayerSessionId;
+  participants: PlayerSessionId[];
+  text: string;
+  createdAt: number;
+  relatedTradeId: string;
+  status: ContractStatus;
+}
+
+export type AccusationStatus = "voting" | "guilty" | "notGuilty";
+
+export interface ContractAccusation {
+  id: string;
+  contractId: string;
+  accuserId: PlayerSessionId;
+  accusedId: PlayerSessionId;
+  createdAt: number;
+  deadline: number;
+  status: AccusationStatus;
+  votes: Record<PlayerSessionId, "guilty" | "notGuilty">;
+}
+
 export interface GameState {
   roomCode: string;
   board: BoardConfig;
@@ -112,6 +159,9 @@ export interface GameState {
   lastDiceRoll?: [number, number];
   pendingDecision: PendingDecision;
   winnerId?: PlayerSessionId;
+  trades: TradeOffer[];
+  contracts: Contract[];
+  accusations: ContractAccusation[];
 }
 
 // Intent: client -> server. Elenco iniziale, estendere per fase.
@@ -121,7 +171,14 @@ export type ClientIntent =
   | { type: "USE_JAIL_CARD" }
   | { type: "BUY_PROPERTY"; tileId: string }
   | { type: "DECLINE_PROPERTY"; tileId: string }
-  | { type: "END_TURN" };
+  | { type: "END_TURN" }
+  | { type: "PROPOSE_TRADE"; toPlayerId: PlayerSessionId; give: TradeAssets; receive: TradeAssets; specialConditions: string }
+  | { type: "COUNTER_TRADE"; tradeId: string; give: TradeAssets; receive: TradeAssets; specialConditions: string }
+  | { type: "ACCEPT_TRADE"; tradeId: string }
+  | { type: "REJECT_TRADE"; tradeId: string }
+  | { type: "CANCEL_TRADE"; tradeId: string }
+  | { type: "REPORT_BROKEN_PROMISE"; contractId: string }
+  | { type: "VOTE_ACCUSATION"; accusationId: string; vote: "guilty" | "notGuilty" };
 
 // Event: server -> client. Elenco iniziale, estendere per fase.
 export type ServerEvent =
@@ -141,7 +198,16 @@ export type ServerEvent =
   | { type: "GAME_OVER"; winnerId: PlayerSessionId }
   | { type: "PLAYER_DISCONNECTED"; playerId: PlayerSessionId; timeoutSeconds: number }
   | { type: "PLAYER_RECONNECTED"; playerId: PlayerSessionId }
-  | { type: "PLAYER_AFK"; playerId: PlayerSessionId };
+  | { type: "PLAYER_AFK"; playerId: PlayerSessionId }
+  | { type: "TRADE_PROPOSED"; trade: TradeOffer }
+  | { type: "TRADE_COUNTERED"; trade: TradeOffer }
+  | { type: "TRADE_ACCEPTED"; tradeId: string; byPlayerId: PlayerSessionId }
+  | { type: "TRADE_REJECTED"; tradeId: string; byPlayerId: PlayerSessionId }
+  | { type: "TRADE_CANCELLED"; tradeId: string }
+  | { type: "CONTRACT_CREATED"; contract: Contract }
+  | { type: "PROMISE_REPORTED"; accusation: ContractAccusation }
+  | { type: "ACCUSATION_VOTE_CAST"; accusationId: string; voterId: PlayerSessionId }
+  | { type: "ACCUSATION_RESOLVED"; accusationId: string; guilty: boolean; penaltyAmount: number };
 
 export { classicBoard } from "./maps/classic";
 export * from "./socket";

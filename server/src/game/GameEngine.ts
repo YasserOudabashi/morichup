@@ -1,17 +1,29 @@
 import type {
   BoardConfig,
   ClientIntent,
+  Contract,
+  ContractAccusation,
   GameState,
   Player,
   PlayerSessionId,
   ServerEvent,
+  TradeAssets,
+  TradeOffer,
 } from "@morichup/shared";
 import { getTileAt, movePosition } from "./Board";
 import { CardEngine, type Card, type CardDeckSource, type DeckName } from "./CardEngine";
+import { eligibleVoters, isGuiltyVerdict, tallyVotes } from "./ContractEngine";
 import { createInitialState } from "./GameState";
 import { DiceEngine } from "./DiceEngine";
-import { DOUBLES_TO_JAIL, JAIL_FINE, MAX_JAIL_ATTEMPTS } from "./GameRules";
+import {
+  ACCUSATION_VOTE_WINDOW_SECONDS,
+  CONTRACT_PENALTY,
+  DOUBLES_TO_JAIL,
+  JAIL_FINE,
+  MAX_JAIL_ATTEMPTS,
+} from "./GameRules";
 import { computeRent, isPropertyLike } from "./Tile";
+import { executeTrade, validateAssetsOwnership } from "./TradeEngine";
 import { checkVictory } from "./VictoryEngine";
 
 interface HeldCard {
@@ -36,6 +48,9 @@ export class GameEngine {
   private pendingExtraRoll = false;
   private heldCards: HeldCard[] = [];
   private jailTileIndex: number;
+  private tradeIdCounter = 0;
+  private contractIdCounter = 0;
+  private accusationIdCounter = 0;
 
   constructor(
     roomCode: string,
@@ -57,6 +72,26 @@ export class GameEngine {
 
   applyIntent(playerId: PlayerSessionId, intent: ClientIntent): ServerEvent[] {
     if (this.state.state === "GAME_OVER") throw new Error("La partita è terminata");
+
+    // Trading e contratti sociali funzionano in qualsiasi momento, anche fuori
+    // dal proprio turno (PRD §20): non passano dal controllo "è il tuo turno".
+    switch (intent.type) {
+      case "PROPOSE_TRADE":
+        return this.handleProposeTrade(playerId, intent);
+      case "COUNTER_TRADE":
+        return this.handleCounterTrade(playerId, intent);
+      case "ACCEPT_TRADE":
+        return this.handleAcceptTrade(playerId, intent.tradeId);
+      case "REJECT_TRADE":
+        return this.handleRejectTrade(playerId, intent.tradeId);
+      case "CANCEL_TRADE":
+        return this.handleCancelTrade(playerId, intent.tradeId);
+      case "REPORT_BROKEN_PROMISE":
+        return this.handleReportBrokenPromise(playerId, intent.contractId);
+      case "VOTE_ACCUSATION":
+        return this.handleVoteAccusation(playerId, intent.accusationId, intent.vote);
+    }
+
     if (playerId !== this.state.currentTurnPlayerId) {
       throw new Error("Non è il turno di questo giocatore");
     }
@@ -78,6 +113,13 @@ export class GameEngine {
       default:
         throw new Error("Intent non gestito in questa fase");
     }
+  }
+
+  /** Chiamato anche dall'esterno (SocketServer) quando scade la finestra di voto di un'accusa. */
+  forceResolveAccusation(accusationId: string): ServerEvent[] {
+    const accusation = this.state.accusations.find((a) => a.id === accusationId);
+    if (!accusation || accusation.status !== "voting") return [];
+    return this.resolveAccusation(accusation);
   }
 
   // --- Intent handlers ---------------------------------------------------
@@ -215,6 +257,216 @@ export class GameEngine {
       this.advanceToNextPlayer();
     }
     return events;
+  }
+
+  // --- Trading -------------------------------------------------------------
+
+  private handleProposeTrade(
+    playerId: PlayerSessionId,
+    intent: Extract<ClientIntent, { type: "PROPOSE_TRADE" }>
+  ): ServerEvent[] {
+    const from = this.findPlayer(playerId);
+    const to = this.findPlayer(intent.toPlayerId);
+    if (from.sessionId === to.sessionId) throw new Error("Non puoi proporre uno scambio a te stesso");
+    if (from.status !== "active" || to.status !== "active") {
+      throw new Error("Entrambi i giocatori devono essere attivi per scambiare");
+    }
+    this.assertOwnedAssets(from, intent.give);
+    this.assertOwnedAssets(to, intent.receive);
+
+    const trade: TradeOffer = {
+      id: this.nextTradeId(),
+      version: 1,
+      fromPlayerId: from.sessionId,
+      toPlayerId: to.sessionId,
+      give: intent.give,
+      receive: intent.receive,
+      specialConditions: intent.specialConditions ?? "",
+      status: "pending",
+      createdAt: Date.now(),
+    };
+    this.state.trades.push(trade);
+    return [{ type: "TRADE_PROPOSED", trade }];
+  }
+
+  private handleCounterTrade(
+    playerId: PlayerSessionId,
+    intent: Extract<ClientIntent, { type: "COUNTER_TRADE" }>
+  ): ServerEvent[] {
+    const trade = this.findTrade(intent.tradeId);
+    if (trade.status !== "pending") throw new Error("Questa trattativa non è più attiva");
+    if (playerId !== trade.toPlayerId) throw new Error("Solo il destinatario dell'offerta può controffrire");
+
+    // Chi controfferisce ora "dà"; il proponente originale ora "riceve": i ruoli si scambiano.
+    const from = this.findPlayer(playerId);
+    const to = this.findPlayer(trade.fromPlayerId);
+    this.assertOwnedAssets(from, intent.give);
+    this.assertOwnedAssets(to, intent.receive);
+
+    trade.version += 1;
+    trade.fromPlayerId = from.sessionId;
+    trade.toPlayerId = to.sessionId;
+    trade.give = intent.give;
+    trade.receive = intent.receive;
+    trade.specialConditions = intent.specialConditions ?? "";
+    trade.createdAt = Date.now();
+
+    return [{ type: "TRADE_COUNTERED", trade }];
+  }
+
+  private handleAcceptTrade(playerId: PlayerSessionId, tradeId: string): ServerEvent[] {
+    const trade = this.findTrade(tradeId);
+    if (trade.status !== "pending") throw new Error("Questa trattativa non è più attiva");
+    if (playerId !== trade.toPlayerId) throw new Error("Solo il destinatario dell'offerta corrente può accettarla");
+
+    const giver = this.findPlayer(trade.fromPlayerId);
+    const receiver = this.findPlayer(trade.toPlayerId);
+    if (giver.status !== "active" || receiver.status !== "active") {
+      throw new Error("Entrambi i giocatori devono essere attivi per completare lo scambio");
+    }
+    // Rivalidazione completa: lo stato può essere cambiato dalla proposta iniziale.
+    this.assertOwnedAssets(giver, trade.give);
+    this.assertOwnedAssets(receiver, trade.receive);
+
+    executeTrade(this.state.board, giver, receiver, trade.give, trade.receive);
+    trade.status = "accepted";
+    this.state.trades = this.state.trades.filter((t) => t.id !== tradeId);
+
+    const events: ServerEvent[] = [{ type: "TRADE_ACCEPTED", tradeId, byPlayerId: playerId }];
+
+    if (trade.specialConditions.trim()) {
+      const contract: Contract = {
+        id: this.nextContractId(),
+        creatorId: trade.fromPlayerId,
+        participants: [trade.fromPlayerId, trade.toPlayerId],
+        text: trade.specialConditions.trim(),
+        createdAt: Date.now(),
+        relatedTradeId: trade.id,
+        status: "active",
+      };
+      this.state.contracts.push(contract);
+      events.push({ type: "CONTRACT_CREATED", contract });
+    }
+    return events;
+  }
+
+  private handleRejectTrade(playerId: PlayerSessionId, tradeId: string): ServerEvent[] {
+    const trade = this.findTrade(tradeId);
+    if (trade.status !== "pending") throw new Error("Questa trattativa non è più attiva");
+    if (playerId !== trade.toPlayerId) throw new Error("Solo il destinatario dell'offerta corrente può rifiutarla");
+    this.state.trades = this.state.trades.filter((t) => t.id !== tradeId);
+    return [{ type: "TRADE_REJECTED", tradeId, byPlayerId: playerId }];
+  }
+
+  private handleCancelTrade(playerId: PlayerSessionId, tradeId: string): ServerEvent[] {
+    const trade = this.findTrade(tradeId);
+    if (trade.status !== "pending") throw new Error("Questa trattativa non è più attiva");
+    if (playerId !== trade.fromPlayerId) throw new Error("Solo chi ha fatto l'ultima offerta può ritirarla");
+    this.state.trades = this.state.trades.filter((t) => t.id !== tradeId);
+    return [{ type: "TRADE_CANCELLED", tradeId }];
+  }
+
+  private assertOwnedAssets(player: Player, assets: TradeAssets): void {
+    const error = validateAssetsOwnership(this.state.board, player, assets);
+    if (error) throw new Error(error);
+    if (player.money < assets.cash) throw new Error(`${player.nickname} non ha abbastanza denaro`);
+  }
+
+  // --- Contratti sociali -----------------------------------------------------
+
+  private handleReportBrokenPromise(accuserId: PlayerSessionId, contractId: string): ServerEvent[] {
+    const contract = this.findContract(contractId);
+    if (contract.status !== "active") throw new Error("Questo contratto non è più attivo");
+    if (!contract.participants.includes(accuserId)) {
+      throw new Error("Solo le parti coinvolte nel contratto possono segnalarlo");
+    }
+    const accusedId = contract.participants.find((id) => id !== accuserId);
+    if (!accusedId) throw new Error("Impossibile determinare l'accusato");
+
+    contract.status = "disputed";
+    const accusation: ContractAccusation = {
+      id: this.nextAccusationId(),
+      contractId,
+      accuserId,
+      accusedId,
+      createdAt: Date.now(),
+      deadline: Date.now() + ACCUSATION_VOTE_WINDOW_SECONDS * 1000,
+      status: "voting",
+      votes: {},
+    };
+    this.state.accusations.push(accusation);
+    return [{ type: "PROMISE_REPORTED", accusation }];
+  }
+
+  private handleVoteAccusation(
+    voterId: PlayerSessionId,
+    accusationId: string,
+    vote: "guilty" | "notGuilty"
+  ): ServerEvent[] {
+    const accusation = this.findAccusation(accusationId);
+    if (accusation.status !== "voting") throw new Error("Questa votazione è già conclusa");
+    const eligible = eligibleVoters(this.state.players, accusation.accuserId, accusation.accusedId);
+    if (!eligible.includes(voterId)) throw new Error("Non hai diritto di voto su questa accusa");
+    if (accusation.votes[voterId]) throw new Error("Hai già votato");
+
+    accusation.votes[voterId] = vote;
+    const events: ServerEvent[] = [{ type: "ACCUSATION_VOTE_CAST", accusationId, voterId }];
+
+    const allVoted = eligible.every((id) => accusation.votes[id]);
+    if (allVoted) events.push(...this.resolveAccusation(accusation));
+    return events;
+  }
+
+  private resolveAccusation(accusation: ContractAccusation): ServerEvent[] {
+    const guilty = isGuiltyVerdict(tallyVotes(accusation));
+    accusation.status = guilty ? "guilty" : "notGuilty";
+
+    const contract = this.state.contracts.find((c) => c.id === accusation.contractId);
+    const events: ServerEvent[] = [];
+    let penaltyAmount = 0;
+
+    if (guilty) {
+      penaltyAmount = CONTRACT_PENALTY;
+      if (contract) contract.status = "disputed"; // resta "disputed": marca storica della violazione
+      const accused = this.findPlayer(accusation.accusedId);
+      const { events: payEvents } = this.payAmount(accused, null, CONTRACT_PENALTY);
+      events.push(...payEvents);
+    } else if (contract) {
+      contract.status = "active"; // accusa respinta, la promessa resta valida
+    }
+
+    events.push({ type: "ACCUSATION_RESOLVED", accusationId: accusation.id, guilty, penaltyAmount });
+    return events;
+  }
+
+  private findTrade(tradeId: string): TradeOffer {
+    const trade = this.state.trades.find((t) => t.id === tradeId);
+    if (!trade) throw new Error("Trattativa non trovata");
+    return trade;
+  }
+
+  private findContract(contractId: string): Contract {
+    const contract = this.state.contracts.find((c) => c.id === contractId);
+    if (!contract) throw new Error("Contratto non trovato");
+    return contract;
+  }
+
+  private findAccusation(accusationId: string): ContractAccusation {
+    const accusation = this.state.accusations.find((a) => a.id === accusationId);
+    if (!accusation) throw new Error("Accusa non trovata");
+    return accusation;
+  }
+
+  private nextTradeId(): string {
+    return `trade-${++this.tradeIdCounter}`;
+  }
+
+  private nextContractId(): string {
+    return `contract-${++this.contractIdCounter}`;
+  }
+
+  private nextAccusationId(): string {
+    return `accusation-${++this.accusationIdCounter}`;
   }
 
   // --- Movimento e risoluzione caselle ------------------------------------

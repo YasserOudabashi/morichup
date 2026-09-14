@@ -66,11 +66,36 @@ successiva (nessuna fase viene concatenata automaticamente).
   sincronizzazione realtime confermata, e testano disconnessione +
   riconnessione automatica.
 
-## Fase 4 — Trading & contratti sociali
+## Fase 4 — Trading & contratti sociali ✅
 
-- `TradeEngine`: offerte, counter-offer, validazione server-side.
-- `ContractEngine`: promesse, report, votazione Guilty/Not Guilty.
-- UI trading (You Give / You Receive / Special Conditions).
+- `TradeEngine`: validazione ownership/denaro e esecuzione dello scambio
+  (cash + proprietà). `TradeOffer` con `id` stabile per tutta la
+  negoziazione; una controfferta (`COUNTER_TRADE`) scambia i ruoli
+  fromPlayer/toPlayer e incrementa `version`, rendendo automaticamente
+  inattiva l'offerta precedente (nessuna race condition: un solo oggetto
+  mutato in sequenza).
+- Trading disponibile in qualsiasi momento, anche fuori dal proprio turno
+  (PRD §20): gli intent di scambio bypassano il controllo "è il tuo turno"
+  nel `GameEngine`.
+- `ContractEngine`: un trade accettato con `specialConditions` non vuoto
+  crea un `Contract` (promessa) tra le due parti. `REPORT_BROKEN_PROMISE`
+  apre un'accusa; voto Guilty/Not Guilty riservato ai giocatori attivi
+  esclusi accusatore e accusato, risolta quando tutti gli aventi diritto
+  hanno votato oppure scade la finestra di 30s (fallback server-side in
+  `SocketServer`, stesso pattern del turn timer). Verdetto Guilty → multa
+  fissa di $100 alla banca (riusa `payAmount`, quindi anche la bancarotta
+  per chi non può pagare è già gestita).
+- UI: pannello "Trades" (You Give / You Receive, proprietà con checkbox,
+  campo promessa) sempre accessibile dall'HUD di gioco, con controfferta
+  pre-compilata; pannello "Promises" con segnalazione; card di accusa con
+  conteggio voti in tempo reale. Stessa cura visiva delle schermate
+  precedenti.
+- 8 nuovi test automatici deterministici su trade/controfferte/accuse
+  (incluso `forceResolveAccusation` per il timeout).
+- Verificato con un test end-to-end reale a **3** browser Playwright: uno
+  scambio in denaro con promessa fuori turno, sincronizzato su tutti i
+  client; segnalazione della promessa infranta; voto dell'unico giocatore
+  eleggibile; multa applicata e sincronizzata ovunque.
 
 ## Fase 5 — Bancarotta, aste, vittoria
 
