@@ -1,4 +1,4 @@
-import type { ClientIntent, GameState, PlayerSessionId, ServerEvent } from "./index";
+import type { BoardConfig, ClientIntent, GameState, PlayerSessionId, ServerEvent } from "./index";
 
 export interface CreateRoomRequest {
   sessionId: PlayerSessionId;
@@ -29,6 +29,23 @@ export interface StartGameRequest {
 export interface SelectMapRequest {
   code: string;
   mapId: string;
+}
+
+/** Fase 9, US-902: l'host carica una mappa personalizzata (JSON esportato dall'editor)
+ * al posto di scegliere una delle mappe ufficiali. Il server la rivalida sempre. */
+export interface SetCustomMapRequest {
+  code: string;
+  board: BoardConfig;
+}
+
+/** Riepilogo leggero di una mappa personalizzata attiva in una stanza: mai l'intero
+ * `BoardConfig` nel `RoomState` broadcast a tutti, per non appesantire ogni update. */
+export interface CustomMapSummary {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  tileCount: number;
 }
 
 /** Regole opzionali configurabili dall'host in lobby (Fase 7). `null` disattiva/svuota un
@@ -103,6 +120,9 @@ export interface RoomState {
   optionalRules: OptionalRulesState;
   /** Fase 12, US-1204: mai la password vera, solo se ne serve una per entrare. */
   hasPassword: boolean;
+  /** Fase 9, US-902: presente solo se l'host ha caricato una mappa personalizzata al posto
+   * di una delle 4 ufficiali; in quel caso `mapId` è l'id della mappa custom. */
+  customMap: CustomMapSummary | null;
 }
 
 export type AckResponse<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -113,6 +133,7 @@ export interface ClientToServerEvents {
   rejoin: (payload: RejoinRequest, ack: (res: AckResponse<RoomState>) => void) => void;
   start_game: (payload: StartGameRequest, ack: (res: AckResponse<null>) => void) => void;
   select_map: (payload: SelectMapRequest, ack: (res: AckResponse<null>) => void) => void;
+  set_custom_map: (payload: SetCustomMapRequest, ack: (res: AckResponse<null>) => void) => void;
   set_rules: (payload: SetRulesRequest, ack: (res: AckResponse<null>) => void) => void;
   kick_player: (payload: KickPlayerRequest, ack: (res: AckResponse<null>) => void) => void;
   leave_room: (payload: LeaveRoomRequest) => void;

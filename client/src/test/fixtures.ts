@@ -63,6 +63,7 @@ export function makeRoomState(overrides: Partial<RoomState> = {}): RoomState {
       gameTimeLimitMinutes: null,
     },
     hasPassword: false,
+    customMap: null,
     ...overrides,
   };
 }

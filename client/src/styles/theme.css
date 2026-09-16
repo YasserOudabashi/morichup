@@ -339,6 +339,11 @@ body {
   transition: background-color 0.15s ease;
 }
 
+/* Fase 9: l'editor mappe riusa questo stesso componente con un onClick. */
+.board-tile--clickable {
+  cursor: pointer;
+}
+
 /* Proprietà: colore del proprietario sempre visibile (non solo su hover),
  * distinto dall'evidenziazione temporanea di .board-tile--highlighted. */
 .board-tile--owned {
@@ -943,6 +948,50 @@ body {
 .map-picker__size {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+.map-picker__custom-active {
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  margin: -8px 0 12px;
+}
+
+.map-picker__custom-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin: -8px 0 12px;
+}
+
+/* Editor mappe (Fase 9) */
+
+.map-editor__panel {
+  overflow-y: auto;
+}
+
+.map-editor__size-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-editor__tile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.map-editor__errors {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--color-danger);
+  font-size: 0.82rem;
+}
+
+.map-editor__file-input {
+  display: none;
 }
 
 .rules-picker {

@@ -11,6 +11,7 @@ import GameScreen from "./components/GameScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import MatchHistory from "./components/MatchHistory";
 import Replay from "./components/Replay";
+import MapEditor from "./components/MapEditor";
 
 export default function App() {
   // In cima all'albero: un cambio lingua deve far ri-renderizzare ogni
@@ -21,6 +22,7 @@ export default function App() {
   const conn = useGameConnection(sessionId);
   const [showHistory, setShowHistory] = useState(false);
   const [replayEntry, setReplayEntry] = useState<MatchHistoryEntry | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
 
   function handleLandingSubmit(nickname: string) {
     if (joinCode) {
@@ -43,6 +45,7 @@ export default function App() {
           onCreate={(password) => conn.createRoom(getSavedNickname(), getSavedColor() ?? undefined, password)}
           onJoin={(code, password) => conn.joinRoom(code, getSavedNickname(), getSavedColor() ?? undefined, password)}
           onHistory={() => setShowHistory(true)}
+          onOpenEditor={() => setShowEditor(true)}
         />
       );
       break;
@@ -53,6 +56,7 @@ export default function App() {
           sessionId={sessionId}
           onStart={conn.startGame}
           onSelectMap={conn.selectMap}
+          onLoadCustomMap={conn.setCustomMap}
           onSetRules={conn.setRules}
           onKick={conn.kickPlayer}
           onLeave={conn.leaveRoom}
@@ -83,6 +87,10 @@ export default function App() {
 
   if (replayEntry) {
     return <Replay entry={replayEntry} onExit={() => setReplayEntry(null)} />;
+  }
+
+  if (showEditor) {
+    return <MapEditor onExit={() => setShowEditor(false)} />;
   }
 
   return (

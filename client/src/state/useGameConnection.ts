@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  BoardConfig,
   ChatMessage,
   ClientIntent,
   GameState,
@@ -56,6 +57,7 @@ export interface ConnectionState {
   joinRoom: (code: string, nickname: string, preferredColor?: string, password?: string) => void;
   startGame: () => void;
   selectMap: (mapId: string) => void;
+  setCustomMap: (board: BoardConfig) => void;
   setRules: (rules: OptionalRulesInput) => void;
   kickPlayer: (targetSessionId: PlayerSessionId) => void;
   leaveRoom: () => void;
@@ -232,6 +234,14 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     });
   }, []);
 
+  const setCustomMap = useCallback((board: BoardConfig) => {
+    const code = roomCodeRef.current;
+    if (!code) return;
+    getSocket().emit("set_custom_map", { code, board }, (res) => {
+      if (!res.ok) setError(res.error);
+    });
+  }, []);
+
   const setRules = useCallback((rules: OptionalRulesInput) => {
     const code = roomCodeRef.current;
     if (!code) return;
@@ -299,6 +309,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     joinRoom,
     startGame,
     selectMap,
+    setCustomMap,
     setRules,
     kickPlayer,
     leaveRoom,

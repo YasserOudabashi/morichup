@@ -225,6 +225,17 @@ export function registerSocketServer(io: AppServer): void {
       }
     });
 
+    socket.on("set_custom_map", ({ code, board }, ack) => {
+      try {
+        if (!socket.data.sessionId) throw new Error("Sessione non valida");
+        lobbyManager.setCustomMap(code, socket.data.sessionId, board);
+        ack({ ok: true, data: null });
+        broadcastRoomOrGame(code);
+      } catch (err) {
+        ack({ ok: false, error: (err as Error).message });
+      }
+    });
+
     socket.on("set_rules", ({ code, rules }, ack) => {
       try {
         if (!socket.data.sessionId) throw new Error("Sessione non valida");
