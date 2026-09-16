@@ -38,7 +38,12 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, jackp
               onMouseEnter={() => onHoverPlayer?.(player.sessionId)}
               onMouseLeave={() => onHoverPlayer?.(null)}
             >
-              <span className="hud__player-color" style={{ backgroundColor: player.color }} />
+              <span className="hud__player-color" style={{ backgroundColor: player.color }}>
+                <span className="hud__player-color__face">
+                  <span className="hud__player-color__eye" />
+                  <span className="hud__player-color__eye" />
+                </span>
+              </span>
               {isCurrent && (
                 <span className="hud__player-turn-indicator" aria-hidden="true">
                   ▶

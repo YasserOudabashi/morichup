@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ClientIntent, GameState, PlayerSessionId, TradeAssets } from "@morichup/shared";
 import { t } from "../i18n";
 import TradeModal from "./TradeModal";
+import TradeViewModal from "./TradeViewModal";
 
 interface SocialPanelProps {
   gameState: GameState;
@@ -9,7 +10,7 @@ interface SocialPanelProps {
   onIntent: (intent: ClientIntent) => void;
 }
 
-type ModalState = { mode: "propose" } | { mode: "counter"; tradeId: string };
+type ModalState = { mode: "propose" } | { mode: "counter"; tradeId: string } | { mode: "view"; tradeId: string };
 
 export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPanelProps) {
   const [modalState, setModalState] = useState<ModalState | null>(null);
@@ -36,6 +37,8 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
   const openAccusations = gameState.accusations.filter((a) => a.status === "voting");
   const existingTradeForModal =
     modalState?.mode === "counter" ? gameState.trades.find((tr) => tr.id === modalState.tradeId) : undefined;
+  const tradeForViewModal =
+    modalState?.mode === "view" ? gameState.trades.find((tr) => tr.id === modalState.tradeId) : undefined;
 
   const me = gameState.players.find((p) => p.sessionId === sessionId);
   const canStartAuction = me?.status === "active" && gameState.auction === null && gameState.state !== "GAME_OVER";
@@ -129,9 +132,14 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
       })}
 
       {otherTrades.map((trade) => (
-        <p key={trade.id} className="trade-card__other">
+        <button
+          key={trade.id}
+          type="button"
+          className="trade-card__other"
+          onClick={() => setModalState({ mode: "view", tradeId: trade.id })}
+        >
           {t("trade.between", { from: nameOf(trade.fromPlayerId), to: nameOf(trade.toPlayerId) })}
-        </p>
+        </button>
       ))}
 
       <h3 className="section-label social-panel__section">{t("contract.title")}</h3>
@@ -198,7 +206,9 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
         );
       })}
 
-      <h3 className="section-label social-panel__section">{t("myProperties.title")}</h3>
+      <h3 className="section-label social-panel__section">
+        {t("myProperties.title")} ({myTiles.length})
+      </h3>
       {myTiles.length === 0 && <p className="waiting-notice">{t("myProperties.none")}</p>}
       {myTiles.map((tile) => {
         const level = buildingLevel(tile);
@@ -299,7 +309,7 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
         );
       })}
 
-      {modalState && (
+      {modalState && modalState.mode !== "view" && (
         <TradeModal
           gameState={gameState}
           sessionId={sessionId}
@@ -326,6 +336,10 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
           }}
           onClose={() => setModalState(null)}
         />
+      )}
+
+      {tradeForViewModal && (
+        <TradeViewModal gameState={gameState} trade={tradeForViewModal} onClose={() => setModalState(null)} />
       )}
     </div>
   );

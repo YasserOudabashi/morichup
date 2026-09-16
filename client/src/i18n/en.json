@@ -97,6 +97,7 @@
   "trade.propose": "Propose trade",
   "trade.title": "New trade offer",
   "trade.counterTitle": "Counter-offer",
+  "trade.viewTitle": "Trade offer",
   "trade.selectPlayer": "Trade with",
   "trade.youGive": "You give",
   "trade.youReceive": "You receive",
