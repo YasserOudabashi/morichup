@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { AVAILABLE_MAPS, type ChatMessage, type PlayerSessionId, type RoomState } from "@morichup/shared";
+import {
+  AVAILABLE_MAPS,
+  type ChatMessage,
+  type OptionalRulesInput,
+  type PlayerSessionId,
+  type RoomState,
+} from "@morichup/shared";
 import { t } from "../i18n";
 import { buildJoinUrl } from "../lib/url";
 import ChatPanel from "./ChatPanel";
@@ -9,6 +15,7 @@ interface LobbyProps {
   sessionId: PlayerSessionId;
   onStart: () => void;
   onSelectMap: (mapId: string) => void;
+  onSetRules: (rules: OptionalRulesInput) => void;
   onKick: (targetSessionId: PlayerSessionId) => void;
   onLeave: () => void;
   chatMessages: ChatMessage[];
@@ -20,6 +27,7 @@ export default function Lobby({
   sessionId,
   onStart,
   onSelectMap,
+  onSetRules,
   onKick,
   onLeave,
   chatMessages,
@@ -74,6 +82,52 @@ export default function Lobby({
               </button>
             );
           })}
+        </div>
+
+        <h2 className="section-label">{t("lobby.optionalRules")}</h2>
+        <div className="rules-picker">
+          <label className="rules-picker__toggle">
+            <input
+              type="checkbox"
+              checked={room.optionalRules.mortgageEnabled}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ mortgageEnabled: e.target.checked })}
+            />
+            {t("lobby.rules.mortgage")}
+          </label>
+          <label className="rules-picker__toggle">
+            <input
+              type="checkbox"
+              checked={room.optionalRules.freeParkingJackpot}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ freeParkingJackpot: e.target.checked })}
+            />
+            {t("lobby.rules.jackpot")}
+          </label>
+          <label className="rules-picker__number">
+            {t("lobby.rules.turnLimit")}
+            <input
+              type="number"
+              min={1}
+              className="text-input text-input--small"
+              value={room.optionalRules.turnLimit ?? ""}
+              placeholder={t("lobby.rules.off")}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ turnLimit: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+          </label>
+          <label className="rules-picker__number">
+            {t("lobby.rules.timeLimit")}
+            <input
+              type="number"
+              min={1}
+              className="text-input text-input--small"
+              value={room.optionalRules.gameTimeLimitMinutes ?? ""}
+              placeholder={t("lobby.rules.off")}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ gameTimeLimitMinutes: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+          </label>
         </div>
 
         <h2 className="section-label">

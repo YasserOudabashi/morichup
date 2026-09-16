@@ -34,6 +34,12 @@
   "lobby.leaveRoom": "Leave room",
   "lobby.disconnected": "disconnected",
   "lobby.spectators": "Spectators",
+  "lobby.optionalRules": "Optional rules",
+  "lobby.rules.mortgage": "Property mortgage",
+  "lobby.rules.jackpot": "Free Parking jackpot",
+  "lobby.rules.turnLimit": "Turn limit",
+  "lobby.rules.timeLimit": "Time limit (min)",
+  "lobby.rules.off": "off",
 
   "chat.title": "Chat",
   "chat.noMessages": "No messages yet",
@@ -41,6 +47,7 @@
   "chat.send": "Send",
 
   "game.rollDice": "Roll dice",
+  "game.doubles": "Doubles!",
   "game.buyProperty": "Buy",
   "game.decline": "Decline",
   "game.endTurn": "End turn",
@@ -55,6 +62,10 @@
   "game.winner": "wins the game!",
   "game.rematch": "Rematch",
   "game.spectatorNotice": "You're watching this game — no actions available.",
+  "game.winByTurnLimit": "Turn limit reached — highest net worth wins.",
+  "game.winByTimeLimit": "Time limit reached — highest net worth wins.",
+
+  "hud.jackpot": "Free Parking jackpot",
 
   "log.diceRolled": "{name} rolls {d1} + {d2}",
   "log.diceRolledDouble": "{name} rolls {d1} + {d2} (double!)",
@@ -154,6 +165,10 @@
   "building.buildHotel": "Build hotel (${cost})",
   "building.sell": "Sell building (+${amount})",
 
+  "mortgage.mortgagedTag": "mortgaged",
+  "mortgage.mortgage": "Mortgage (+${amount})",
+  "mortgage.unmortgage": "Redeem mortgage (-${amount})",
+
   "log.debtIncurred": "{name} can't pay in full and owes ${amount}",
   "log.propertySoldToBank": "{name} sells {tile} to the bank for ${amount}",
   "log.debtResolved": "{name} settled all debts",
@@ -164,5 +179,9 @@
   "log.auctionEndedNoSale": "Nobody wins {tile}: it stays unowned",
   "log.houseBuilt": "{name} builds a house on {tile} ({houses}/4)",
   "log.hotelBuilt": "{name} builds a hotel on {tile}",
-  "log.houseSold": "{name} sells a building on {tile} for ${amount}"
+  "log.houseSold": "{name} sells a building on {tile} for ${amount}",
+  "log.gameOverWinnerByLimit": "🏆 {name} wins by net worth!",
+  "log.propertyMortgaged": "{name} mortgages {tile} for ${amount}",
+  "log.propertyUnmortgaged": "{name} redeems the mortgage on {tile} for ${amount}",
+  "log.jackpotWon": "{name} collects the ${amount} Free Parking jackpot"
 }

@@ -19,6 +19,9 @@ export function registerSocketServer(io: AppServer): void {
   // Chiave "codiceStanza:accusationId": gli id delle accuse sono generati per-partita,
   // quindi non sono unici tra stanze diverse senza il prefisso.
   const accusationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  // Fase 7, US-704: fallback per terminare una partita a tempo anche se resta inattiva
+  // (nessun intent in arrivo che faccia scattare il controllo dentro GameEngine.applyIntent).
+  const timeLimitTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   const lobbyManager = new LobbyManager((code, events) => {
     if (events.length > 0) io.to(code).emit("game_events", events);
@@ -31,6 +34,24 @@ export function registerSocketServer(io: AppServer): void {
       clearTimeout(timer);
       turnTimers.delete(code);
     }
+  }
+
+  /** Programmato una sola volta all'avvio della partita, se `gameTimeLimitMinutes` è impostato. */
+  function scheduleTimeLimitIfNeeded(code: string): void {
+    if (timeLimitTimers.has(code)) return;
+    const engine = lobbyManager.getEngine(code);
+    if (!engine) return;
+    const limitMinutes = engine.getState().board.rules.gameTimeLimitMinutes;
+    if (!limitMinutes) return;
+
+    const timer = setTimeout(() => {
+      timeLimitTimers.delete(code);
+      const events = engine.checkTimeLimit(Date.now());
+      if (events.length > 0) io.to(code).emit("game_events", events);
+      broadcastRoomOrGame(code);
+    }, limitMinutes * 60_000);
+    timer.unref?.();
+    timeLimitTimers.set(code, timer);
   }
 
   function broadcastRoomOrGame(code: string): void {
@@ -181,6 +202,7 @@ export function registerSocketServer(io: AppServer): void {
         lobbyManager.startGame(code, socket.data.sessionId);
         ack({ ok: true, data: null });
         broadcastRoomOrGame(code);
+        scheduleTimeLimitIfNeeded(code);
       } catch (err) {
         ack({ ok: false, error: (err as Error).message });
       }
@@ -190,6 +212,17 @@ export function registerSocketServer(io: AppServer): void {
       try {
         if (!socket.data.sessionId) throw new Error("Sessione non valida");
         lobbyManager.selectMap(code, socket.data.sessionId, mapId);
+        ack({ ok: true, data: null });
+        broadcastRoomOrGame(code);
+      } catch (err) {
+        ack({ ok: false, error: (err as Error).message });
+      }
+    });
+
+    socket.on("set_rules", ({ code, rules }, ack) => {
+      try {
+        if (!socket.data.sessionId) throw new Error("Sessione non valida");
+        lobbyManager.setOptionalRules(code, socket.data.sessionId, rules);
         ack({ ok: true, data: null });
         broadcastRoomOrGame(code);
       } catch (err) {

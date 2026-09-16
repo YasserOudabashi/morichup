@@ -10,6 +10,7 @@ import type {
   ServerEvent,
   TradeAssets,
   TradeOffer,
+  WinReason,
 } from "@morichup/shared";
 import { computeAuctionTurnOrder } from "./AuctionEngine";
 import { getTileAt, movePosition } from "./Board";
@@ -27,7 +28,10 @@ import {
 } from "./GameRules";
 import { buildingLevel, computeRent, groupTilesOf, isPropertyLike, ownsFullGroup } from "./Tile";
 import { executeTrade, validateAssetsOwnership } from "./TradeEngine";
-import { checkVictory } from "./VictoryEngine";
+import { checkNetWorthVictory, checkVictory } from "./VictoryEngine";
+
+/** Interesse di default al riscatto di un'ipoteca se la mappa non lo specifica (US-702). */
+const DEFAULT_MORTGAGE_INTEREST_RATE = 0.1;
 
 /** Colore neutro per i token degli spettatori: mai nella rotazione PLAYER_COLORS dei giocatori veri. */
 const SPECTATOR_COLOR = "#5a5f73";
@@ -57,19 +61,23 @@ export class GameEngine {
   private tradeIdCounter = 0;
   private contractIdCounter = 0;
   private accusationIdCounter = 0;
+  /** Turni individuali totali giocati (ogni passaggio di mano conta 1, i turni extra da doppio no): confrontato con `rules.turnLimit` (Fase 7, US-704). */
+  private turnCount = 0;
+  private gameStartedAt: number;
 
   constructor(
     roomCode: string,
     board: BoardConfig,
     players: Player[],
     seed: number,
-    overrides?: { dice?: DiceRoller; cardEngine?: CardDeckSource }
+    overrides?: { dice?: DiceRoller; cardEngine?: CardDeckSource; startedAt?: number }
   ) {
     this.state = createInitialState(roomCode, board, players);
     this.dice = overrides?.dice ?? new DiceEngine(seed);
     this.cardEngine = overrides?.cardEngine ?? new CardEngine(seed + 1);
     this.jailTileIndex = board.tiles.findIndex((t) => t.type === "jail");
     if (this.jailTileIndex === -1) throw new Error('La mappa non ha una casella "jail"');
+    this.gameStartedAt = overrides?.startedAt ?? Date.now();
   }
 
   getState(): GameState {
@@ -101,6 +109,12 @@ export class GameEngine {
 
   applyIntent(playerId: PlayerSessionId, intent: ClientIntent): ServerEvent[] {
     if (this.state.state === "GAME_OVER") throw new Error("La partita è terminata");
+
+    // Limite di tempo (Fase 7, US-704): valutato ad ogni intent in arrivo, non solo sui
+    // cambi turno, così una partita a tempo finisce anche se scade a metà del turno di
+    // qualcuno. Se scatta, l'intent che l'ha fatto scattare non viene nemmeno processato.
+    const timeLimitEvents = this.checkTimeLimit();
+    if (timeLimitEvents.length > 0) return timeLimitEvents;
 
     // Trading e contratti sociali funzionano in qualsiasi momento, anche fuori
     // dal proprio turno (PRD §20): non passano dal controllo "è il tuo turno".
@@ -137,6 +151,10 @@ export class GameEngine {
       // proprio turno, e fuori turno solo per risolvere un debito pendente.
       case "SELL_HOUSE":
         return this.handleSellHouse(playerId, intent.tileId);
+      // Riscattare un'ipoteca deve restare sempre possibile, anche fuori dal proprio
+      // turno, per potersi liberare rapidamente da un vincolo (FR-702).
+      case "UNMORTGAGE_PROPERTY":
+        return this.handleUnmortgageProperty(playerId, intent.tileId);
     }
 
     if (playerId !== this.state.currentTurnPlayerId) {
@@ -159,6 +177,9 @@ export class GameEngine {
         return this.handleEndTurn(player);
       case "BUILD_HOUSE":
         return this.handleBuildHouse(player, intent.tileId);
+      // Attivare un'ipoteca resta un'azione del proprio turno, come costruire (FR-702).
+      case "MORTGAGE_PROPERTY":
+        return this.handleMortgageProperty(player, intent.tileId);
       default:
         throw new Error("Intent non gestito in questa fase");
     }
@@ -169,6 +190,30 @@ export class GameEngine {
     const accusation = this.state.accusations.find((a) => a.id === accusationId);
     if (!accusation || accusation.status !== "voting") return [];
     return this.resolveAccusation(accusation);
+  }
+
+  /**
+   * Fase 7, US-704: se `rules.gameTimeLimitMinutes` è impostato ed è trascorso, termina la
+   * partita per patrimonio netto. Chiamato ad ogni intent in arrivo (vedi `applyIntent`) e,
+   * come fallback per una partita rimasta inattiva, da un timer dedicato in SocketServer.
+   */
+  checkTimeLimit(now: number = Date.now()): ServerEvent[] {
+    if (this.state.state === "GAME_OVER") return [];
+    const limitMinutes = this.state.board.rules.gameTimeLimitMinutes;
+    if (!limitMinutes) return [];
+    if (now - this.gameStartedAt < limitMinutes * 60_000) return [];
+    return this.endGameByLimit("timeLimit");
+  }
+
+  /** Termina la partita assegnando la vittoria per patrimonio netto (Fase 7, US-704). */
+  private endGameByLimit(reason: Exclude<WinReason, "lastStanding">): ServerEvent[] {
+    if (this.state.state === "GAME_OVER") return [];
+    const winnerId = checkNetWorthVictory(this.state.board, this.state.players);
+    if (!winnerId) return [];
+    this.state.state = "GAME_OVER";
+    this.state.winnerId = winnerId;
+    this.state.winReason = reason;
+    return [{ type: "GAME_OVER", winnerId, reason }];
   }
 
   // --- Intent handlers ---------------------------------------------------
@@ -303,7 +348,7 @@ export class GameEngine {
       this.pendingExtraRoll = false;
       this.state.state = "ROLLING";
     } else {
-      this.advanceToNextPlayer();
+      events.push(...this.advanceToNextPlayer());
     }
     return events;
   }
@@ -587,9 +632,19 @@ export class GameEngine {
       case "goToJail":
         events.push(...this.sendToJail(player, "tile"));
         break;
+      case "freeParking":
+        // Fase 7, US-703: solo se la regola del jackpot è attiva e c'è qualcosa da incassare.
+        if (this.state.board.rules.freeParkingJackpot && this.state.jackpotAmount > 0) {
+          const amount = this.state.jackpotAmount;
+          player.money += amount;
+          this.state.jackpotAmount = 0;
+          events.push({ type: "JACKPOT_WON", playerId: player.sessionId, amount });
+          events.push(...this.tryResolveDebts(player));
+        }
+        break;
       default:
-        // start, jail (just visiting), freeParking e i tile type non ancora usati
-        // dalla mappa Classic: nessun effetto in Fase 2.
+        // start, jail (just visiting) e i tile type non ancora usati dalla mappa Classic:
+        // nessun effetto in Fase 2.
         break;
     }
     return events;
@@ -679,6 +734,9 @@ export class GameEngine {
     if (payee) {
       payee.money += paid;
       events.push(...this.tryResolveDebts(payee));
+    } else if (this.state.board.rules.freeParkingJackpot) {
+      // Fase 7, US-703: ogni pagamento verso la banca alimenta il piatto invece di sparire.
+      this.state.jackpotAmount += paid;
     }
 
     const shortfall = amount - paid;
@@ -732,6 +790,8 @@ export class GameEngine {
     if (buildingLevel(tile) > 0) {
       throw new Error("Vendi prima le case/hotel su questa proprietà");
     }
+    // Fase 7 Non-Goals: la banca non ricompra due volte lo stesso valore (già incassato con l'ipoteca).
+    if (tile.mortgaged) throw new Error("Riscatta prima l'ipoteca su questa proprietà");
 
     const sellPrice = Math.floor((tile.purchasePrice ?? 0) / 2);
     player.money += sellPrice;
@@ -819,6 +879,43 @@ export class GameEngine {
     return events;
   }
 
+  /** Fase 7, US-702: incassa metà prezzo, la proprietà smette di generare rent e resta
+   * "congelata" (niente aste, niente vendita alla banca) finché non viene riscattata. */
+  private handleMortgageProperty(player: Player, tileId: string): ServerEvent[] {
+    if (!this.state.board.rules.mortgageEnabled) throw new Error("L'ipoteca non è attiva in questa partita");
+    const tile = this.state.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.ownerId !== player.sessionId) throw new Error("Non possiedi questa proprietà");
+    if (tile.mortgaged) throw new Error("Questa proprietà è già ipotecata");
+    if (buildingLevel(tile) > 0) throw new Error("Vendi prima le case/hotel su questa proprietà");
+
+    const amount = Math.floor((tile.purchasePrice ?? 0) / 2);
+    player.money += amount;
+    tile.mortgaged = true;
+
+    return [{ type: "PROPERTY_MORTGAGED", playerId: player.sessionId, tileId, amount }];
+  }
+
+  /** Fase 7, US-702: ripaga metà prezzo più l'interesse fisso, sempre possibile anche
+   * fuori dal proprio turno (come SELL_PROPERTY_TO_BANK/SELL_HOUSE per un debito). */
+  private handleUnmortgageProperty(playerId: PlayerSessionId, tileId: string): ServerEvent[] {
+    const player = this.findPlayer(playerId);
+    const tile = this.state.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.ownerId !== playerId) throw new Error("Non possiedi questa proprietà");
+    if (!tile.mortgaged) throw new Error("Questa proprietà non è ipotecata");
+
+    const rate = this.state.board.rules.mortgageInterestRate ?? DEFAULT_MORTGAGE_INTEREST_RATE;
+    const half = Math.floor((tile.purchasePrice ?? 0) / 2);
+    // Interesse calcolato separatamente (non su half * (1 + rate)) per evitare arrotondamenti
+    // in eccesso dovuti a errori di virgola mobile (es. 50 * 1.1 = 55.00000000000001).
+    const amount = half + Math.ceil(half * rate);
+    if (player.money < amount) throw new Error("Fondi insufficienti per riscattare l'ipoteca");
+
+    player.money -= amount;
+    tile.mortgaged = false;
+
+    return [{ type: "PROPERTY_UNMORTGAGED", playerId, tileId, amount }];
+  }
+
   private handleDeclareBankruptcy(playerId: PlayerSessionId): ServerEvent[] {
     const player = this.findPlayer(playerId);
     if (player.pendingDebts.length === 0) throw new Error("Non hai debiti da risolvere");
@@ -851,14 +948,15 @@ export class GameEngine {
     if (winnerId) {
       this.state.state = "GAME_OVER";
       this.state.winnerId = winnerId;
-      events.push({ type: "GAME_OVER", winnerId });
+      this.state.winReason = "lastStanding";
+      events.push({ type: "GAME_OVER", winnerId, reason: "lastStanding" });
     } else if (this.state.currentTurnPlayerId === playerId && !this.state.auction) {
       // Il bancarotta può capitare anche fuori da DEBT_RESOLUTION (es. multa da un
       // contratto sociale mentre lo stato è ancora ROLLING/PLAYER_DECISION): se era
       // comunque il suo turno, va passato al prossimo giocatore in ogni caso.
       events.push({ type: "TURN_ENDED", playerId, extraTurn: false });
       this.pendingExtraRoll = false;
-      this.advanceToNextPlayer();
+      events.push(...this.advanceToNextPlayer());
     }
     return events;
   }
@@ -879,6 +977,8 @@ export class GameEngine {
     const tile = this.state.board.tiles.find((t) => t.id === tileId);
     if (!tile || tile.ownerId !== playerId) throw new Error("Non possiedi questa proprietà");
     if (buildingLevel(tile) > 0) throw new Error("Vendi prima le case/hotel su questa proprietà");
+    // Fase 7 Non-Goals: una proprietà ipotecata resta "congelata" finché non viene riscattata.
+    if (tile.mortgaged) throw new Error("Riscatta prima l'ipoteca su questa proprietà");
     if (minimumBid < 0) throw new Error("Il prezzo minimo non può essere negativo");
 
     return this.beginAuction(tileId, playerId, Math.floor(minimumBid), playerId);
@@ -980,7 +1080,16 @@ export class GameEngine {
     }
   }
 
-  private advanceToNextPlayer(): void {
+  private advanceToNextPlayer(): ServerEvent[] {
+    // Fase 7, US-704: conta ogni passaggio di mano; se il limite è raggiunto la partita
+    // finisce qui per patrimonio netto invece di passare al giocatore successivo.
+    this.turnCount++;
+    const turnLimit = this.state.board.rules.turnLimit;
+    if (turnLimit && this.turnCount >= turnLimit) {
+      const events = this.endGameByLimit("turnLimit");
+      if (events.length > 0) return events;
+    }
+
     const players = this.state.players;
     const currentIndex = players.findIndex((p) => p.sessionId === this.state.currentTurnPlayerId);
     let nextIndex = currentIndex;
@@ -996,6 +1105,7 @@ export class GameEngine {
     next.consecutiveDoubles = 0;
     this.state.currentTurnPlayerId = next.sessionId;
     this.state.state = "ROLLING";
+    return [];
   }
 
   private findPlayer(id: PlayerSessionId): Player {

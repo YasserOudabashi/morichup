@@ -1,17 +1,26 @@
 import type { BoardConfig, Player, PlayerSessionId } from "@morichup/shared";
 import Tile from "./Tile";
+import Dice from "./Dice";
+import TokenLayer from "./TokenLayer";
+import type { DiceRoll, MoveBatch } from "../state/useGameConnection";
+import { useAnimatedPositions } from "../hooks/useAnimatedPositions";
 
 interface BoardProps {
   board: BoardConfig;
   players: Player[];
   hoveredPlayerId?: PlayerSessionId | null;
+  diceRoll?: DiceRoll | null;
+  moveBatch?: MoveBatch | null;
 }
 
 const CORNER_TYPES = new Set(["start", "jail", "freeParking", "goToJail"]);
 
-export default function Board({ board, players, hoveredPlayerId }: BoardProps) {
+export default function Board({ board, players, hoveredPlayerId, diceRoll, moveBatch = null }: BoardProps) {
   const aspectRatio = board.width / board.height;
   const hoveredPlayer = hoveredPlayerId ? players.find((p) => p.sessionId === hoveredPlayerId) : null;
+  const rollingPlayer = diceRoll ? players.find((p) => p.sessionId === diceRoll.playerId) : null;
+  const { displayPositions, arrivedNonces } = useAnimatedPositions(players, board, moveBatch);
+  const colorByPlayerId = new Map(players.map((p) => [p.sessionId, p.color]));
   return (
     <div
       className="board"
@@ -27,17 +36,24 @@ export default function Board({ board, players, hoveredPlayerId }: BoardProps) {
         style={{ gridColumn: `2 / ${board.width}`, gridRow: `2 / ${board.height}` }}
       >
         <span className="board__center-title">{board.name}</span>
+        <Dice roll={diceRoll ?? null} />
+        {rollingPlayer && (
+          <span className="board__center-roller" style={{ color: rollingPlayer.color }}>
+            {rollingPlayer.nickname}
+          </span>
+        )}
       </div>
-      {board.tiles.map((tile, index) => (
+      {board.tiles.map((tile) => (
         <Tile
           key={tile.id}
           tile={tile}
           isCorner={CORNER_TYPES.has(tile.type)}
-          players={players.filter((p) => p.position === index)}
           isHighlighted={hoveredPlayer != null && tile.ownerId === hoveredPlayer.sessionId}
           highlightColor={hoveredPlayer?.color}
+          ownerColor={tile.ownerId ? colorByPlayerId.get(tile.ownerId) : undefined}
         />
       ))}
+      <TokenLayer board={board} players={players} displayPositions={displayPositions} arrivedNonces={arrivedNonces} />
     </div>
   );
 }

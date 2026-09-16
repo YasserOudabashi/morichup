@@ -2,6 +2,8 @@ import {
   AVAILABLE_MAPS,
   getMapById,
   type ChatMessage,
+  type OptionalRulesInput,
+  type OptionalRulesState,
   type PlayerSessionId,
   type RoomState,
   type ServerEvent,
@@ -20,6 +22,13 @@ const PLAYER_COLORS = ["#3d5af1", "#e91e8c", "#ffb703", "#2e7d32", "#e53935", "#
 /** Fase 8, US-801: rate limit minimo per la chat, un messaggio al secondo a testa. */
 const CHAT_MIN_INTERVAL_MS = 1000;
 const CHAT_MAX_LENGTH = 300;
+
+const DEFAULT_OPTIONAL_RULES: OptionalRulesState = {
+  mortgageEnabled: false,
+  freeParkingJackpot: false,
+  turnLimit: null,
+  gameTimeLimitMinutes: null,
+};
 
 interface RoomPlayerInternal {
   sessionId: PlayerSessionId;
@@ -40,6 +49,8 @@ interface Room {
   status: "lobby" | "playing" | "ended";
   engine: GameEngine | null;
   mapId: string;
+  /** Regole opzionali Fase 7, configurabili dall'host in lobby, applicate a `board.rules` all'avvio. */
+  optionalRules: OptionalRulesState;
 }
 
 /**
@@ -67,6 +78,7 @@ export class LobbyManager {
       status: "lobby",
       engine: null,
       mapId: AVAILABLE_MAPS[0].id,
+      optionalRules: { ...DEFAULT_OPTIONAL_RULES },
     };
     room.players.set(sessionId, { sessionId, nickname, socketId, connected: true, disconnectTimer: null, role: "player" });
     this.rooms.set(code, room);
@@ -204,6 +216,26 @@ export class LobbyManager {
     return room;
   }
 
+  /** Fase 7: l'host regola ipoteca/jackpot/limiti prima di avviare la partita (come selectMap). */
+  setOptionalRules(code: string, requesterSessionId: PlayerSessionId, patch: OptionalRulesInput): Room {
+    const room = this.getRoom(code);
+    if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può cambiare le regole");
+    if (room.status !== "lobby") throw new Error("La partita è già iniziata");
+
+    if (patch.turnLimit !== undefined && patch.turnLimit !== null && patch.turnLimit <= 0) {
+      throw new Error("Il limite di turni deve essere un numero positivo");
+    }
+    if (patch.gameTimeLimitMinutes !== undefined && patch.gameTimeLimitMinutes !== null && patch.gameTimeLimitMinutes <= 0) {
+      throw new Error("Il limite di tempo deve essere un numero positivo di minuti");
+    }
+
+    if (patch.mortgageEnabled !== undefined) room.optionalRules.mortgageEnabled = patch.mortgageEnabled;
+    if (patch.freeParkingJackpot !== undefined) room.optionalRules.freeParkingJackpot = patch.freeParkingJackpot;
+    if (patch.turnLimit !== undefined) room.optionalRules.turnLimit = patch.turnLimit;
+    if (patch.gameTimeLimitMinutes !== undefined) room.optionalRules.gameTimeLimitMinutes = patch.gameTimeLimitMinutes;
+    return room;
+  }
+
   startGame(code: string, requesterSessionId: PlayerSessionId): Room {
     const room = this.getRoom(code);
     if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può avviare la partita");
@@ -220,6 +252,13 @@ export class LobbyManager {
     // non un template): senza clonarlo, tutte le partite sulla stessa mappa muterebbero
     // in place lo stesso BoardConfig, mischiando ownerId/case/hotel tra partite diverse.
     const board = structuredClone(getMapById(room.mapId));
+    // Fase 7: le regole opzionali scelte in lobby si applicano solo a questa partita,
+    // mai al template condiviso in AVAILABLE_MAPS.
+    board.rules.mortgageEnabled = room.optionalRules.mortgageEnabled;
+    board.rules.freeParkingJackpot = room.optionalRules.freeParkingJackpot;
+    board.rules.turnLimit = room.optionalRules.turnLimit ?? undefined;
+    board.rules.gameTimeLimitMinutes = room.optionalRules.gameTimeLimitMinutes ?? undefined;
+
     const enginePlayers = players.map((p, i) =>
       createPlayer(p.sessionId, p.nickname, PLAYER_COLORS[i % PLAYER_COLORS.length], board.rules.startingMoney)
     );
@@ -301,6 +340,7 @@ export class LobbyManager {
       maxPlayers: room.maxPlayers,
       status: room.status,
       mapId: room.mapId,
+      optionalRules: room.optionalRules,
       players: [...room.players.values()].map((p) => ({
         sessionId: p.sessionId,
         nickname: p.nickname,

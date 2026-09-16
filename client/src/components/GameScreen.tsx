@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ChatMessage, ClientIntent, GameState, PlayerSessionId, ServerEvent } from "@morichup/shared";
+import type { DiceRoll, MoveBatch } from "../state/useGameConnection";
 import Board from "./Board";
 import Hud from "./Hud";
 import ActionPanel from "./ActionPanel";
@@ -15,6 +16,8 @@ interface GameScreenProps {
   sessionId: PlayerSessionId;
   turnDeadline: number | null;
   events: ServerEvent[];
+  diceRoll: DiceRoll | null;
+  moveBatch: MoveBatch | null;
   onIntent: (intent: ClientIntent) => void;
   onLeave: () => void;
   chatMessages: ChatMessage[];
@@ -28,6 +31,8 @@ export default function GameScreen({
   sessionId,
   turnDeadline,
   events,
+  diceRoll,
+  moveBatch,
   onIntent,
   onLeave,
   chatMessages,
@@ -57,9 +62,16 @@ export default function GameScreen({
           players={gameState.players}
           currentTurnPlayerId={gameState.currentTurnPlayerId}
           onHoverPlayer={setHoveredPlayerId}
+          jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
         />
         <div className="app-board-area">
-          <Board board={gameState.board} players={gameState.players} hoveredPlayerId={hoveredPlayerId} />
+          <Board
+            board={gameState.board}
+            players={gameState.players}
+            hoveredPlayerId={hoveredPlayerId}
+            diceRoll={diceRoll}
+            moveBatch={moveBatch}
+          />
         </div>
         <aside className="game-side-panel">
           {isSpectator ? (
@@ -83,6 +95,11 @@ export default function GameScreen({
             <p className="game-over-winner">
               {winner.nickname} {t("game.winner")}
             </p>
+            {gameState.winReason && gameState.winReason !== "lastStanding" && (
+              <p className="game-over-reason">
+                {t(gameState.winReason === "turnLimit" ? "game.winByTurnLimit" : "game.winByTimeLimit")}
+              </p>
+            )}
             <div className="button-row">
               {isHost && (
                 <button type="button" className="btn btn--primary" onClick={onRematch}>
