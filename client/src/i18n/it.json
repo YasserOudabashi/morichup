@@ -33,6 +33,12 @@
   "lobby.notEnoughPlayers": "In attesa di almeno {min} giocatori",
   "lobby.leaveRoom": "Esci dalla stanza",
   "lobby.disconnected": "disconnesso",
+  "lobby.optionalRules": "Regole opzionali",
+  "lobby.rules.mortgage": "Ipoteca delle proprietà",
+  "lobby.rules.jackpot": "Jackpot Parcheggio Gratuito",
+  "lobby.rules.turnLimit": "Limite di turni",
+  "lobby.rules.timeLimit": "Limite di tempo (min)",
+  "lobby.rules.off": "off",
 
   "game.rollDice": "Tira i dadi",
   "game.doubles": "Doppio!",
@@ -48,6 +54,10 @@
   "game.leaveGame": "Esci dalla partita",
   "game.gameOver": "Partita finita",
   "game.winner": "vince la partita!",
+  "game.winByTurnLimit": "Limite di turni raggiunto — vince il patrimonio netto più alto.",
+  "game.winByTimeLimit": "Limite di tempo raggiunto — vince il patrimonio netto più alto.",
+
+  "hud.jackpot": "Jackpot Parcheggio Gratuito",
 
   "log.diceRolled": "{name} tira {d1} + {d2}",
   "log.diceRolledDouble": "{name} tira {d1} + {d2} (doppio!)",
@@ -147,6 +157,10 @@
   "building.buildHotel": "Costruisci hotel (${cost})",
   "building.sell": "Vendi edificio (+${amount})",
 
+  "mortgage.mortgagedTag": "ipotecata",
+  "mortgage.mortgage": "Ipoteca (+${amount})",
+  "mortgage.unmortgage": "Riscatta ipoteca (-${amount})",
+
   "log.debtIncurred": "{name} non riesce a pagare e resta in debito di ${amount}",
   "log.propertySoldToBank": "{name} vende {tile} alla banca per ${amount}",
   "log.debtResolved": "{name} ha saldato tutti i debiti",
@@ -157,5 +171,9 @@
   "log.auctionEndedNoSale": "Nessuno si aggiudica {tile}: resta libera",
   "log.houseBuilt": "{name} costruisce una casa su {tile} ({houses}/4)",
   "log.hotelBuilt": "{name} costruisce un hotel su {tile}",
-  "log.houseSold": "{name} vende un edificio su {tile} per ${amount}"
+  "log.houseSold": "{name} vende un edificio su {tile} per ${amount}",
+  "log.gameOverWinnerByLimit": "🏆 {name} vince per patrimonio netto!",
+  "log.propertyMortgaged": "{name} ipoteca {tile} per ${amount}",
+  "log.propertyUnmortgaged": "{name} riscatta l'ipoteca su {tile} per ${amount}",
+  "log.jackpotWon": "{name} incassa il jackpot da ${amount} del Parcheggio Gratuito"
 }

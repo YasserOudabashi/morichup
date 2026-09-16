@@ -45,6 +45,7 @@ export default function App() {
           sessionId={sessionId}
           onStart={conn.startGame}
           onSelectMap={conn.selectMap}
+          onSetRules={conn.setRules}
           onKick={conn.kickPlayer}
           onLeave={conn.leaveRoom}
         />

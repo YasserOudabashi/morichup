@@ -110,6 +110,45 @@ test("l'host può scegliere la mappa, e la partita parte su quella mappa", () =>
   assert.equal(state.board.width, 15);
 });
 
+test("Fase 7: l'host può attivare le regole opzionali in lobby, applicate solo alla partita che parte", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  assert.throws(
+    () => manager.setOptionalRules(room.code, "s2", { mortgageEnabled: true }),
+    /host/
+  );
+  assert.throws(
+    () => manager.setOptionalRules(room.code, "s1", { turnLimit: 0 }),
+    /positivo/
+  );
+
+  manager.setOptionalRules(room.code, "s1", { mortgageEnabled: true, freeParkingJackpot: true, turnLimit: 40 });
+  const roomState = manager.getRoomState(room.code);
+  assert.deepEqual(roomState.optionalRules, {
+    mortgageEnabled: true,
+    freeParkingJackpot: true,
+    turnLimit: 40,
+    gameTimeLimitMinutes: null,
+  });
+
+  manager.startGame(room.code, "s1");
+  const engineRules = manager.getEngine(room.code)!.getState().board.rules;
+  assert.equal(engineRules.mortgageEnabled, true);
+  assert.equal(engineRules.freeParkingJackpot, true);
+  assert.equal(engineRules.turnLimit, 40);
+
+  // Una seconda stanza sulla stessa mappa, mai toccata dalle regole opzionali della prima:
+  // stesso bug di condivisione già risolto per houses/ownerId (vedi test più sotto), qui per rules.
+  const room2 = manager.createRoom("a1", "Alice", "sockA1");
+  manager.joinRoom(room2.code, "a2", "Bruno", "sockA2");
+  manager.startGame(room2.code, "a1");
+  const engine2Rules = manager.getEngine(room2.code)!.getState().board.rules;
+  assert.equal(engine2Rules.mortgageEnabled, false);
+  assert.equal(engine2Rules.turnLimit, undefined);
+});
+
 test("due partite sulla stessa mappa hanno board indipendenti (nessuno stato condiviso tra stanze)", () => {
   const { manager } = buildManager();
 

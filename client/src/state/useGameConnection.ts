@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientIntent, GameState, PlayerSessionId, RoomState, ServerEvent } from "@morichup/shared";
+import type { ClientIntent, GameState, OptionalRulesInput, PlayerSessionId, RoomState, ServerEvent } from "@morichup/shared";
 import { getSocket } from "../lib/socket";
 import { getLastRoomCode, saveLastRoomCode } from "../lib/session";
 
@@ -45,6 +45,7 @@ export interface ConnectionState {
   joinRoom: (code: string, nickname: string) => void;
   startGame: () => void;
   selectMap: (mapId: string) => void;
+  setRules: (rules: OptionalRulesInput) => void;
   kickPlayer: (targetSessionId: PlayerSessionId) => void;
   leaveRoom: () => void;
   sendIntent: (intent: ClientIntent) => void;
@@ -164,6 +165,14 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     });
   }, []);
 
+  const setRules = useCallback((rules: OptionalRulesInput) => {
+    const code = roomCodeRef.current;
+    if (!code) return;
+    getSocket().emit("set_rules", { code, rules }, (res) => {
+      if (!res.ok) setError(res.error);
+    });
+  }, []);
+
   const kickPlayer = useCallback((targetSessionId: PlayerSessionId) => {
     const code = roomCodeRef.current;
     if (!code) return;
@@ -207,6 +216,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     joinRoom,
     startGame,
     selectMap,
+    setRules,
     kickPlayer,
     leaveRoom,
     sendIntent,
