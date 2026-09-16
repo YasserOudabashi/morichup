@@ -1,17 +1,15 @@
 import type { CSSProperties } from "react";
-import type { Player, Tile as TileData } from "@morichup/shared";
-import PlayerToken from "./PlayerToken";
+import type { Tile as TileData } from "@morichup/shared";
 import { flagFor } from "../lib/flags";
 
 interface TileProps {
   tile: TileData;
-  players: Player[];
   isCorner: boolean;
   isHighlighted?: boolean;
   highlightColor?: string;
 }
 
-export default function Tile({ tile, players, isCorner, isHighlighted, highlightColor }: TileProps) {
+export default function Tile({ tile, isCorner, isHighlighted, highlightColor }: TileProps) {
   const flag = tile.type === "property" ? flagFor(tile.name) : null;
   const buildings = tile.hotel ? "🏨" : tile.houses ? "🏠".repeat(tile.houses) : null;
 
@@ -41,11 +39,6 @@ export default function Tile({ tile, players, isCorner, isHighlighted, highlight
           {buildings}
         </span>
       )}
-      <div className="board-tile__tokens">
-        {players.map((player, i) => (
-          <PlayerToken key={player.sessionId} player={player} stackIndex={i} />
-        ))}
-      </div>
     </div>
   );
 }

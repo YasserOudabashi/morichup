@@ -14,6 +14,21 @@ export interface DiceRoll {
   nonce: number;
 }
 
+/** Un singolo spostamento da animare: la pedina deve attraversare le caselle
+ * intermedie invece di teletrasportarsi. SENT_TO_JAIL non ha una "from" nel
+ * suo evento originale (vedi GameEngine): qui resta un salto diretto, come
+ * nel gioco da tavolo reale. */
+export type MoveEvent =
+  | { type: "PLAYER_MOVED"; playerId: PlayerSessionId; from: number; to: number; passedGo: boolean }
+  | { type: "SENT_TO_JAIL"; playerId: PlayerSessionId };
+
+/** Tutti gli spostamenti di un singolo batch di ServerEvent, con un nonce
+ * che cambia sempre per far ripartire l'animazione anche a batch "uguali". */
+export interface MoveBatch {
+  nonce: number;
+  moves: MoveEvent[];
+}
+
 export interface ConnectionState {
   screen: Screen;
   sessionId: PlayerSessionId;
@@ -22,6 +37,7 @@ export interface ConnectionState {
   turnDeadline: number | null;
   events: ServerEvent[];
   diceRoll: DiceRoll | null;
+  moveBatch: MoveBatch | null;
   error: string | null;
   reconnecting: boolean;
   goToMenu: () => void;
@@ -42,10 +58,12 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const [events, setEvents] = useState<ServerEvent[]>([]);
   const [diceRoll, setDiceRoll] = useState<DiceRoll | null>(null);
+  const [moveBatch, setMoveBatch] = useState<MoveBatch | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const roomCodeRef = useRef<string | null>(null);
   const diceNonceRef = useRef(0);
+  const moveNonceRef = useRef(0);
 
   useEffect(() => {
     const socket = getSocket();
@@ -71,6 +89,14 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
           isDouble: diceEvent.isDouble,
           nonce: diceNonceRef.current,
         });
+      }
+      const moves = newEvents.filter(
+        (e): e is Extract<ServerEvent, { type: "PLAYER_MOVED" | "SENT_TO_JAIL" }> =>
+          e.type === "PLAYER_MOVED" || e.type === "SENT_TO_JAIL"
+      );
+      if (moves.length > 0) {
+        moveNonceRef.current += 1;
+        setMoveBatch({ nonce: moveNonceRef.current, moves });
       }
     };
     const onTurnTimer = (payload: { deadline: number } | null) => {
@@ -173,6 +199,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     turnDeadline,
     events,
     diceRoll,
+    moveBatch,
     error,
     reconnecting,
     goToMenu,

@@ -323,29 +323,58 @@ body {
   color: var(--color-text-muted);
 }
 
-.board-tile__tokens {
-  position: absolute;
-  inset: 0;
+/* Livello dei token: sopra la griglia delle caselle, un solo nodo DOM
+ * persistente per giocatore (mai ricreato quando cambia casella) così la
+ * transizione di left/top è una vera animazione, non un teletrasporto. */
+.board-token-layer {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  position: relative;
   pointer-events: none;
+  z-index: 5;
 }
 
 /* Player tokens */
 
 .player-token {
   position: absolute;
-  width: 30%;
-  aspect-ratio: 1 / 1;
-  max-width: 16px;
-  max-height: 16px;
-  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1.5px solid var(--color-surface);
+  border: 2px solid var(--color-surface);
   color: #fff;
-  font-size: 0.5rem;
+  font-size: 0.65rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  transition: left 0.15s linear, top 0.15s linear;
+}
+
+.player-token--bounce {
+  animation: token-arrive 0.32s ease;
+}
+
+@keyframes token-arrive {
+  0% {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  }
+  40% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--token-color, #fff) 45%, transparent), 0 2px 6px rgba(0, 0, 0, 0.55);
+  }
+  100% {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-token {
+    transition: none;
+  }
+  .player-token--bounce {
+    animation: none;
+  }
 }
 
 /* Desktop-only notice */

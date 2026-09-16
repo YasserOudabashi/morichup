@@ -58,6 +58,7 @@ export default function App() {
           turnDeadline={conn.turnDeadline}
           events={conn.events}
           diceRoll={conn.diceRoll}
+          moveBatch={conn.moveBatch}
           onIntent={conn.sendIntent}
           onLeave={conn.leaveRoom}
         />
