@@ -10,6 +10,7 @@ import type {
 } from "@morichup/shared";
 import { getSocket } from "../lib/socket";
 import { getLastRoomCode, saveLastRoomCode } from "../lib/session";
+import { saveMatchHistoryEntry } from "../lib/matchHistory";
 import { playSound } from "../lib/sound";
 
 export type Screen = "landing" | "menu" | "lobby" | "game";
@@ -78,6 +79,13 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const roomCodeRef = useRef<string | null>(null);
   const diceNonceRef = useRef(0);
   const moveNonceRef = useRef(0);
+  /** Fase 11, US-1101/US-1102: accumulo dell'intera partita per la cronologia e il
+   * replay locale (mai troncato come `events`, che serve solo all'EventLog live). */
+  const matchStepsRef = useRef<GameState[]>([]);
+  const matchEventsRef = useRef<ServerEvent[]>([]);
+  const matchStepEventCountsRef = useRef<number[]>([]);
+  const matchStartRef = useRef<number>(0);
+  const matchSavedRef = useRef(false);
   const prevTurnPlayerRef = useRef<PlayerSessionId | null>(null);
 
   useEffect(() => {
@@ -87,11 +95,40 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
       roomCodeRef.current = state.code;
       saveLastRoomCode(state.code);
       setRoomState(state);
-      if (state.status === "lobby") setScreen((prev) => (prev === "game" ? prev : "lobby"));
+      if (state.status === "lobby") {
+        setScreen((prev) => (prev === "game" ? prev : "lobby"));
+        // Stanza tornata in lobby (prima partita mai iniziata, o rivincita appena
+        // resettata): la prossima partita riparte con un accumulo pulito.
+        matchStepsRef.current = [];
+        matchEventsRef.current = [];
+        matchStepEventCountsRef.current = [];
+        matchSavedRef.current = false;
+      }
     };
     const onGameState = (state: GameState) => {
       setGameState(state);
       setScreen("game");
+      if (matchStepsRef.current.length === 0) matchStartRef.current = Date.now();
+      matchStepsRef.current.push(state);
+      matchStepEventCountsRef.current.push(matchEventsRef.current.length);
+      if (state.state === "GAME_OVER" && !matchSavedRef.current) {
+        matchSavedRef.current = true;
+        const me = state.players.find((p) => p.sessionId === sessionId);
+        const result = me?.status === "spectator" ? "spectated" : state.winnerId === sessionId ? "won" : "lost";
+        saveMatchHistoryEntry({
+          id: `${state.roomCode}-${matchStartRef.current}`,
+          date: matchStartRef.current,
+          mapId: state.board.id,
+          mapName: state.board.name,
+          playerCount: state.players.filter((p) => p.status !== "spectator").length,
+          result,
+          winReason: state.winReason,
+          durationMs: Date.now() - matchStartRef.current,
+          events: [...matchEventsRef.current],
+          steps: [...matchStepsRef.current],
+          stepEventCounts: [...matchStepEventCountsRef.current],
+        });
+      }
       if (state.currentTurnPlayerId !== prevTurnPlayerRef.current && state.currentTurnPlayerId === sessionId) {
         playSound("turnStart");
       }
@@ -99,6 +136,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     };
     const onGameEvents = (newEvents: ServerEvent[]) => {
       setEvents((prev) => [...newEvents, ...prev].slice(0, 40));
+      matchEventsRef.current.push(...newEvents);
       const diceEvent = newEvents.find((e): e is Extract<ServerEvent, { type: "DICE_RESULT" }> => e.type === "DICE_RESULT");
       if (diceEvent) {
         diceNonceRef.current += 1;
