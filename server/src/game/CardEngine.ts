@@ -29,7 +29,7 @@ const FORTUNE_CARDS: Card[] = [
   { id: "fortune-go-to-jail", text: "Go directly to Jail", effect: { kind: "goToJail" } },
   { id: "fortune-jail-free", text: "Get out of Jail free", effect: { kind: "getOutOfJailFree" } },
   { id: "fortune-poor-tax", text: "Pay poor tax of $15", effect: { kind: "pay", amount: 15 } },
-  { id: "fortune-trip", text: "Take a trip to Japan", effect: { kind: "moveToPosition", position: 37 } },
+  { id: "fortune-trip", text: "Take a trip to Osaka", effect: { kind: "moveToPosition", position: 37 } },
   { id: "fortune-back-3", text: "Go back 3 spaces", effect: { kind: "moveRelative", steps: -3 } },
   { id: "fortune-chairman", text: "You are elected Chairman — pay each player $50", effect: { kind: "payEachPlayer", amount: 50 } },
 ];

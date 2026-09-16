@@ -14,6 +14,8 @@ const STACK_OFFSETS = [
   { top: "60%", left: "60%" },
 ];
 
+// Faccina disegnata in CSS (due occhi) invece dell'iniziale del nome: un
+// avatar più amichevole, ma un personaggio nostro, non quello di riferimento.
 export default function PlayerToken({ player, stackIndex }: PlayerTokenProps) {
   const offset = STACK_OFFSETS[stackIndex % STACK_OFFSETS.length];
 
@@ -23,7 +25,10 @@ export default function PlayerToken({ player, stackIndex }: PlayerTokenProps) {
       style={{ backgroundColor: player.color, ...offset }}
       title={player.nickname}
     >
-      {player.nickname.charAt(0).toUpperCase()}
+      <span className="player-token__face">
+        <span className="player-token__eye" />
+        <span className="player-token__eye" />
+      </span>
     </div>
   );
 }

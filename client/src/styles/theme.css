@@ -130,10 +130,13 @@ body {
 }
 
 .hud__player-color {
-  width: 10px;
-  height: 10px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hud__player-name {
@@ -175,18 +178,24 @@ body {
 
 .board__center {
   background: var(--color-surface);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* Piccola etichetta discreta in un angolo, non più un titolo enorme che
+ * occupa il centro: il centro resta libero per dadi/stato del turno. */
 .board__center-title {
-  font-size: 1.5rem;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: var(--color-primary);
-  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .board-tile {
@@ -257,19 +266,45 @@ body {
 
 .player-token {
   position: absolute;
-  width: 30%;
+  width: 34%;
   aspect-ratio: 1 / 1;
-  max-width: 16px;
-  max-height: 16px;
+  max-width: 20px;
+  max-height: 20px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   border: 1.5px solid var(--color-surface);
-  color: #fff;
-  font-size: 0.5rem;
-  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.player-token__face,
+.hud__player-color__face {
+  display: flex;
+  gap: 3px;
+}
+
+.player-token__eye,
+.hud__player-color__eye {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  position: relative;
+}
+
+.player-token__eye::after,
+.hud__player-color__eye::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #1a1a2e;
+  transform: translate(-50%, -50%);
 }
 
 /* Desktop-only notice */
@@ -827,10 +862,11 @@ body {
 
 .event-log__line {
   margin: 0;
-  padding: 5px 0;
+  padding: 5px 0 5px 8px;
   font-size: 0.8rem;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border);
+  border-left: 2px solid transparent;
 }
 
 /* Game over overlay */
@@ -909,10 +945,24 @@ body {
 }
 
 .trade-card__other {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
   margin: 0;
   padding: 6px 4px;
   font-size: 0.78rem;
   color: var(--color-text-muted);
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.trade-card__other:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
 }
 
 .trade-card .button-row {

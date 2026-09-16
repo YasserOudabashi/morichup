@@ -16,6 +16,45 @@ function tileName(board: BoardConfig, id: string): string {
   return board.tiles.find((tile) => tile.id === id)?.name ?? id;
 }
 
+/** Id del giocatore "protagonista" della riga di log, per colorarne il bordo
+ * col suo colore (come nel riferimento visivo): non tutti gli eventi ne hanno
+ * uno ovvio (es. un'asta senza offerte), in quel caso resta senza colore. */
+function primaryPlayerId(event: ServerEvent): string | null {
+  switch (event.type) {
+    case "DICE_RESULT":
+    case "PLAYER_MOVED":
+    case "PROPERTY_PURCHASED":
+    case "PROPERTY_DECLINED":
+    case "TAX_PAID":
+    case "CARD_DRAWN":
+    case "SENT_TO_JAIL":
+    case "LEFT_JAIL":
+    case "PLAYER_BANKRUPT":
+    case "PLAYER_DISCONNECTED":
+    case "PLAYER_RECONNECTED":
+    case "PLAYER_AFK":
+    case "DEBT_INCURRED":
+    case "PROPERTY_SOLD_TO_BANK":
+    case "DEBT_RESOLVED":
+    case "AUCTION_BID":
+    case "AUCTION_PASSED":
+    case "HOUSE_BUILT":
+    case "HOTEL_BUILT":
+    case "HOUSE_SOLD":
+      return event.playerId;
+    case "RENT_PAID":
+      return event.fromPlayerId;
+    case "GAME_OVER":
+    case "AUCTION_ENDED":
+      return event.winnerId ?? null;
+    case "TRADE_PROPOSED":
+    case "TRADE_COUNTERED":
+      return event.trade.fromPlayerId;
+    default:
+      return null;
+  }
+}
+
 function describe(
   event: ServerEvent,
   board: BoardConfig,
@@ -125,13 +164,21 @@ function describe(
 
 export default function EventLog({ events, board, players, accusations }: EventLogProps) {
   const lines = events
-    .map((event, i) => ({ id: i, text: describe(event, board, players, accusations) }))
+    .map((event, i) => ({
+      id: i,
+      text: describe(event, board, players, accusations),
+      color: players.find((p) => p.sessionId === primaryPlayerId(event))?.color,
+    }))
     .filter((l) => l.text);
 
   return (
     <div className="event-log">
       {lines.map((line) => (
-        <p key={line.id} className="event-log__line">
+        <p
+          key={line.id}
+          className="event-log__line"
+          style={line.color ? { borderLeftColor: line.color } : undefined}
+        >
           {line.text}
         </p>
       ))}

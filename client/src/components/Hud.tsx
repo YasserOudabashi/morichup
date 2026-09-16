@@ -30,7 +30,12 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer }: Hud
               onMouseEnter={() => onHoverPlayer?.(player.sessionId)}
               onMouseLeave={() => onHoverPlayer?.(null)}
             >
-              <span className="hud__player-color" style={{ backgroundColor: player.color }} />
+              <span className="hud__player-color" style={{ backgroundColor: player.color }}>
+                <span className="hud__player-color__face">
+                  <span className="hud__player-color__eye" />
+                  <span className="hud__player-color__eye" />
+                </span>
+              </span>
               <span className="hud__player-name">{player.nickname}</span>
               {status && <span className="hud__player-status">{status}</span>}
               <span className="hud__player-money">${player.money}</span>

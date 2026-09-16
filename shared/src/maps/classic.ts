@@ -2,12 +2,15 @@ import type { BoardConfig, Tile } from "../index";
 
 // Generata da uno script di supporto (non versionato): vedi git log per i dettagli.
 // I nomi/prezzi sono dati, non codice: modificabili qui senza toccare il renderer.
+// Ogni gruppo colore = città di UN solo paese (Fase "redesign": prima erano paesi
+// mescolati a caso nello stesso gruppo). Caselle disposte in senso orario a partire
+// da "start" in alto a sinistra, come nel tabellone di riferimento.
 const tiles: Tile[] = [
   {
     "id": "tile-0",
     "position": {
-      "x": 12,
-      "y": 8
+      "x": 0,
+      "y": 0
     },
     "type": "start",
     "name": "Go"
@@ -15,11 +18,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-1",
     "position": {
-      "x": 11,
-      "y": 8
+      "x": 1,
+      "y": 0
     },
     "type": "property",
-    "name": "Nepal",
+    "name": "Pokhara",
     "group": "brown",
     "groupColor": "#8b5a2b",
     "purchasePrice": 60,
@@ -40,8 +43,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-2",
     "position": {
-      "x": 10,
-      "y": 8
+      "x": 2,
+      "y": 0
     },
     "type": "communityChest",
     "name": "Treasury"
@@ -49,11 +52,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-3",
     "position": {
-      "x": 9,
-      "y": 8
+      "x": 3,
+      "y": 0
     },
     "type": "property",
-    "name": "Bhutan",
+    "name": "Lalitpur",
     "group": "brown",
     "groupColor": "#8b5a2b",
     "purchasePrice": 60,
@@ -74,8 +77,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-4",
     "position": {
-      "x": 8,
-      "y": 8
+      "x": 4,
+      "y": 0
     },
     "type": "incomeTax",
     "name": "Income Tax",
@@ -84,8 +87,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-5",
     "position": {
-      "x": 7,
-      "y": 8
+      "x": 5,
+      "y": 0
     },
     "type": "railroad",
     "name": "Airport - Americas",
@@ -98,10 +101,10 @@ const tiles: Tile[] = [
     "id": "tile-6",
     "position": {
       "x": 6,
-      "y": 8
+      "y": 0
     },
     "type": "property",
-    "name": "Vietnam",
+    "name": "Hue",
     "group": "lightBlue",
     "groupColor": "#7ec8e3",
     "purchasePrice": 100,
@@ -122,8 +125,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-7",
     "position": {
-      "x": 5,
-      "y": 8
+      "x": 7,
+      "y": 0
     },
     "type": "chance",
     "name": "Fortune"
@@ -131,11 +134,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-8",
     "position": {
-      "x": 4,
-      "y": 8
+      "x": 8,
+      "y": 0
     },
     "type": "property",
-    "name": "Cambodia",
+    "name": "Da Nang",
     "group": "lightBlue",
     "groupColor": "#7ec8e3",
     "purchasePrice": 100,
@@ -156,11 +159,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-9",
     "position": {
-      "x": 3,
-      "y": 8
+      "x": 9,
+      "y": 0
     },
     "type": "property",
-    "name": "Laos",
+    "name": "Hanoi",
     "group": "lightBlue",
     "groupColor": "#7ec8e3",
     "purchasePrice": 120,
@@ -181,11 +184,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-10",
     "position": {
-      "x": 2,
-      "y": 8
+      "x": 10,
+      "y": 0
     },
     "type": "property",
-    "name": "Mexico",
+    "name": "Cancun",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 140,
@@ -206,8 +209,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-11",
     "position": {
-      "x": 1,
-      "y": 8
+      "x": 11,
+      "y": 0
     },
     "type": "utility",
     "name": "Global Water Co.",
@@ -219,8 +222,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-12",
     "position": {
-      "x": 0,
-      "y": 8
+      "x": 12,
+      "y": 0
     },
     "type": "jail",
     "name": "Jail / Just Visiting"
@@ -228,11 +231,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-13",
     "position": {
-      "x": 0,
-      "y": 7
+      "x": 12,
+      "y": 1
     },
     "type": "property",
-    "name": "Peru",
+    "name": "Guadalajara",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 140,
@@ -253,11 +256,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-14",
     "position": {
-      "x": 0,
-      "y": 6
+      "x": 12,
+      "y": 2
     },
     "type": "property",
-    "name": "Colombia",
+    "name": "Mexico City",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 160,
@@ -278,8 +281,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-15",
     "position": {
-      "x": 0,
-      "y": 5
+      "x": 12,
+      "y": 3
     },
     "type": "railroad",
     "name": "Airport - Africa",
@@ -291,11 +294,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-16",
     "position": {
-      "x": 0,
+      "x": 12,
       "y": 4
     },
     "type": "property",
-    "name": "Turkey",
+    "name": "Izmir",
     "group": "orange",
     "groupColor": "#f5821f",
     "purchasePrice": 180,
@@ -316,8 +319,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-17",
     "position": {
-      "x": 0,
-      "y": 3
+      "x": 12,
+      "y": 5
     },
     "type": "communityChest",
     "name": "Treasury"
@@ -325,11 +328,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-18",
     "position": {
-      "x": 0,
-      "y": 2
+      "x": 12,
+      "y": 6
     },
     "type": "property",
-    "name": "Greece",
+    "name": "Antalya",
     "group": "orange",
     "groupColor": "#f5821f",
     "purchasePrice": 180,
@@ -350,11 +353,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-19",
     "position": {
-      "x": 0,
-      "y": 1
+      "x": 12,
+      "y": 7
     },
     "type": "property",
-    "name": "Portugal",
+    "name": "Istanbul",
     "group": "orange",
     "groupColor": "#f5821f",
     "purchasePrice": 200,
@@ -375,8 +378,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-20",
     "position": {
-      "x": 0,
-      "y": 0
+      "x": 12,
+      "y": 8
     },
     "type": "freeParking",
     "name": "Free Parking"
@@ -384,11 +387,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-21",
     "position": {
-      "x": 1,
-      "y": 0
+      "x": 11,
+      "y": 8
     },
     "type": "property",
-    "name": "Egypt",
+    "name": "Luxor",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 220,
@@ -409,8 +412,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-22",
     "position": {
-      "x": 2,
-      "y": 0
+      "x": 10,
+      "y": 8
     },
     "type": "chance",
     "name": "Fortune"
@@ -418,11 +421,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-23",
     "position": {
-      "x": 3,
-      "y": 0
+      "x": 9,
+      "y": 8
     },
     "type": "property",
-    "name": "Morocco",
+    "name": "Alexandria",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 220,
@@ -443,11 +446,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-24",
     "position": {
-      "x": 4,
-      "y": 0
+      "x": 8,
+      "y": 8
     },
     "type": "property",
-    "name": "Kenya",
+    "name": "Cairo",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 240,
@@ -468,8 +471,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-25",
     "position": {
-      "x": 5,
-      "y": 0
+      "x": 7,
+      "y": 8
     },
     "type": "railroad",
     "name": "Airport - Europe",
@@ -482,10 +485,10 @@ const tiles: Tile[] = [
     "id": "tile-26",
     "position": {
       "x": 6,
-      "y": 0
+      "y": 8
     },
     "type": "property",
-    "name": "Spain",
+    "name": "Seville",
     "group": "yellow",
     "groupColor": "#fdd835",
     "purchasePrice": 260,
@@ -506,11 +509,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-27",
     "position": {
-      "x": 7,
-      "y": 0
+      "x": 5,
+      "y": 8
     },
     "type": "property",
-    "name": "Italy",
+    "name": "Valencia",
     "group": "yellow",
     "groupColor": "#fdd835",
     "purchasePrice": 260,
@@ -531,8 +534,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-28",
     "position": {
-      "x": 8,
-      "y": 0
+      "x": 4,
+      "y": 8
     },
     "type": "utility",
     "name": "World Power Grid",
@@ -544,11 +547,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-29",
     "position": {
-      "x": 9,
-      "y": 0
+      "x": 3,
+      "y": 8
     },
     "type": "property",
-    "name": "Poland",
+    "name": "Madrid",
     "group": "yellow",
     "groupColor": "#fdd835",
     "purchasePrice": 280,
@@ -569,11 +572,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-30",
     "position": {
-      "x": 10,
-      "y": 0
+      "x": 2,
+      "y": 8
     },
     "type": "property",
-    "name": "Germany",
+    "name": "Lyon",
     "group": "green",
     "groupColor": "#2e7d32",
     "purchasePrice": 300,
@@ -594,11 +597,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-31",
     "position": {
-      "x": 11,
-      "y": 0
+      "x": 1,
+      "y": 8
     },
     "type": "property",
-    "name": "France",
+    "name": "Marseille",
     "group": "green",
     "groupColor": "#2e7d32",
     "purchasePrice": 300,
@@ -619,8 +622,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-32",
     "position": {
-      "x": 12,
-      "y": 0
+      "x": 0,
+      "y": 8
     },
     "type": "goToJail",
     "name": "Go To Jail"
@@ -628,8 +631,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-33",
     "position": {
-      "x": 12,
-      "y": 1
+      "x": 0,
+      "y": 7
     },
     "type": "communityChest",
     "name": "Treasury"
@@ -637,11 +640,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-34",
     "position": {
-      "x": 12,
-      "y": 2
+      "x": 0,
+      "y": 6
     },
     "type": "property",
-    "name": "United Kingdom",
+    "name": "Paris",
     "group": "green",
     "groupColor": "#2e7d32",
     "purchasePrice": 320,
@@ -662,8 +665,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-35",
     "position": {
-      "x": 12,
-      "y": 3
+      "x": 0,
+      "y": 5
     },
     "type": "railroad",
     "name": "Airport - Asia",
@@ -675,7 +678,7 @@ const tiles: Tile[] = [
   {
     "id": "tile-36",
     "position": {
-      "x": 12,
+      "x": 0,
       "y": 4
     },
     "type": "chance",
@@ -684,11 +687,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-37",
     "position": {
-      "x": 12,
-      "y": 5
+      "x": 0,
+      "y": 3
     },
     "type": "property",
-    "name": "Japan",
+    "name": "Osaka",
     "group": "darkBlue",
     "groupColor": "#1a237e",
     "purchasePrice": 350,
@@ -709,8 +712,8 @@ const tiles: Tile[] = [
   {
     "id": "tile-38",
     "position": {
-      "x": 12,
-      "y": 6
+      "x": 0,
+      "y": 2
     },
     "type": "luxuryTax",
     "name": "Luxury Tax",
@@ -719,11 +722,11 @@ const tiles: Tile[] = [
   {
     "id": "tile-39",
     "position": {
-      "x": 12,
-      "y": 7
+      "x": 0,
+      "y": 1
     },
     "type": "property",
-    "name": "United States",
+    "name": "Yokohama",
     "group": "darkBlue",
     "groupColor": "#1a237e",
     "purchasePrice": 400,
@@ -751,12 +754,12 @@ export const classicBoard: BoardConfig = {
   height: 9,
   tiles,
   rules: {
-    startingMoney: 1500,
-    passingStartBonus: 200,
-    minPlayers: 2,
-    maxPlayers: 8,
-    auctionOnDecline: false,
-    turnTimerSeconds: "off",
+    "startingMoney": 1500,
+    "passingStartBonus": 200,
+    "minPlayers": 2,
+    "maxPlayers": 8,
+    "auctionOnDecline": false,
+    "turnTimerSeconds": "off"
   },
   theme: "world-countries",
 };
