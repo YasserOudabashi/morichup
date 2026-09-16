@@ -9,6 +9,9 @@ import EventLog from "./EventLog";
 import SocialPanel from "./SocialPanel";
 import ChatPanel from "./ChatPanel";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SoundToggle from "./SoundToggle";
+import NotificationToggle from "./NotificationToggle";
+import { useTurnNotification } from "../hooks/useTurnNotification";
 import { t } from "../i18n";
 
 interface GameScreenProps {
@@ -42,8 +45,18 @@ export default function GameScreen({
 }: GameScreenProps) {
   const winner = gameState.state === "GAME_OVER" ? gameState.players.find((p) => p.sessionId === gameState.winnerId) : null;
   const [hoveredPlayerId, setHoveredPlayerId] = useState<PlayerSessionId | null>(null);
+  const [mobileTab, setMobileTab] = useState<"board" | "players" | "actions">("board");
   const me = gameState.players.find((p) => p.sessionId === sessionId);
   const isSpectator = me?.status === "spectator";
+
+  useTurnNotification(gameState.currentTurnPlayerId === sessionId && !isSpectator);
+
+  // Touch non ha hover: un tap esplicito su un giocatore attiva/disattiva
+  // l'evidenziazione delle sue proprietà (US-1001), senza toccare il
+  // comportamento hover già esistente su desktop.
+  function handleTapPlayer(playerId: PlayerSessionId) {
+    setHoveredPlayerId((prev) => (prev === playerId ? null : playerId));
+  }
 
   return (
     <div className="app-layout">
@@ -51,20 +64,48 @@ export default function GameScreen({
         <span className="app-topbar__title">{t("app.title")}</span>
         <TurnTimerBar deadline={turnDeadline} />
         <div className="app-topbar__actions">
+          <SoundToggle />
+          <NotificationToggle />
           <LanguageSwitcher variant="inline" />
           <button type="button" className="btn btn--ghost btn--small" onClick={onLeave}>
             {t("game.leaveGame")}
           </button>
         </div>
       </header>
+      <nav className="mobile-tabs">
+        <button
+          type="button"
+          className={`mobile-tabs__item${mobileTab === "board" ? " mobile-tabs__item--active" : ""}`}
+          onClick={() => setMobileTab("board")}
+        >
+          {t("mobile.tabBoard")}
+        </button>
+        <button
+          type="button"
+          className={`mobile-tabs__item${mobileTab === "players" ? " mobile-tabs__item--active" : ""}`}
+          onClick={() => setMobileTab("players")}
+        >
+          {t("mobile.tabPlayers")}
+        </button>
+        <button
+          type="button"
+          className={`mobile-tabs__item${mobileTab === "actions" ? " mobile-tabs__item--active" : ""}`}
+          onClick={() => setMobileTab("actions")}
+        >
+          {t("mobile.tabActions")}
+        </button>
+      </nav>
       <div className="app-main">
-        <Hud
-          players={gameState.players}
-          currentTurnPlayerId={gameState.currentTurnPlayerId}
-          onHoverPlayer={setHoveredPlayerId}
-          jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
-        />
-        <div className="app-board-area">
+        <div className={`app-main__hud${mobileTab === "players" ? " app-main__hud--active" : ""}`}>
+          <Hud
+            players={gameState.players}
+            currentTurnPlayerId={gameState.currentTurnPlayerId}
+            onHoverPlayer={setHoveredPlayerId}
+            onTapPlayer={handleTapPlayer}
+            jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
+          />
+        </div>
+        <div className={`app-board-area${mobileTab === "board" ? " app-board-area--active" : ""}`}>
           <Board
             board={gameState.board}
             players={gameState.players}
@@ -73,7 +114,7 @@ export default function GameScreen({
             moveBatch={moveBatch}
           />
         </div>
-        <aside className="game-side-panel">
+        <aside className={`game-side-panel${mobileTab === "actions" ? " game-side-panel--active" : ""}`}>
           {isSpectator ? (
             <div className="action-panel">
               <p className="action-panel__waiting">{t("game.spectatorNotice")}</p>
@@ -86,7 +127,6 @@ export default function GameScreen({
           <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
         </aside>
       </div>
-      <div className="desktop-only-notice">{t("app.desktopOnly")}</div>
 
       {winner && (
         <div className="game-over-overlay">
