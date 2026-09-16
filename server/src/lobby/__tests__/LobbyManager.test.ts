@@ -26,11 +26,20 @@ test("un secondo giocatore può entrare nella stanza", () => {
   assert.equal(state.players.find((p) => p.sessionId === "s2")?.isHost, false);
 });
 
-test("non si può entrare in una stanza piena", () => {
+test("Fase 8, US-802: entrare in una stanza piena non è più un errore, si entra come spettatore", () => {
   const { manager } = buildManager();
   const room = manager.createRoom("s1", "Yasser", "sock1");
   for (let i = 2; i <= 8; i++) manager.joinRoom(room.code, `s${i}`, `Player${i}`, `sock${i}`);
-  assert.throws(() => manager.joinRoom(room.code, "s9", "Extra", "sock9"), /piena/);
+
+  manager.joinRoom(room.code, "s9", "Extra", "sock9");
+  const roomState = manager.getRoomState(room.code);
+  const extra = roomState.players.find((p) => p.sessionId === "s9");
+  assert.equal(extra?.isSpectator, true);
+  // Uno spettatore in lobby non conta come giocatore: la partita parte comunque con gli 8 reali.
+  manager.startGame(room.code, "s1");
+  assert.equal(manager.getEngine(room.code)!.getState().players.length, 9); // 8 giocatori + 1 spettatore
+  const spectatorInGame = manager.getEngine(room.code)!.getState().players.find((p) => p.sessionId === "s9");
+  assert.equal(spectatorInGame?.status, "spectator");
 });
 
 test("solo l'host può avviare la partita, e servono abbastanza giocatori", () => {
@@ -110,6 +119,45 @@ test("l'host può scegliere la mappa, e la partita parte su quella mappa", () =>
   assert.equal(state.board.width, 15);
 });
 
+test("Fase 7: l'host può attivare le regole opzionali in lobby, applicate solo alla partita che parte", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  assert.throws(
+    () => manager.setOptionalRules(room.code, "s2", { mortgageEnabled: true }),
+    /host/
+  );
+  assert.throws(
+    () => manager.setOptionalRules(room.code, "s1", { turnLimit: 0 }),
+    /positivo/
+  );
+
+  manager.setOptionalRules(room.code, "s1", { mortgageEnabled: true, freeParkingJackpot: true, turnLimit: 40 });
+  const roomState = manager.getRoomState(room.code);
+  assert.deepEqual(roomState.optionalRules, {
+    mortgageEnabled: true,
+    freeParkingJackpot: true,
+    turnLimit: 40,
+    gameTimeLimitMinutes: null,
+  });
+
+  manager.startGame(room.code, "s1");
+  const engineRules = manager.getEngine(room.code)!.getState().board.rules;
+  assert.equal(engineRules.mortgageEnabled, true);
+  assert.equal(engineRules.freeParkingJackpot, true);
+  assert.equal(engineRules.turnLimit, 40);
+
+  // Una seconda stanza sulla stessa mappa, mai toccata dalle regole opzionali della prima:
+  // stesso bug di condivisione già risolto per houses/ownerId (vedi test più sotto), qui per rules.
+  const room2 = manager.createRoom("a1", "Alice", "sockA1");
+  manager.joinRoom(room2.code, "a2", "Bruno", "sockA2");
+  manager.startGame(room2.code, "a1");
+  const engine2Rules = manager.getEngine(room2.code)!.getState().board.rules;
+  assert.equal(engine2Rules.mortgageEnabled, false);
+  assert.equal(engine2Rules.turnLimit, undefined);
+});
+
 test("due partite sulla stessa mappa hanno board indipendenti (nessuno stato condiviso tra stanze)", () => {
   const { manager } = buildManager();
 
@@ -129,4 +177,61 @@ test("due partite sulla stessa mappa hanno board indipendenti (nessuno stato con
   const sameTileInB = engineB.getState().board.tiles.find((t) => t.id === tileId)!;
   assert.equal(sameTileInB.ownerId, null);
   assert.equal(sameTileInB.houses, 0);
+});
+
+test("Fase 8, US-802: entrare in una stanza a partita già iniziata entra subito come spettatore nel GameEngine", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+  manager.startGame(room.code, "s1");
+
+  manager.joinRoom(room.code, "s3", "Osservatore", "sock3");
+  const roomState = manager.getRoomState(room.code);
+  assert.equal(roomState.players.find((p) => p.sessionId === "s3")?.isSpectator, true);
+  const engine = manager.getEngine(room.code)!;
+  assert.equal(engine.getState().players.find((p) => p.sessionId === "s3")?.status, "spectator");
+});
+
+test("Fase 8, US-803: rivincita disponibile solo a fine partita, resetta lo stato mantenendo gli stessi giocatori", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+  manager.startGame(room.code, "s1");
+
+  assert.throws(() => manager.rematch(room.code, "s2"), /host/);
+  assert.throws(() => manager.rematch(room.code, "s1"), /fine partita/);
+
+  // Forza la fine partita per testare la transizione, senza dover giocare un'intera partita.
+  manager.getEngine(room.code)!.getState().state = "GAME_OVER";
+  manager.rematch(room.code, "s1");
+
+  const roomState = manager.getRoomState(room.code);
+  assert.equal(roomState.status, "lobby");
+  assert.equal(roomState.players.length, 2);
+  assert.equal(manager.getEngine(room.code), null);
+});
+
+test("Fase 8, US-801: la chat rispetta il rate limit e tronca i messaggi troppo lunghi", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  const first = manager.sendChatMessage(room.code, "s1", "Ciao a tutti!");
+  assert.equal(first?.nickname, "Yasser");
+  assert.equal(first?.text, "Ciao a tutti!");
+
+  // Un secondo messaggio immediato dallo stesso giocatore viene scartato (rate limit).
+  const second = manager.sendChatMessage(room.code, "s1", "Ancora io");
+  assert.equal(second, null);
+
+  // Un altro giocatore non è soggetto al rate limit di s1.
+  const fromOther = manager.sendChatMessage(room.code, "s2", "Ciao Yasser");
+  assert.equal(fromOther?.nickname, "Dany");
+
+  // Un terzo giocatore, mai apparso prima in chat: nessun rate limit pregresso, testa solo il troncamento.
+  manager.joinRoom(room.code, "s3", "Terzo", "sock3");
+  const long = manager.sendChatMessage(room.code, "s3", "x".repeat(400));
+  assert.equal(long?.text.length, 300);
+
+  assert.throws(() => manager.sendChatMessage(room.code, "unknown-session", "ciao"), /non trovato/);
 });

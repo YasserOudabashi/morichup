@@ -48,6 +48,7 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
 
   const isMyTurn = gameState.currentTurnPlayerId === sessionId;
   const hasPendingDebt = (me?.pendingDebts.length ?? 0) > 0;
+  const mortgageEnabled = gameState.board.rules.mortgageEnabled ?? false;
 
   function buildingLevel(tile: (typeof myTiles)[number]): number {
     return tile.hotel ? 5 : (tile.houses ?? 0);
@@ -215,12 +216,42 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
         const canSell = tile.type === "property" && level > 0 && (isMyTurn || hasPendingDebt);
         const nextCost = level === 4 ? tile.hotelCost : tile.houseCost;
         const sellRefund = Math.floor((level === 5 ? (tile.hotelCost ?? 0) : (tile.houseCost ?? 0)) / 2);
+        // Fase 7, US-701/702: attivare l'ipoteca resta un'azione del proprio turno (come costruire);
+        // riscattarla è sempre permessa, anche fuori turno, per liberarsi rapidamente dal vincolo.
+        const canMortgage = mortgageEnabled && !tile.mortgaged && level === 0 && isMyTurn;
+        const canUnmortgage = mortgageEnabled && tile.mortgaged === true;
+        const mortgageAmount = Math.floor((tile.purchasePrice ?? 0) / 2);
+        const unmortgageAmount =
+          mortgageAmount + Math.ceil(mortgageAmount * (gameState.board.rules.mortgageInterestRate ?? 0.1));
         return (
         <div key={tile.id} className="my-property-row">
           <span className="my-property-row__name">
             {tile.name}
             {level > 0 && <span className="my-property-row__buildings"> {level === 5 ? "🏨" : "🏠".repeat(level)}</span>}
+            {tile.mortgaged && <span className="my-property-row__mortgaged"> ({t("mortgage.mortgagedTag")})</span>}
           </span>
+          {(canMortgage || canUnmortgage) && (
+            <div className="my-property-row__building-actions">
+              {canMortgage && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() => onIntent({ type: "MORTGAGE_PROPERTY", tileId: tile.id })}
+                >
+                  {t("mortgage.mortgage", { amount: mortgageAmount })}
+                </button>
+              )}
+              {canUnmortgage && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() => onIntent({ type: "UNMORTGAGE_PROPERTY", tileId: tile.id })}
+                >
+                  {t("mortgage.unmortgage", { amount: unmortgageAmount })}
+                </button>
+              )}
+            </div>
+          )}
           {(canBuild || canSell) && (
             <div className="my-property-row__building-actions">
               {canBuild && (
@@ -244,6 +275,7 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
             </div>
           )}
           {canStartAuction &&
+            !tile.mortgaged &&
             (auctionFormTileId === tile.id ? (
               <div className="my-property-row__form">
                 <input

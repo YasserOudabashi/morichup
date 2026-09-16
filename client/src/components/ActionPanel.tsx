@@ -48,7 +48,7 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
   if (gameState.pendingDecision?.type === "buyOrDecline") {
     const tile = gameState.board.tiles.find((t2) => t2.id === gameState.pendingDecision!.tileId);
     return (
-      <div className="action-panel">
+      <div className="action-panel action-panel--active">
         {tile && (
           <div className="property-offer" style={{ borderColor: tile.groupColor ?? "var(--color-border)" }}>
             <span className="property-offer__name">{tile.name}</span>
@@ -78,7 +78,7 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
   if (gameState.state === "ROLLING") {
     if (player.inJail) {
       return (
-        <div className="action-panel">
+        <div className="action-panel action-panel--active">
           <p className="action-panel__waiting">{t("game.inJail")}</p>
           <div className="button-row">
             {player.getOutOfJailFreeCards > 0 && (
@@ -97,7 +97,7 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
       );
     }
     return (
-      <div className="action-panel">
+      <div className="action-panel action-panel--active">
         <button type="button" className="btn btn--primary btn--large" onClick={() => onIntent({ type: "ROLL_DICE" })}>
           🎲 {t("game.rollDice")}
         </button>
@@ -107,7 +107,7 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
 
   if (gameState.state === "PLAYER_DECISION") {
     return (
-      <div className="action-panel">
+      <div className="action-panel action-panel--active">
         <button type="button" className="btn btn--primary" onClick={() => onIntent({ type: "END_TURN" })}>
           {t("game.endTurn")}
         </button>

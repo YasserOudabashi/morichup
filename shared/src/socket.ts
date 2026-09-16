@@ -25,6 +25,27 @@ export interface SelectMapRequest {
   mapId: string;
 }
 
+/** Regole opzionali configurabili dall'host in lobby (Fase 7). `null` disattiva/svuota un
+ * limite numerico; i booleani assenti nel payload lasciano invariato il valore corrente. */
+export interface OptionalRulesInput {
+  mortgageEnabled?: boolean;
+  freeParkingJackpot?: boolean;
+  turnLimit?: number | null;
+  gameTimeLimitMinutes?: number | null;
+}
+
+export interface SetRulesRequest {
+  code: string;
+  rules: OptionalRulesInput;
+}
+
+export interface OptionalRulesState {
+  mortgageEnabled: boolean;
+  freeParkingJackpot: boolean;
+  turnLimit: number | null;
+  gameTimeLimitMinutes: number | null;
+}
+
 export interface KickPlayerRequest {
   code: string;
   targetSessionId: PlayerSessionId;
@@ -39,11 +60,29 @@ export interface GameIntentRequest {
   intent: ClientIntent;
 }
 
+export interface ChatMessageRequest {
+  code: string;
+  text: string;
+}
+
+export interface ChatMessage {
+  playerId: PlayerSessionId;
+  nickname: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface RematchRequest {
+  code: string;
+}
+
 export interface RoomPlayer {
   sessionId: PlayerSessionId;
   nickname: string;
   isHost: boolean;
   connected: boolean;
+  /** Fase 8, US-802: è entrato a stanza piena o a partita già iniziata, guarda senza giocare. */
+  isSpectator: boolean;
 }
 
 export type RoomStatus = "lobby" | "playing" | "ended";
@@ -55,6 +94,7 @@ export interface RoomState {
   maxPlayers: number;
   status: RoomStatus;
   mapId: string;
+  optionalRules: OptionalRulesState;
 }
 
 export type AckResponse<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -65,9 +105,14 @@ export interface ClientToServerEvents {
   rejoin: (payload: RejoinRequest, ack: (res: AckResponse<RoomState>) => void) => void;
   start_game: (payload: StartGameRequest, ack: (res: AckResponse<null>) => void) => void;
   select_map: (payload: SelectMapRequest, ack: (res: AckResponse<null>) => void) => void;
+  set_rules: (payload: SetRulesRequest, ack: (res: AckResponse<null>) => void) => void;
   kick_player: (payload: KickPlayerRequest, ack: (res: AckResponse<null>) => void) => void;
   leave_room: (payload: LeaveRoomRequest) => void;
   game_intent: (payload: GameIntentRequest, ack: (res: AckResponse<null>) => void) => void;
+  // Fase 8: chat di stanza (US-801, non uno stato di gioco: vive fuori dal GameEngine)
+  // e rivincita (US-803, un evento di lobby: crea un nuovo GameEngine, non muta quello esistente).
+  chat_message: (payload: ChatMessageRequest) => void;
+  rematch: (payload: RematchRequest, ack: (res: AckResponse<null>) => void) => void;
 }
 
 export interface ServerToClientEvents {
@@ -75,4 +120,5 @@ export interface ServerToClientEvents {
   game_state: (state: GameState) => void;
   game_events: (events: ServerEvent[]) => void;
   turn_timer: (payload: { deadline: number } | null) => void;
+  chat_message: (message: ChatMessage) => void;
 }

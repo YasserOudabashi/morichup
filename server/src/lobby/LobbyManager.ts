@@ -1,4 +1,13 @@
-import { AVAILABLE_MAPS, getMapById, type PlayerSessionId, type RoomState, type ServerEvent } from "@morichup/shared";
+import {
+  AVAILABLE_MAPS,
+  getMapById,
+  type ChatMessage,
+  type OptionalRulesInput,
+  type OptionalRulesState,
+  type PlayerSessionId,
+  type RoomState,
+  type ServerEvent,
+} from "@morichup/shared";
 import { GameEngine } from "../game/GameEngine";
 import { createPlayer } from "../game/Player";
 
@@ -10,12 +19,25 @@ const DEFAULT_MAX_PLAYERS = 8;
 
 const PLAYER_COLORS = ["#3d5af1", "#e91e8c", "#ffb703", "#2e7d32", "#e53935", "#1a237e", "#f5821f", "#7ec8e3"];
 
+/** Fase 8, US-801: rate limit minimo per la chat, un messaggio al secondo a testa. */
+const CHAT_MIN_INTERVAL_MS = 1000;
+const CHAT_MAX_LENGTH = 300;
+
+const DEFAULT_OPTIONAL_RULES: OptionalRulesState = {
+  mortgageEnabled: false,
+  freeParkingJackpot: false,
+  turnLimit: null,
+  gameTimeLimitMinutes: null,
+};
+
 interface RoomPlayerInternal {
   sessionId: PlayerSessionId;
   nickname: string;
   socketId: string | null;
   connected: boolean;
   disconnectTimer: ReturnType<typeof setTimeout> | null;
+  /** Fase 8, US-802: "spectator" è entrato a stanza piena o a partita già iniziata. */
+  role: "player" | "spectator";
 }
 
 interface Room {
@@ -27,6 +49,8 @@ interface Room {
   status: "lobby" | "playing" | "ended";
   engine: GameEngine | null;
   mapId: string;
+  /** Regole opzionali Fase 7, configurabili dall'host in lobby, applicate a `board.rules` all'avvio. */
+  optionalRules: OptionalRulesState;
 }
 
 /**
@@ -36,6 +60,7 @@ interface Room {
  */
 export class LobbyManager {
   private rooms = new Map<string, Room>();
+  private lastChatAt = new Map<PlayerSessionId, number>();
 
   /** Chiamato ogni volta che qualcosa cambia fuori da una risposta diretta a
    * un intent (disconnessioni, riconnessioni, conversione AFK): chi usa questa
@@ -53,12 +78,18 @@ export class LobbyManager {
       status: "lobby",
       engine: null,
       mapId: AVAILABLE_MAPS[0].id,
+      optionalRules: { ...DEFAULT_OPTIONAL_RULES },
     };
-    room.players.set(sessionId, { sessionId, nickname, socketId, connected: true, disconnectTimer: null });
+    room.players.set(sessionId, { sessionId, nickname, socketId, connected: true, disconnectTimer: null, role: "player" });
     this.rooms.set(code, room);
     return room;
   }
 
+  /**
+   * Fase 8, US-802: una stanza piena (ancora in lobby) o a partita già iniziata non
+   * rifiuta più il nuovo arrivato, lo accoglie come spettatore. Se la partita è già in
+   * corso, entra subito anche nel GameEngine (status "spectator", visibile in HUD).
+   */
   joinRoom(code: string, sessionId: PlayerSessionId, nickname: string, socketId: string): Room {
     const room = this.getRoom(code);
     const existing = room.players.get(sessionId);
@@ -69,9 +100,18 @@ export class LobbyManager {
       existing.nickname = nickname;
       return room;
     }
-    if (room.status !== "lobby") throw new Error("La partita è già iniziata");
-    if (room.players.size >= room.maxPlayers) throw new Error("Stanza piena");
-    room.players.set(sessionId, { sessionId, nickname, socketId, connected: true, disconnectTimer: null });
+    const asPlayer = room.status === "lobby" && room.players.size < room.maxPlayers;
+    room.players.set(sessionId, {
+      sessionId,
+      nickname,
+      socketId,
+      connected: true,
+      disconnectTimer: null,
+      role: asPlayer ? "player" : "spectator",
+    });
+    if (!asPlayer && room.engine) {
+      room.engine.addSpectator(sessionId, nickname);
+    }
     return room;
   }
 
@@ -176,11 +216,34 @@ export class LobbyManager {
     return room;
   }
 
+  /** Fase 7: l'host regola ipoteca/jackpot/limiti prima di avviare la partita (come selectMap). */
+  setOptionalRules(code: string, requesterSessionId: PlayerSessionId, patch: OptionalRulesInput): Room {
+    const room = this.getRoom(code);
+    if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può cambiare le regole");
+    if (room.status !== "lobby") throw new Error("La partita è già iniziata");
+
+    if (patch.turnLimit !== undefined && patch.turnLimit !== null && patch.turnLimit <= 0) {
+      throw new Error("Il limite di turni deve essere un numero positivo");
+    }
+    if (patch.gameTimeLimitMinutes !== undefined && patch.gameTimeLimitMinutes !== null && patch.gameTimeLimitMinutes <= 0) {
+      throw new Error("Il limite di tempo deve essere un numero positivo di minuti");
+    }
+
+    if (patch.mortgageEnabled !== undefined) room.optionalRules.mortgageEnabled = patch.mortgageEnabled;
+    if (patch.freeParkingJackpot !== undefined) room.optionalRules.freeParkingJackpot = patch.freeParkingJackpot;
+    if (patch.turnLimit !== undefined) room.optionalRules.turnLimit = patch.turnLimit;
+    if (patch.gameTimeLimitMinutes !== undefined) room.optionalRules.gameTimeLimitMinutes = patch.gameTimeLimitMinutes;
+    return room;
+  }
+
   startGame(code: string, requesterSessionId: PlayerSessionId): Room {
     const room = this.getRoom(code);
     if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può avviare la partita");
     if (room.status !== "lobby") throw new Error("La partita è già iniziata");
-    const connected = [...room.players.values()].filter((p) => p.connected);
+    const allPlayers = [...room.players.values()];
+    const players = allPlayers.filter((p) => p.role === "player");
+    const spectators = allPlayers.filter((p) => p.role === "spectator");
+    const connected = players.filter((p) => p.connected);
     if (connected.length < room.minPlayers) {
       throw new Error(`Servono almeno ${room.minPlayers} giocatori connessi`);
     }
@@ -189,12 +252,52 @@ export class LobbyManager {
     // non un template): senza clonarlo, tutte le partite sulla stessa mappa muterebbero
     // in place lo stesso BoardConfig, mischiando ownerId/case/hotel tra partite diverse.
     const board = structuredClone(getMapById(room.mapId));
-    const enginePlayers = [...room.players.values()].map((p, i) =>
+    // Fase 7: le regole opzionali scelte in lobby si applicano solo a questa partita,
+    // mai al template condiviso in AVAILABLE_MAPS.
+    board.rules.mortgageEnabled = room.optionalRules.mortgageEnabled;
+    board.rules.freeParkingJackpot = room.optionalRules.freeParkingJackpot;
+    board.rules.turnLimit = room.optionalRules.turnLimit ?? undefined;
+    board.rules.gameTimeLimitMinutes = room.optionalRules.gameTimeLimitMinutes ?? undefined;
+
+    const enginePlayers = players.map((p, i) =>
       createPlayer(p.sessionId, p.nickname, PLAYER_COLORS[i % PLAYER_COLORS.length], board.rules.startingMoney)
     );
     room.engine = new GameEngine(code, board, enginePlayers, Date.now());
+    // Chi era già entrato come spettatore mentre la stanza era piena resta tale.
+    for (const spectator of spectators) room.engine.addSpectator(spectator.sessionId, spectator.nickname);
     room.status = "playing";
     return room;
+  }
+
+  /** Fase 8, US-803: rivincita a fine partita. Stessi giocatori/stanza, nuovo GameEngine
+   * (non muta quello esistente): l'host la avvia dall'overlay di game over. */
+  rematch(code: string, requesterSessionId: PlayerSessionId): Room {
+    const room = this.getRoom(code);
+    if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può avviare una rivincita");
+    if (!room.engine || room.engine.getState().state !== "GAME_OVER") {
+      throw new Error("La rivincita è disponibile solo a fine partita");
+    }
+    room.engine = null;
+    room.status = "lobby";
+    return room;
+  }
+
+  /** Fase 8, US-801: chat di stanza, fuori dal GameEngine (non è stato di gioco). Ritorna
+   * null se il messaggio va scartato (vuoto o rate-limited), senza sollevare errori. */
+  sendChatMessage(code: string, sessionId: PlayerSessionId, text: string): ChatMessage | null {
+    const room = this.getRoom(code);
+    const player = room.players.get(sessionId);
+    if (!player) throw new Error("Giocatore non trovato in questa stanza");
+
+    const now = Date.now();
+    const lastAt = this.lastChatAt.get(sessionId) ?? 0;
+    if (now - lastAt < CHAT_MIN_INTERVAL_MS) return null;
+
+    const trimmed = text.trim().slice(0, CHAT_MAX_LENGTH);
+    if (!trimmed) return null;
+    this.lastChatAt.set(sessionId, now);
+
+    return { playerId: sessionId, nickname: player.nickname, text: trimmed, timestamp: now };
   }
 
   kickPlayer(code: string, requesterSessionId: PlayerSessionId, targetSessionId: PlayerSessionId): Room {
@@ -237,11 +340,13 @@ export class LobbyManager {
       maxPlayers: room.maxPlayers,
       status: room.status,
       mapId: room.mapId,
+      optionalRules: room.optionalRules,
       players: [...room.players.values()].map((p) => ({
         sessionId: p.sessionId,
         nickname: p.nickname,
         isHost: p.sessionId === room.hostSessionId,
         connected: p.connected,
+        isSpectator: p.role === "spectator",
       })),
     };
   }

@@ -102,7 +102,9 @@ function describe(
     case "PLAYER_AFK":
       return t("log.playerAfk", { name: nameOf(players, event.playerId) });
     case "GAME_OVER":
-      return t("log.gameOverWinner", { name: nameOf(players, event.winnerId) });
+      return event.reason === "lastStanding"
+        ? t("log.gameOverWinner", { name: nameOf(players, event.winnerId) })
+        : t("log.gameOverWinnerByLimit", { name: nameOf(players, event.winnerId) });
     case "TRADE_PROPOSED":
       return t("log.tradeProposed", { from: nameOf(players, event.trade.fromPlayerId), to: nameOf(players, event.trade.toPlayerId) });
     case "TRADE_COUNTERED":
@@ -157,6 +159,12 @@ function describe(
       return t("log.hotelBuilt", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId) });
     case "HOUSE_SOLD":
       return t("log.houseSold", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId), amount: event.amount });
+    case "PROPERTY_MORTGAGED":
+      return t("log.propertyMortgaged", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId), amount: event.amount });
+    case "PROPERTY_UNMORTGAGED":
+      return t("log.propertyUnmortgaged", { name: nameOf(players, event.playerId), tile: tileName(board, event.tileId), amount: event.amount });
+    case "JACKPOT_WON":
+      return t("log.jackpotWon", { name: nameOf(players, event.playerId), amount: event.amount });
     default:
       return null;
   }

@@ -17,13 +17,61 @@ come per le Fasi 0-5.
 
 | # | Fase | Perché in questo ordine |
 |---|------|--------------------------|
-| 1 | **Fase 6 — Costruzione case/hotel** | Unica vera lacuna rispetto al motore di gioco *core* già previsto dalla PRD originale (§13); senza building, "Classic Monopoly first" non è ancora vero. Tutto il resto è feature aggiuntiva, non correzione di uno scope mancante. |
-| 2 | Fase 7 — Regole economiche opzionali | Estende naturalmente il lavoro appena fatto su building/economia (ipoteca, jackpot, quick game), stesso'area di codice (`GameEngine`, `GameRules`). |
-| 3 | Fase 8 — Feature sociali | Building the community layer": chat, spettatore, rivincita — usa pattern già rodati (bypass del turno, pannelli client) da Fase 4. |
-| 4 | Fase 9 — Editor di mappe | Dipende da un game engine e da un set di regole ormai stabili (building incluso) prima di esporre un editor che li deve rispettare tutti. |
-| 5 | Fase 10 — Personalizzazione, UX, accessibilità | Polish, non blocca nessun'altra fase: va bene più avanti. |
-| 6 | Fase 11 — Dati di partita | Ha senso solo dopo che il set di eventi/regole è stabile (altrimenti cronologia e statistiche vanno riscritte). |
-| 7 | Fase 12 — Infrastruttura & qualità | Test/CI/cleanup non sono mai "in ritardo" rispetto al codice esistente, ma non bloccano le feature: si accumulano in parallelo o alla fine. |
+| 1 | **Fase 6 — Costruzione case/hotel** ✅ | Unica vera lacuna rispetto al motore di gioco *core* già previsto dalla PRD originale (§13); senza building, "Classic Monopoly first" non è ancora vero. Tutto il resto è feature aggiuntiva, non correzione di uno scope mancante. |
+| 2 | **Fase 6.5 — Visual core** | Riprioritizzata sopra le Fasi 7-9 su richiesta esplicita: il gameplay (P0) è completo e testato, ma manca il "game feel" — dadi senza animazione, pedina che teletrasporta, proprietario poco leggibile. Vedi sotto. |
+| 3 | Fase 7 — Regole economiche opzionali | Estende naturalmente il lavoro appena fatto su building/economia (ipoteca, jackpot, quick game), stessa area di codice (`GameEngine`, `GameRules`). |
+| 4 | Fase 8 — Feature sociali | Chat, whisper, lancio di pomodori, voting UI dedicata per le promesse, spettatore, rivincita — usa pattern già rodati (bypass del turno, pannelli client) da Fase 4. |
+| 5 | Fase 9 — Editor di mappe | Dipende da un game engine e da un set di regole ormai stabili (building incluso) prima di esporre un editor che li deve rispettare tutti. |
+| 6 | Fase 10 — Personalizzazione, UX, accessibilità | Mobile, audio, avatar, notifiche turno, accessibilità: polish che non blocca nessun'altra fase. |
+| 7 | Fase 11 — Dati di partita | Ha senso solo dopo che il set di eventi/regole è stabile (altrimenti cronologia e statistiche vanno riscritte). |
+| 8 | Fase 12 — Infrastruttura & qualità | Test client, CI, cleanup stanze, stanze con password, developer mode: si accumulano in parallelo o alla fine. |
+
+---
+
+## Fase 6.5 — Visual core
+
+### Introduzione
+
+Il gameplay è server-authoritative e completo, ma "sembra" statico: nessuna
+animazione dei dadi, la pedina salta direttamente da una casella all'altra
+invece di percorrerle, il proprietario di una casella non si vede a colpo
+d'occhio. Questa fase copre esattamente quei punti, in ordine di priorità
+dichiarata (dadi > movimento > ownership > case/hotel > action area).
+Nessuna di queste modifiche cambia lo stato di gioco: animano eventi che il
+server ha già deciso, mai lo anticipano né lo inventano lato client.
+
+### Sotto-fasi
+
+1. **Animazione dadi** (priorità più alta): due dadi visibili, animazione di
+   "tumble" avviata alla ricezione dell'evento `DICE_RESULT`, si ferma sui
+   valori reali mandati dal server. Mai un valore inventato lato client.
+2. **Movimento casella-per-casella**: la pedina attraversa ogni casella
+   intermedia tra `from` e `to` (evento `PLAYER_MOVED`, con gestione del giro
+   quando `passedGo`), invece di teletrasportarsi. Richiede di spostare il
+   rendering dei token da "dentro ogni Tile" a un livello assoluto sopra la
+   griglia, con un nodo DOM persistente per giocatore (necessario per poter
+   animare una transizione CSS reale).
+3. **Ownership visualization**: bordo/tint colorato del proprietario sempre
+   visibile sulla casella, non solo tramite hover.
+4. **Leggibilità case/hotel**: le icone già aggiunte in Fase 6 sono piccole;
+   vanno ingrandite/rese a contrasto più alto, con una piccola animazione
+   alla costruzione/vendita.
+5. **Action area e turn indicator**: il pulsante Roll/azione corrente deve
+   essere il punto focale quando è il proprio turno; il cambio di turno deve
+   avere un feedback visivo chiaro (non solo testo "Waiting for X").
+
+Ogni sotto-fase viene implementata, verificata (build + Playwright) e
+committata separatamente, con lo stesso ritmo delle fasi precedenti.
+
+### Non-Goals
+
+- Nessuna riscrittura dello stack (resta Vite+React+Socket.IO+Express, in
+  memoria — deciso esplicitamente: il brief permette di mantenere uno stack
+  esistente "ragionevole").
+- Nessun asset audio in questa fase (l'architettura resta "audio-ready": i
+  punti di aggancio per i suoni — roll, acquisto, rent, turno — vanno
+  lasciati ovvi nel codice, ma i file audio arrivano solo in Fase 10 se
+  richiesti).
 
 ---
 
@@ -196,24 +244,24 @@ varianti "quick game" con limiti di tempo/turni.
 per la partita che sto per creare, restando disattivata di default.
 
 **Criteri di accettazione:**
-- [ ] `GameRules` guadagna `mortgageEnabled: boolean` (default `false`).
-- [ ] Toggle in `Lobby.tsx`, visibile solo all'host, accanto al selettore
+- [x] `GameRules` guadagna `mortgageEnabled: boolean` (default `false`).
+- [x] Toggle in `Lobby.tsx`, visibile solo all'host, accanto al selettore
   mappa.
-- [ ] Quando `false`, tutto resta come oggi (solo vendita diretta).
+- [x] Quando `false`, tutto resta come oggi (solo vendita diretta).
 
 #### US-702: Ipotecare una proprietà
 **Descrizione:** Come giocatore in una partita con ipoteca attiva, voglio
 ipotecare una proprietà per liquidità immediata senza perderla del tutto.
 
 **Criteri di accettazione:**
-- [ ] Nuovo intent `MORTGAGE_PROPERTY { tileId }`: incassa metà
+- [x] Nuovo intent `MORTGAGE_PROPERTY { tileId }`: incassa metà
   `purchasePrice`, imposta `tile.mortgaged = true`; la proprietà smette di
   generare rent finché resta ipotecata; richiede zero case/hotel sopra
   (vanno vendute prima).
-- [ ] Nuovo intent `UNMORTGAGE_PROPERTY { tileId }`: ripaga metà prezzo più
+- [x] Nuovo intent `UNMORTGAGE_PROPERTY { tileId }`: ripaga metà prezzo più
   un interesse fisso (10%, valore in `GameRules`), `tile.mortgaged = false`.
-- [ ] Se `mortgageEnabled === false`, entrambi gli intent vengono rifiutati.
-- [ ] Test automatico su entrambi i percorsi, incluso il rifiuto quando
+- [x] Se `mortgageEnabled === false`, entrambi gli intent vengono rifiutati.
+- [x] Test automatico su entrambi i percorsi, incluso il rifiuto quando
   disattivata.
 
 #### US-703: Jackpot al Parcheggio Gratuito
@@ -221,12 +269,12 @@ ipotecare una proprietà per liquidità immediata senza perderla del tutto.
 multe vanno in un piatto raccolto da chi atterra su Free Parking.
 
 **Criteri di accettazione:**
-- [ ] `GameRules` guadagna `freeParkingJackpot: boolean` (default `false`).
-- [ ] Quando attiva, ogni pagamento verso la banca (`payAmount` con
+- [x] `GameRules` guadagna `freeParkingJackpot: boolean` (default `false`).
+- [x] Quando attiva, ogni pagamento verso la banca (`payAmount` con
   `payee: null`) alimenta un `state.jackpotAmount` invece di sparire; chi
   atterra su Free Parking lo incassa e lo azzera.
-- [ ] Toggle in Lobby, visibile in HUD quando attivo (importo accumulato).
-- [ ] Test automatico: tasse/multe che si accumulano, incasso su Free
+- [x] Toggle in Lobby, visibile in HUD quando attivo (importo accumulato).
+- [x] Test automatico: tasse/multe che si accumulano, incasso su Free
   Parking, azzeramento.
 
 #### US-704: Modalità "quick game"
@@ -234,14 +282,14 @@ multe vanno in un piatto raccolto da chi atterra su Free Parking.
 tempo totale, per partite più brevi con amici che hanno poco tempo.
 
 **Criteri di accettazione:**
-- [ ] `GameRules` guadagna `turnLimit?: number` e `gameTimeLimitMinutes?: number`
+- [x] `GameRules` guadagna `turnLimit?: number` e `gameTimeLimitMinutes?: number`
   (entrambi opzionali, nessuno attivo di default).
-- [ ] Al raggiungimento del limite, vince chi ha il patrimonio netto più alto
+- [x] Al raggiungimento del limite, vince chi ha il patrimonio netto più alto
   (cash + proprietà/case al valore nominale, non a metà prezzo) invece di
   aspettare l'ultimo giocatore non bancarottato; evento `GAME_OVER` con un
   campo che distingue "vittoria per bancarotta altrui" da "vittoria a tempo/turni".
-- [ ] Toggle + input numerico in Lobby.
-- [ ] Test automatico sul calcolo del vincitore a limite raggiunto.
+- [x] Toggle + input numerico in Lobby.
+- [x] Test automatico sul calcolo del vincitore a limite raggiunto.
 
 ### Functional Requirements
 
@@ -280,17 +328,17 @@ trading/contratti già esistenti.
 nella stanza, per coordinarmi/scherzare durante la partita.
 
 **Criteri di accettazione:**
-- [ ] Nuovo evento socket `chat_message` (client→server: `{code, text}`;
+- [x] Nuovo evento socket `chat_message` (client→server: `{code, text}`;
   server→client broadcast: `{playerId, nickname, text, timestamp}`), non un
   `ClientIntent`/`ServerEvent` del `GameEngine` (la chat non è stato di
   gioco, non deve essere replicata/validata dal motore).
-- [ ] Rate limit server-side minimo (es. max 1 messaggio/secondo per
+- [x] Rate limit server-side minimo (es. max 1 messaggio/secondo per
   giocatore) per evitare spam accidentale.
-- [ ] Testo troncato a una lunghezza massima (es. 300 caratteri), sanitizzato
+- [x] Testo troncato a una lunghezza massima (es. 300 caratteri), sanitizzato
   come testo semplice (nessun HTML/markdown eseguito).
-- [ ] UI: pannello chat nel game screen (nuovo componente `ChatPanel.tsx`),
+- [x] UI: pannello chat nel game screen (nuovo componente `ChatPanel.tsx`),
   scroll automatico sull'ultimo messaggio, funziona anche in lobby.
-- [ ] Verificato in browser con 2+ contesti Playwright: messaggio scritto da
+- [x] Verificato in browser con 2+ contesti Playwright: messaggio scritto da
   A appare su B in tempo reale.
 
 #### US-802: Modalità spettatore
@@ -298,15 +346,16 @@ nella stanza, per coordinarmi/scherzare durante la partita.
 partita, voglio poter guardare senza giocare.
 
 **Criteri di accettazione:**
-- [ ] `joinRoom` accetta uno spettatore quando la stanza è piena o già
+- [x] `joinRoom` accetta uno spettatore quando la stanza è piena o già
   `playing`: il giocatore entra con `status: "spectator"` (già nel tipo,
   mai usato) invece di essere rifiutato.
-- [ ] Uno spettatore vede la board e l'HUD in sola lettura: nessun
+- [x] Uno spettatore vede la board e l'HUD in sola lettura: nessun
   `ActionPanel`, nessuna possibilità di inviare intent di gioco (il server
   li rifiuta comunque, ma il client non li offre nemmeno).
-- [ ] Uno spettatore può comunque scrivere in chat (separata o taggata
-  "spettatore", scelta di design da confermare in fase di sviluppo).
-- [ ] Test automatico lato server: uno spettatore che tenta un
+- [x] Uno spettatore può comunque scrivere in chat (stessa chat di stanza,
+  senza tag speciale: scelta più semplice, coerente con "un solo componente
+  ChatPanel riusato ovunque").
+- [x] Test automatico lato server: uno spettatore che tenta un
   `ClientIntent` di gioco viene rifiutato.
 
 #### US-803: Rivincita a fine partita
@@ -314,14 +363,14 @@ partita, voglio poter guardare senza giocare.
 iniziarne subito un'altra senza ricreare la stanza da capo.
 
 **Criteri di accettazione:**
-- [ ] Nell'overlay di game-over, un pulsante "Rivincita" (solo host) che
+- [x] Nell'overlay di game-over, un pulsante "Rivincita" (solo host) che
   resetta lo stato: nuovi `Player` con `startingMoney`, board pulita,
   `status: "lobby"`, stessi giocatori/stessa stanza.
-- [ ] Gli altri giocatori vedono automaticamente la lobby riapparire (stesso
+- [x] Gli altri giocatori vedono automaticamente la lobby riapparire (stesso
   meccanismo di `room_state` già esistente).
-- [ ] Test automatico: dopo `GAME_OVER`, `REMATCH` (nuovo intent lobby, non
-  di gioco) riporta la stanza a `status: "lobby"` con giocatori invariati e
-  un nuovo `GameEngine`.
+- [x] Test automatico: dopo `GAME_OVER`, `REMATCH` (nuovo evento di lobby,
+  non un `ClientIntent` di gioco) riporta la stanza a `status: "lobby"` con
+  giocatori invariati e un nuovo `GameEngine`.
 
 ### Functional Requirements
 

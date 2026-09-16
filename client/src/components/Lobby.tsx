@@ -1,21 +1,43 @@
 import { useState } from "react";
-import { AVAILABLE_MAPS, type PlayerSessionId, type RoomState } from "@morichup/shared";
+import {
+  AVAILABLE_MAPS,
+  type ChatMessage,
+  type OptionalRulesInput,
+  type PlayerSessionId,
+  type RoomState,
+} from "@morichup/shared";
 import { t } from "../i18n";
 import { buildJoinUrl } from "../lib/url";
+import ChatPanel from "./ChatPanel";
 
 interface LobbyProps {
   room: RoomState;
   sessionId: PlayerSessionId;
   onStart: () => void;
   onSelectMap: (mapId: string) => void;
+  onSetRules: (rules: OptionalRulesInput) => void;
   onKick: (targetSessionId: PlayerSessionId) => void;
   onLeave: () => void;
+  chatMessages: ChatMessage[];
+  onSendChatMessage: (text: string) => void;
 }
 
-export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, onLeave }: LobbyProps) {
+export default function Lobby({
+  room,
+  sessionId,
+  onStart,
+  onSelectMap,
+  onSetRules,
+  onKick,
+  onLeave,
+  chatMessages,
+  onSendChatMessage,
+}: LobbyProps) {
   const [copied, setCopied] = useState(false);
+  const players = room.players.filter((p) => !p.isSpectator);
+  const spectators = room.players.filter((p) => p.isSpectator);
   const isHost = room.players.find((p) => p.sessionId === sessionId)?.isHost ?? false;
-  const connectedCount = room.players.filter((p) => p.connected).length;
+  const connectedCount = players.filter((p) => p.connected).length;
   const canStart = isHost && connectedCount >= room.minPlayers;
 
   async function handleCopyLink() {
@@ -62,11 +84,57 @@ export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, o
           })}
         </div>
 
+        <h2 className="section-label">{t("lobby.optionalRules")}</h2>
+        <div className="rules-picker">
+          <label className="rules-picker__toggle">
+            <input
+              type="checkbox"
+              checked={room.optionalRules.mortgageEnabled}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ mortgageEnabled: e.target.checked })}
+            />
+            {t("lobby.rules.mortgage")}
+          </label>
+          <label className="rules-picker__toggle">
+            <input
+              type="checkbox"
+              checked={room.optionalRules.freeParkingJackpot}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ freeParkingJackpot: e.target.checked })}
+            />
+            {t("lobby.rules.jackpot")}
+          </label>
+          <label className="rules-picker__number">
+            {t("lobby.rules.turnLimit")}
+            <input
+              type="number"
+              min={1}
+              className="text-input text-input--small"
+              value={room.optionalRules.turnLimit ?? ""}
+              placeholder={t("lobby.rules.off")}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ turnLimit: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+          </label>
+          <label className="rules-picker__number">
+            {t("lobby.rules.timeLimit")}
+            <input
+              type="number"
+              min={1}
+              className="text-input text-input--small"
+              value={room.optionalRules.gameTimeLimitMinutes ?? ""}
+              placeholder={t("lobby.rules.off")}
+              disabled={!isHost}
+              onChange={(e) => onSetRules({ gameTimeLimitMinutes: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+          </label>
+        </div>
+
         <h2 className="section-label">
-          {t("lobby.players")} ({room.players.length}/{room.maxPlayers})
+          {t("lobby.players")} ({players.length}/{room.maxPlayers})
         </h2>
         <ul className="lobby-player-list">
-          {room.players.map((player) => (
+          {players.map((player) => (
             <li key={player.sessionId} className="lobby-player">
               <span className={`status-dot${player.connected ? "" : " status-dot--off"}`} />
               <span className="lobby-player__name">
@@ -84,6 +152,25 @@ export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, o
           ))}
         </ul>
 
+        {spectators.length > 0 && (
+          <>
+            <h2 className="section-label">
+              {t("lobby.spectators")} ({spectators.length})
+            </h2>
+            <ul className="lobby-player-list">
+              {spectators.map((player) => (
+                <li key={player.sessionId} className="lobby-player">
+                  <span className={`status-dot${player.connected ? "" : " status-dot--off"}`} />
+                  <span className="lobby-player__name">
+                    {player.nickname}
+                    {player.sessionId === sessionId && <em> ({t("lobby.you")})</em>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         {isHost ? (
           <button type="button" className="btn btn--primary" disabled={!canStart} onClick={onStart}>
             {canStart ? t("lobby.startGame") : t("lobby.notEnoughPlayers", { min: room.minPlayers })}
@@ -95,6 +182,8 @@ export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, o
         <button type="button" className="btn btn--ghost btn--small leave-link" onClick={onLeave}>
           {t("lobby.leaveRoom")}
         </button>
+
+        <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
       </div>
     </div>
   );

@@ -45,8 +45,11 @@ export default function App() {
           sessionId={sessionId}
           onStart={conn.startGame}
           onSelectMap={conn.selectMap}
+          onSetRules={conn.setRules}
           onKick={conn.kickPlayer}
           onLeave={conn.leaveRoom}
+          chatMessages={conn.chatMessages}
+          onSendChatMessage={conn.sendChatMessage}
         />
       ) : null;
       break;
@@ -57,8 +60,14 @@ export default function App() {
           sessionId={sessionId}
           turnDeadline={conn.turnDeadline}
           events={conn.events}
+          diceRoll={conn.diceRoll}
+          moveBatch={conn.moveBatch}
           onIntent={conn.sendIntent}
           onLeave={conn.leaveRoom}
+          chatMessages={conn.chatMessages}
+          onSendChatMessage={conn.sendChatMessage}
+          onRematch={conn.rematch}
+          isHost={conn.roomState?.players.find((p) => p.sessionId === sessionId)?.isHost ?? false}
         />
       ) : null;
       break;
