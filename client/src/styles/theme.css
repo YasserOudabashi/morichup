@@ -144,10 +144,36 @@ body {
 }
 
 .hud__player--current {
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   border-radius: 8px;
   margin: -4px -6px;
   padding: 4px 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.hud__player-turn-indicator {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  animation: turn-indicator-pulse 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud__player-turn-indicator {
+    animation: none;
+  }
+}
+
+@keyframes turn-indicator-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(2px);
+  }
 }
 
 .hud__player--bankrupt {
@@ -176,8 +202,10 @@ body {
 .board__center {
   background: var(--color-surface);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 14px;
 }
 
 .board__center-title {
@@ -186,7 +214,81 @@ body {
   color: var(--color-primary);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.6;
+  opacity: 0.35;
+}
+
+.board__center-roller {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Dadi (Fase 6.5 — visual core) */
+
+.dice-pair {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  perspective: 400px;
+}
+
+.die {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1;
+  color: var(--color-text);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+  transition: transform 0.15s ease;
+}
+
+.dice-pair--rolling .die {
+  animation: dice-tumble 0.16s linear infinite;
+}
+
+.dice-pair--rolling .die:nth-child(2) {
+  animation-delay: -0.08s;
+}
+
+@keyframes dice-tumble {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.dice-pair__double {
+  position: absolute;
+  bottom: -1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  white-space: nowrap;
+  animation: dice-double-pop 0.3s ease;
+}
+
+@keyframes dice-double-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-pair--rolling .die {
+    animation: none;
+  }
+  .dice-pair__double {
+    animation: none;
+  }
 }
 
 .board-tile {
@@ -214,6 +316,20 @@ body {
   transition: background-color 0.15s ease;
 }
 
+/* Proprietà: colore del proprietario sempre visibile (non solo su hover),
+ * distinto dall'evidenziazione temporanea di .board-tile--highlighted. */
+.board-tile--owned {
+  background: color-mix(in srgb, var(--owner-color, var(--color-primary)) 10%, var(--color-surface));
+}
+
+.board-tile__owner-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+}
+
 .board-tile__band {
   position: absolute;
   top: 0;
@@ -232,11 +348,16 @@ body {
 
 .board-tile__buildings {
   position: absolute;
-  top: 8px;
+  top: 6px;
   left: 2px;
-  font-size: 0.5rem;
+  font-size: 0.75rem;
   line-height: 1;
   letter-spacing: -1px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.board-tile__buildings--hotel {
+  font-size: 0.95rem;
 }
 
 .board-tile__name {
@@ -247,29 +368,58 @@ body {
   color: var(--color-text-muted);
 }
 
-.board-tile__tokens {
-  position: absolute;
-  inset: 0;
+/* Livello dei token: sopra la griglia delle caselle, un solo nodo DOM
+ * persistente per giocatore (mai ricreato quando cambia casella) così la
+ * transizione di left/top è una vera animazione, non un teletrasporto. */
+.board-token-layer {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  position: relative;
   pointer-events: none;
+  z-index: 5;
 }
 
 /* Player tokens */
 
 .player-token {
   position: absolute;
-  width: 30%;
-  aspect-ratio: 1 / 1;
-  max-width: 16px;
-  max-height: 16px;
-  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1.5px solid var(--color-surface);
+  border: 2px solid var(--color-surface);
   color: #fff;
-  font-size: 0.5rem;
+  font-size: 0.65rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  transition: left 0.15s linear, top 0.15s linear;
+}
+
+.player-token--bounce {
+  animation: token-arrive 0.32s ease;
+}
+
+@keyframes token-arrive {
+  0% {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  }
+  40% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--token-color, #fff) 45%, transparent), 0 2px 6px rgba(0, 0, 0, 0.55);
+  }
+  100% {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-token {
+    transition: none;
+  }
+  .player-token--bounce {
+    animation: none;
+  }
 }
 
 /* Desktop-only notice */
@@ -747,6 +897,32 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Quando è il mio turno l'area azioni diventa il fulcro visivo dello
+ * schermo (bordo + bagliore pulsante), invece di confondersi col resto
+ * del pannello laterale. */
+.action-panel--active {
+  border-bottom-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  animation: action-panel-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes action-panel-glow {
+  0%,
+  100% {
+    background: var(--color-surface);
+  }
+  50% {
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-panel--active {
+    animation: none;
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  }
 }
 
 .action-panel__waiting {

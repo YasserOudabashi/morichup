@@ -35,6 +35,7 @@
   "lobby.disconnected": "disconnected",
 
   "game.rollDice": "Roll dice",
+  "game.doubles": "Doubles!",
   "game.buyProperty": "Buy",
   "game.decline": "Decline",
   "game.endTurn": "End turn",

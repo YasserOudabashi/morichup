@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ClientIntent, GameState, PlayerSessionId, ServerEvent } from "@morichup/shared";
+import type { DiceRoll, MoveBatch } from "../state/useGameConnection";
 import Board from "./Board";
 import Hud from "./Hud";
 import ActionPanel from "./ActionPanel";
@@ -14,11 +15,22 @@ interface GameScreenProps {
   sessionId: PlayerSessionId;
   turnDeadline: number | null;
   events: ServerEvent[];
+  diceRoll: DiceRoll | null;
+  moveBatch: MoveBatch | null;
   onIntent: (intent: ClientIntent) => void;
   onLeave: () => void;
 }
 
-export default function GameScreen({ gameState, sessionId, turnDeadline, events, onIntent, onLeave }: GameScreenProps) {
+export default function GameScreen({
+  gameState,
+  sessionId,
+  turnDeadline,
+  events,
+  diceRoll,
+  moveBatch,
+  onIntent,
+  onLeave,
+}: GameScreenProps) {
   const winner = gameState.state === "GAME_OVER" ? gameState.players.find((p) => p.sessionId === gameState.winnerId) : null;
   const [hoveredPlayerId, setHoveredPlayerId] = useState<PlayerSessionId | null>(null);
 
@@ -41,7 +53,13 @@ export default function GameScreen({ gameState, sessionId, turnDeadline, events,
           onHoverPlayer={setHoveredPlayerId}
         />
         <div className="app-board-area">
-          <Board board={gameState.board} players={gameState.players} hoveredPlayerId={hoveredPlayerId} />
+          <Board
+            board={gameState.board}
+            players={gameState.players}
+            hoveredPlayerId={hoveredPlayerId}
+            diceRoll={diceRoll}
+            moveBatch={moveBatch}
+          />
         </div>
         <aside className="game-side-panel">
           <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />

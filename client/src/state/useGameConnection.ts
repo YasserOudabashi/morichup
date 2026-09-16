@@ -5,6 +5,30 @@ import { getLastRoomCode, saveLastRoomCode } from "../lib/session";
 
 export type Screen = "landing" | "menu" | "lobby" | "game";
 
+/** Ultimo tiro di dadi ricevuto dal server, con un nonce che cambia sempre
+ * (anche a parità di valori) per far ripartire l'animazione ad ogni tiro. */
+export interface DiceRoll {
+  playerId: PlayerSessionId;
+  values: [number, number];
+  isDouble: boolean;
+  nonce: number;
+}
+
+/** Un singolo spostamento da animare: la pedina deve attraversare le caselle
+ * intermedie invece di teletrasportarsi. SENT_TO_JAIL non ha una "from" nel
+ * suo evento originale (vedi GameEngine): qui resta un salto diretto, come
+ * nel gioco da tavolo reale. */
+export type MoveEvent =
+  | { type: "PLAYER_MOVED"; playerId: PlayerSessionId; from: number; to: number; passedGo: boolean }
+  | { type: "SENT_TO_JAIL"; playerId: PlayerSessionId };
+
+/** Tutti gli spostamenti di un singolo batch di ServerEvent, con un nonce
+ * che cambia sempre per far ripartire l'animazione anche a batch "uguali". */
+export interface MoveBatch {
+  nonce: number;
+  moves: MoveEvent[];
+}
+
 export interface ConnectionState {
   screen: Screen;
   sessionId: PlayerSessionId;
@@ -12,6 +36,8 @@ export interface ConnectionState {
   gameState: GameState | null;
   turnDeadline: number | null;
   events: ServerEvent[];
+  diceRoll: DiceRoll | null;
+  moveBatch: MoveBatch | null;
   error: string | null;
   reconnecting: boolean;
   goToMenu: () => void;
@@ -31,9 +57,13 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const [events, setEvents] = useState<ServerEvent[]>([]);
+  const [diceRoll, setDiceRoll] = useState<DiceRoll | null>(null);
+  const [moveBatch, setMoveBatch] = useState<MoveBatch | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const roomCodeRef = useRef<string | null>(null);
+  const diceNonceRef = useRef(0);
+  const moveNonceRef = useRef(0);
 
   useEffect(() => {
     const socket = getSocket();
@@ -50,6 +80,24 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     };
     const onGameEvents = (newEvents: ServerEvent[]) => {
       setEvents((prev) => [...newEvents, ...prev].slice(0, 40));
+      const diceEvent = newEvents.find((e): e is Extract<ServerEvent, { type: "DICE_RESULT" }> => e.type === "DICE_RESULT");
+      if (diceEvent) {
+        diceNonceRef.current += 1;
+        setDiceRoll({
+          playerId: diceEvent.playerId,
+          values: diceEvent.values,
+          isDouble: diceEvent.isDouble,
+          nonce: diceNonceRef.current,
+        });
+      }
+      const moves = newEvents.filter(
+        (e): e is Extract<ServerEvent, { type: "PLAYER_MOVED" | "SENT_TO_JAIL" }> =>
+          e.type === "PLAYER_MOVED" || e.type === "SENT_TO_JAIL"
+      );
+      if (moves.length > 0) {
+        moveNonceRef.current += 1;
+        setMoveBatch({ nonce: moveNonceRef.current, moves });
+      }
     };
     const onTurnTimer = (payload: { deadline: number } | null) => {
       setTurnDeadline(payload?.deadline ?? null);
@@ -150,6 +198,8 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     gameState,
     turnDeadline,
     events,
+    diceRoll,
+    moveBatch,
     error,
     reconnecting,
     goToMenu,
