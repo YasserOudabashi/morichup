@@ -2,6 +2,8 @@ import {
   AVAILABLE_MAPS,
   getMapById,
   PLAYER_COLOR_PALETTE,
+  validateBoard,
+  type BoardConfig,
   type ChatMessage,
   type OptionalRulesInput,
   type OptionalRulesState,
@@ -60,6 +62,9 @@ interface Room {
   /** Fase 12, US-1203: istante in cui l'ultimo giocatore connesso ha lasciato la stanza;
    * null mentre c'è almeno un giocatore connesso. Base per lo sweep delle stanze abbandonate. */
   emptyStartedAt: number | null;
+  /** Fase 9, US-902: mappa personalizzata caricata dall'host, già validata al momento
+   * dell'upload; null = si gioca su una delle 4 mappe ufficiali (`mapId`). */
+  customBoard: BoardConfig | null;
 }
 
 /**
@@ -102,6 +107,7 @@ export class LobbyManager {
       optionalRules: { ...DEFAULT_OPTIONAL_RULES },
       password: password?.trim() ? password.trim() : null,
       emptyStartedAt: null,
+      customBoard: null,
     };
     room.players.set(sessionId, {
       sessionId,
@@ -265,6 +271,22 @@ export class LobbyManager {
     if (room.status !== "lobby") throw new Error("La partita è già iniziata");
     if (!AVAILABLE_MAPS.some((m) => m.id === mapId)) throw new Error("Mappa sconosciuta");
     room.mapId = mapId;
+    // Tornare a una mappa ufficiale abbandona quella personalizzata eventualmente caricata.
+    room.customBoard = null;
+    return room;
+  }
+
+  /** Fase 9, US-902: l'host carica una mappa personalizzata al posto di una ufficiale.
+   * Il server non si fida mai del client: rivalida sempre, anche se l'editor ha già
+   * validato lato browser prima dell'export/upload. */
+  setCustomMap(code: string, requesterSessionId: PlayerSessionId, board: BoardConfig): Room {
+    const room = this.getRoom(code);
+    if (room.hostSessionId !== requesterSessionId) throw new Error("Solo l'host può caricare una mappa personalizzata");
+    if (room.status !== "lobby") throw new Error("La partita è già iniziata");
+    const result = validateBoard(board);
+    if (!result.valid) throw new Error(`Mappa non valida: ${result.errors.join("; ")}`);
+    room.customBoard = board;
+    room.mapId = board.id;
     return room;
   }
 
@@ -303,7 +325,8 @@ export class LobbyManager {
     // getMapById ritorna sempre lo stesso oggetto (AVAILABLE_MAPS è un registro condiviso,
     // non un template): senza clonarlo, tutte le partite sulla stessa mappa muterebbero
     // in place lo stesso BoardConfig, mischiando ownerId/case/hotel tra partite diverse.
-    const board = structuredClone(getMapById(room.mapId));
+    // Una mappa personalizzata (Fase 9) è già stata validata al momento dell'upload.
+    const board = structuredClone(room.customBoard ?? getMapById(room.mapId));
     // Fase 7: le regole opzionali scelte in lobby si applicano solo a questa partita,
     // mai al template condiviso in AVAILABLE_MAPS.
     board.rules.mortgageEnabled = room.optionalRules.mortgageEnabled;
@@ -441,6 +464,15 @@ export class LobbyManager {
       mapId: room.mapId,
       optionalRules: room.optionalRules,
       hasPassword: room.password !== null,
+      customMap: room.customBoard
+        ? {
+            id: room.customBoard.id,
+            name: room.customBoard.name,
+            width: room.customBoard.width,
+            height: room.customBoard.height,
+            tileCount: room.customBoard.tiles.length,
+          }
+        : null,
       players: [...room.players.values()].map((p) => ({
         sessionId: p.sessionId,
         nickname: p.nickname,

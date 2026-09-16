@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AVAILABLE_MAPS,
+  type BoardConfig,
   type ChatMessage,
   type OptionalRulesInput,
   type PlayerSessionId,
@@ -15,6 +16,7 @@ interface LobbyProps {
   sessionId: PlayerSessionId;
   onStart: () => void;
   onSelectMap: (mapId: string) => void;
+  onLoadCustomMap: (board: BoardConfig) => void;
   onSetRules: (rules: OptionalRulesInput) => void;
   onKick: (targetSessionId: PlayerSessionId) => void;
   onLeave: () => void;
@@ -27,6 +29,7 @@ export default function Lobby({
   sessionId,
   onStart,
   onSelectMap,
+  onLoadCustomMap,
   onSetRules,
   onKick,
   onLeave,
@@ -34,6 +37,8 @@ export default function Lobby({
   onSendChatMessage,
 }: LobbyProps) {
   const [copied, setCopied] = useState(false);
+  const [customMapError, setCustomMapError] = useState<string | null>(null);
+  const customMapInputRef = useRef<HTMLInputElement>(null);
   const players = room.players.filter((p) => !p.isSpectator);
   const spectators = room.players.filter((p) => p.isSpectator);
   const isHost = room.players.find((p) => p.sessionId === sessionId)?.isHost ?? false;
@@ -48,6 +53,20 @@ export default function Lobby({
     } catch {
       // clipboard non disponibile: l'utente può comunque leggere/copiare il codice a mano.
     }
+  }
+
+  function handleCustomMapFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const board = JSON.parse(String(reader.result)) as BoardConfig;
+        setCustomMapError(null);
+        onLoadCustomMap(board);
+      } catch {
+        setCustomMapError(t("lobby.customMapParseError"));
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
@@ -88,6 +107,36 @@ export default function Lobby({
             );
           })}
         </div>
+
+        {room.customMap && (
+          <p className="waiting-notice map-picker__custom-active">
+            {t("lobby.customMapActive", {
+              name: room.customMap.name,
+              width: room.customMap.width,
+              height: room.customMap.height,
+              tiles: room.customMap.tileCount,
+            })}
+          </p>
+        )}
+        {isHost && (
+          <div className="button-row">
+            <button type="button" className="btn btn--ghost btn--small" onClick={() => customMapInputRef.current?.click()}>
+              {t("lobby.loadCustomMap")}
+            </button>
+            <input
+              ref={customMapInputRef}
+              type="file"
+              accept="application/json"
+              className="map-editor__file-input"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleCustomMapFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        )}
+        {customMapError && <p className="map-picker__custom-error">{customMapError}</p>}
 
         <h2 className="section-label">{t("lobby.optionalRules")}</h2>
         <div className="rules-picker">

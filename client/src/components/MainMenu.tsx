@@ -5,11 +5,12 @@ interface MainMenuProps {
   onCreate: (password?: string) => void;
   onJoin: (code: string, password?: string) => void;
   onHistory: () => void;
+  onOpenEditor: () => void;
 }
 
 type Mode = "menu" | "joining" | "creating";
 
-export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps) {
+export default function MainMenu({ onCreate, onJoin, onHistory, onOpenEditor }: MainMenuProps) {
   const [mode, setMode] = useState<Mode>("menu");
   const [code, setCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
@@ -44,6 +45,10 @@ export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps)
             <button type="button" className="menu-option" onClick={onHistory}>
               <span className="menu-option__title">{t("menu.history")}</span>
               <span className="menu-option__hint">{t("menu.historyHint")}</span>
+            </button>
+            <button type="button" className="menu-option" onClick={onOpenEditor}>
+              <span className="menu-option__title">{t("menu.editor")}</span>
+              <span className="menu-option__hint">{t("menu.editorHint")}</span>
             </button>
           </div>
         )}

@@ -1,7 +1,48 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PLAYER_COLOR_PALETTE } from "@morichup/shared";
+import { coordFor, PLAYER_COLOR_PALETTE } from "@morichup/shared";
+import type { BoardConfig, Tile } from "@morichup/shared";
 import { LobbyManager } from "../LobbyManager";
+
+/** Board minima 8x8 valida per i test della mappa personalizzata (Fase 9). */
+function buildCustomBoard(id = "custom-test"): BoardConfig {
+  const width = 8;
+  const height = 8;
+  const count = 2 * width + 2 * height - 4;
+  const tiles: Tile[] = Array.from({ length: count }, (_, i) => {
+    const position = coordFor(i, width, height);
+    if (i === 0) return { id: `t${i}`, type: "start" as const, name: "Go", position };
+    if (i === width - 1) return { id: `t${i}`, type: "jail" as const, name: "Jail", position };
+    if (i === width + height - 2) return { id: `t${i}`, type: "freeParking" as const, name: "Free Parking", position };
+    if (i === 2 * width + height - 3) return { id: `t${i}`, type: "goToJail" as const, name: "Go To Jail", position };
+    return {
+      id: `t${i}`,
+      type: "property" as const,
+      name: `Property ${i}`,
+      position,
+      group: "grp",
+      groupColor: "#ff0000",
+      purchasePrice: 100,
+      baseRent: 10,
+    };
+  });
+  return {
+    id,
+    name: "Custom Test",
+    version: "0.1.0",
+    width,
+    height,
+    tiles,
+    rules: {
+      startingMoney: 1500,
+      passingStartBonus: 200,
+      minPlayers: 2,
+      maxPlayers: 8,
+      auctionOnDecline: false,
+      turnTimerSeconds: "off" as const,
+    },
+  };
+}
 
 function buildManager(now?: () => number) {
   const events: { code: string; events: unknown[] }[] = [];
@@ -320,4 +361,51 @@ test("Fase 12, US-1203: una riconnessione azzera il timer di abbandono", () => {
 
   current = 2000; // oltre la soglia dall'istante in cui la stanza era rimasta vuota, ma s1 è tornato
   assert.deepEqual(shortManager.sweepAbandonedRooms(), []);
+});
+
+test("Fase 9, US-902: solo l'host può caricare una mappa personalizzata, e deve essere valida", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  const board = buildCustomBoard();
+  assert.throws(() => manager.setCustomMap(room.code, "s2", board), /host/);
+
+  const invalidBoard = buildCustomBoard();
+  invalidBoard.tiles[3] = { ...invalidBoard.tiles[3], purchasePrice: undefined, group: undefined };
+  assert.throws(() => manager.setCustomMap(room.code, "s1", invalidBoard), /non valida/);
+
+  manager.setCustomMap(room.code, "s1", board);
+  const roomState = manager.getRoomState(room.code);
+  assert.equal(roomState.mapId, board.id);
+  assert.deepEqual(roomState.customMap, {
+    id: board.id,
+    name: board.name,
+    width: board.width,
+    height: board.height,
+    tileCount: board.tiles.length,
+  });
+
+  manager.startGame(room.code, "s1");
+  const state = manager.getEngine(room.code)!.getState();
+  assert.equal(state.board.id, board.id);
+  assert.equal(state.board.tiles.length, board.tiles.length);
+});
+
+test("Fase 9, US-902: scegliere una mappa ufficiale abbandona quella personalizzata caricata", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  manager.setCustomMap(room.code, "s1", buildCustomBoard());
+  assert.ok(manager.getRoomState(room.code).customMap);
+
+  manager.selectMap(room.code, "s1", "extended");
+  const roomState = manager.getRoomState(room.code);
+  assert.equal(roomState.mapId, "extended");
+  assert.equal(roomState.customMap, null);
+});
+
+test("Fase 9, US-902: nessuna mappa personalizzata di default, non appare nello stato pubblico", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  assert.equal(manager.getRoomState(room.code).customMap, null);
 });
