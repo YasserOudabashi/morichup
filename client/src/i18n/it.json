@@ -1,11 +1,29 @@
 {
   "app.title": "Morichup",
   "app.tagline": "Classic Monopoly first. Custom chaos second.",
-  "app.desktopOnly": "Morichup si gioca meglio su uno schermo desktop più grande. Ridimensiona la finestra o cambia dispositivo.",
   "hud.players": "Giocatori",
+
+  "status.bankrupt": "In bancarotta",
+  "status.spectator": "Spettatore",
+  "status.afk": "AFK",
+  "status.disconnected": "Disconnesso",
+  "status.inJail": "In prigione",
+
+  "mobile.tabBoard": "Tabellone",
+  "mobile.tabPlayers": "Giocatori",
+  "mobile.tabActions": "Azioni",
+
+  "sound.mute": "Disattiva audio",
+  "sound.unmute": "Attiva audio",
+
+  "notifications.enable": "Attiva notifiche di turno",
+  "notifications.disable": "Disattiva notifiche di turno",
+  "notifications.yourTurnTitle": "▶ Tocca a te!",
+  "notifications.yourTurnBody": "È il tuo turno su Morichup.",
 
   "landing.nicknameLabel": "Il tuo nickname",
   "landing.nicknamePlaceholder": "es. Alex",
+  "landing.colorLabel": "Il tuo colore",
   "landing.continue": "Continua",
   "landing.joiningRoom": "Stai per entrare nella stanza",
   "landing.reconnecting": "Riconnessione alla tua partita…",
@@ -19,6 +37,25 @@
   "menu.back": "Indietro",
   "menu.passwordOptionalLabel": "Password (opzionale)",
   "menu.passwordPlaceholder": "Lascia vuoto per una stanza pubblica",
+  "menu.history": "Cronologia partite",
+  "menu.historyHint": "Rivedi le partite passate e rigiocale.",
+
+  "history.title": "Cronologia partite",
+  "history.empty": "Nessuna partita giocata ancora.",
+  "history.players": "giocatori",
+  "history.replay": "Rivedi",
+  "history.clear": "Cancella cronologia",
+  "history.result.won": "Vinta",
+  "history.result.lost": "Persa",
+  "history.result.spectated": "Guardata",
+
+  "replay.title": "Replay",
+  "replay.previous": "Passo precedente",
+  "replay.play": "Riproduci",
+  "replay.pause": "Pausa",
+  "replay.next": "Passo successivo",
+  "replay.speed": "Velocità di riproduzione",
+  "replay.scrubber": "Posizione nel replay",
 
   "lobby.title": "Lobby",
   "lobby.roomCode": "Codice stanza",

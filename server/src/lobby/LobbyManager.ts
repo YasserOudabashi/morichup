@@ -1,6 +1,7 @@
 import {
   AVAILABLE_MAPS,
   getMapById,
+  PLAYER_COLOR_PALETTE,
   type ChatMessage,
   type OptionalRulesInput,
   type OptionalRulesState,
@@ -19,8 +20,6 @@ const DEFAULT_MAX_PLAYERS = 8;
 /** Fase 12, US-1203: dopo quanto tempo senza NESSUN giocatore connesso una stanza
  * viene considerata abbandonata e ripulita dallo sweep periodico. */
 const DEFAULT_ABANDONED_AFTER_MS = 2 * 60 * 60 * 1000;
-
-const PLAYER_COLORS = ["#3d5af1", "#e91e8c", "#ffb703", "#2e7d32", "#e53935", "#1a237e", "#f5821f", "#7ec8e3"];
 
 /** Fase 8, US-801: rate limit minimo per la chat, un messaggio al secondo a testa. */
 const CHAT_MIN_INTERVAL_MS = 1000;
@@ -41,6 +40,8 @@ interface RoomPlayerInternal {
   disconnectTimer: ReturnType<typeof setTimeout> | null;
   /** Fase 8, US-802: "spectator" è entrato a stanza piena o a partita già iniziata. */
   role: "player" | "spectator";
+  /** Fase 10, US-1005: colore scelto in fase di landing, rispettato se libero all'avvio. */
+  preferredColor?: string;
 }
 
 interface Room {
@@ -81,7 +82,13 @@ export class LobbyManager {
     private abandonedAfterMs: number = DEFAULT_ABANDONED_AFTER_MS
   ) {}
 
-  createRoom(sessionId: PlayerSessionId, nickname: string, socketId: string, password?: string): Room {
+  createRoom(
+    sessionId: PlayerSessionId,
+    nickname: string,
+    socketId: string,
+    preferredColor?: string,
+    password?: string
+  ): Room {
     const code = this.generateCode();
     const room: Room = {
       code,
@@ -96,7 +103,15 @@ export class LobbyManager {
       password: password?.trim() ? password.trim() : null,
       emptyStartedAt: null,
     };
-    room.players.set(sessionId, { sessionId, nickname, socketId, connected: true, disconnectTimer: null, role: "player" });
+    room.players.set(sessionId, {
+      sessionId,
+      nickname,
+      socketId,
+      connected: true,
+      disconnectTimer: null,
+      role: "player",
+      preferredColor,
+    });
     this.rooms.set(code, room);
     return room;
   }
@@ -106,7 +121,14 @@ export class LobbyManager {
    * rifiuta più il nuovo arrivato, lo accoglie come spettatore. Se la partita è già in
    * corso, entra subito anche nel GameEngine (status "spectator", visibile in HUD).
    */
-  joinRoom(code: string, sessionId: PlayerSessionId, nickname: string, socketId: string, password?: string): Room {
+  joinRoom(
+    code: string,
+    sessionId: PlayerSessionId,
+    nickname: string,
+    socketId: string,
+    preferredColor?: string,
+    password?: string
+  ): Room {
     const room = this.getRoom(code);
     const existing = room.players.get(sessionId);
     if (existing) {
@@ -130,6 +152,7 @@ export class LobbyManager {
       connected: true,
       disconnectTimer: null,
       role: asPlayer ? "player" : "spectator",
+      preferredColor,
     });
     if (!asPlayer && room.engine) {
       room.engine.addSpectator(sessionId, nickname);
@@ -288,14 +311,36 @@ export class LobbyManager {
     board.rules.turnLimit = room.optionalRules.turnLimit ?? undefined;
     board.rules.gameTimeLimitMinutes = room.optionalRules.gameTimeLimitMinutes ?? undefined;
 
-    const enginePlayers = players.map((p, i) =>
-      createPlayer(p.sessionId, p.nickname, PLAYER_COLORS[i % PLAYER_COLORS.length], board.rules.startingMoney)
+    const colors = this.assignColors(players);
+    const enginePlayers = players.map((p) =>
+      createPlayer(p.sessionId, p.nickname, colors.get(p.sessionId)!, board.rules.startingMoney)
     );
     room.engine = new GameEngine(code, board, enginePlayers, Date.now());
     // Chi era già entrato come spettatore mentre la stanza era piena resta tale.
     for (const spectator of spectators) room.engine.addSpectator(spectator.sessionId, spectator.nickname);
     room.status = "playing";
     return room;
+  }
+
+  /** Fase 10, US-1005: rispetta il colore preferito di ogni giocatore quando è ancora
+   * libero; chi non ha preferenza (o l'ha vista assegnata a un altro) riceve il primo
+   * colore libero della palette condivisa, nell'ordine di ingresso in stanza. */
+  private assignColors(players: RoomPlayerInternal[]): Map<PlayerSessionId, string> {
+    const used = new Set<string>();
+    const result = new Map<PlayerSessionId, string>();
+    for (const p of players) {
+      if (p.preferredColor && PLAYER_COLOR_PALETTE.includes(p.preferredColor) && !used.has(p.preferredColor)) {
+        result.set(p.sessionId, p.preferredColor);
+        used.add(p.preferredColor);
+      }
+    }
+    for (const p of players) {
+      if (result.has(p.sessionId)) continue;
+      const free = PLAYER_COLOR_PALETTE.find((c) => !used.has(c)) ?? PLAYER_COLOR_PALETTE[result.size % PLAYER_COLOR_PALETTE.length];
+      result.set(p.sessionId, free);
+      used.add(free);
+    }
+    return result;
   }
 
   /** Fase 8, US-803: rivincita a fine partita. Stessi giocatori/stanza, nuovo GameEngine

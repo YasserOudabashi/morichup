@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { PLAYER_COLOR_PALETTE } from "@morichup/shared";
 import { LobbyManager } from "../LobbyManager";
 
 function buildManager(now?: () => number) {
@@ -238,13 +239,13 @@ test("Fase 8, US-801: la chat rispetta il rate limit e tronca i messaggi troppo 
 
 test("Fase 12, US-1204: una stanza con password richiede la password corretta per entrare", () => {
   const { manager } = buildManager();
-  const room = manager.createRoom("s1", "Yasser", "sock1", "segreto");
+  const room = manager.createRoom("s1", "Yasser", "sock1", undefined, "segreto");
   assert.equal(manager.getRoomState(room.code).hasPassword, true);
 
-  assert.throws(() => manager.joinRoom(room.code, "s2", "Dany", "sock2", "sbagliata"), /Password errata/);
+  assert.throws(() => manager.joinRoom(room.code, "s2", "Dany", "sock2", undefined, "sbagliata"), /Password errata/);
   assert.throws(() => manager.joinRoom(room.code, "s2", "Dany", "sock2"), /Password errata/);
 
-  manager.joinRoom(room.code, "s2", "Dany", "sock2", "segreto");
+  manager.joinRoom(room.code, "s2", "Dany", "sock2", undefined, "segreto");
   assert.equal(manager.getRoomState(room.code).players.length, 2);
 });
 
@@ -255,6 +256,29 @@ test("Fase 12, US-1204: una stanza senza password non la richiede, e non appare 
   manager.joinRoom(room.code, "s2", "Dany", "sock2");
   assert.equal(manager.getRoomState(room.code).players.length, 2);
   assert.equal((manager.getRoomState(room.code) as unknown as Record<string, unknown>).password, undefined);
+});
+
+test("Fase 10, US-1005: il colore preferito viene rispettato se libero all'avvio", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1", PLAYER_COLOR_PALETTE[3]);
+  manager.joinRoom(room.code, "s2", "Dany", "sock2", PLAYER_COLOR_PALETTE[1]);
+  manager.startGame(room.code, "s1");
+  const players = manager.getEngine(room.code)!.getState().players;
+  assert.equal(players.find((p) => p.sessionId === "s1")?.color, PLAYER_COLOR_PALETTE[3]);
+  assert.equal(players.find((p) => p.sessionId === "s2")?.color, PLAYER_COLOR_PALETTE[1]);
+});
+
+test("Fase 10, US-1005: due giocatori che vogliono lo stesso colore, solo il primo entrato lo tiene", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1", PLAYER_COLOR_PALETTE[0]);
+  manager.joinRoom(room.code, "s2", "Dany", "sock2", PLAYER_COLOR_PALETTE[0]);
+  manager.startGame(room.code, "s1");
+  const players = manager.getEngine(room.code)!.getState().players;
+  const colorS1 = players.find((p) => p.sessionId === "s1")?.color;
+  const colorS2 = players.find((p) => p.sessionId === "s2")?.color;
+  assert.equal(colorS1, PLAYER_COLOR_PALETTE[0]);
+  assert.notEqual(colorS2, colorS1);
+  assert.ok(PLAYER_COLOR_PALETTE.includes(colorS2!));
 });
 
 test("Fase 12, US-1203: lo sweep rimuove solo le stanze vuote da più della soglia configurata", () => {

@@ -1,11 +1,29 @@
 {
   "app.title": "Morichup",
   "app.tagline": "Classic Monopoly first. Custom chaos second.",
-  "app.desktopOnly": "Morichup is best played on a larger desktop screen. Please resize your window or switch device.",
   "hud.players": "Players",
+
+  "status.bankrupt": "Bankrupt",
+  "status.spectator": "Spectator",
+  "status.afk": "AFK",
+  "status.disconnected": "Disconnected",
+  "status.inJail": "In jail",
+
+  "mobile.tabBoard": "Board",
+  "mobile.tabPlayers": "Players",
+  "mobile.tabActions": "Actions",
+
+  "sound.mute": "Mute sound",
+  "sound.unmute": "Unmute sound",
+
+  "notifications.enable": "Enable turn notifications",
+  "notifications.disable": "Disable turn notifications",
+  "notifications.yourTurnTitle": "▶ Your turn!",
+  "notifications.yourTurnBody": "It's your turn to play in Morichup.",
 
   "landing.nicknameLabel": "Your nickname",
   "landing.nicknamePlaceholder": "e.g. Alex",
+  "landing.colorLabel": "Your color",
   "landing.continue": "Continue",
   "landing.joiningRoom": "You're about to join room",
   "landing.reconnecting": "Reconnecting to your game…",
@@ -19,6 +37,25 @@
   "menu.back": "Back",
   "menu.passwordOptionalLabel": "Password (optional)",
   "menu.passwordPlaceholder": "Leave empty for a public room",
+  "menu.history": "Match history",
+  "menu.historyHint": "Review past games and replay them.",
+
+  "history.title": "Match history",
+  "history.empty": "No games played yet.",
+  "history.players": "players",
+  "history.replay": "Replay",
+  "history.clear": "Clear history",
+  "history.result.won": "Won",
+  "history.result.lost": "Lost",
+  "history.result.spectated": "Spectated",
+
+  "replay.title": "Replay",
+  "replay.previous": "Previous step",
+  "replay.play": "Play",
+  "replay.pause": "Pause",
+  "replay.next": "Next step",
+  "replay.speed": "Playback speed",
+  "replay.scrubber": "Replay position",
 
   "lobby.title": "Lobby",
   "lobby.roomCode": "Room code",

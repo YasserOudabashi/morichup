@@ -3,6 +3,8 @@ import type { ClientIntent, GameState, PlayerSessionId, ServerEvent } from "./in
 export interface CreateRoomRequest {
   sessionId: PlayerSessionId;
   nickname: string;
+  /** Colore scelto dal giocatore (Fase 10, US-1005): il server lo rispetta se libero. */
+  preferredColor?: string;
   /** Fase 12, US-1204: se presente, la stanza richiede questa password per essere raggiunta. */
   password?: string;
 }
@@ -11,6 +13,7 @@ export interface JoinRoomRequest {
   sessionId: PlayerSessionId;
   nickname: string;
   code: string;
+  preferredColor?: string;
   password?: string;
 }
 

@@ -163,9 +163,9 @@ export function registerSocketServer(io: AppServer): void {
   }
 
   io.on("connection", (socket: AppSocket) => {
-    socket.on("create_room", ({ sessionId, nickname, password }, ack) => {
+    socket.on("create_room", ({ sessionId, nickname, preferredColor, password }, ack) => {
       try {
-        const room = lobbyManager.createRoom(sessionId, nickname, socket.id, password);
+        const room = lobbyManager.createRoom(sessionId, nickname, socket.id, preferredColor, password);
         socket.data.sessionId = sessionId;
         socket.data.roomCode = room.code;
         socket.join(room.code);
@@ -176,9 +176,9 @@ export function registerSocketServer(io: AppServer): void {
       }
     });
 
-    socket.on("join_room", ({ sessionId, nickname, code, password }, ack) => {
+    socket.on("join_room", ({ sessionId, nickname, code, preferredColor, password }, ack) => {
       try {
-        const room = lobbyManager.joinRoom(code, sessionId, nickname, socket.id, password);
+        const room = lobbyManager.joinRoom(code, sessionId, nickname, socket.id, preferredColor, password);
         socket.data.sessionId = sessionId;
         socket.data.roomCode = room.code;
         socket.join(room.code);

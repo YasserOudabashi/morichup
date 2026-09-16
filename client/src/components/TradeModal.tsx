@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GameState, PlayerSessionId, TradeAssets, TradeOffer } from "@morichup/shared";
 import { t } from "../i18n";
+import { useEscapeToClose } from "../hooks/useEscapeToClose";
 
 interface TradeModalProps {
   gameState: GameState;
@@ -28,6 +29,12 @@ export default function TradeModal({ gameState, sessionId, existingTrade, preset
   const [receiveProps, setReceiveProps] = useState<string[]>(existingTrade?.receive.propertyIds ?? []);
   const [specialConditions, setSpecialConditions] = useState(existingTrade?.specialConditions ?? "");
 
+  useEscapeToClose(onClose);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    cardRef.current?.focus();
+  }, []);
+
   if (!me) return null;
 
   function toggle(list: string[], setList: (v: string[]) => void, id: string) {
@@ -50,8 +57,18 @@ export default function TradeModal({ gameState, sessionId, existingTrade, preset
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="card modal-card" onClick={(e) => e.stopPropagation()}>
-        <h2 className="brand-title modal-title">{isCounter ? t("trade.counterTitle") : t("trade.title")}</h2>
+      <div
+        className="card modal-card"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trade-modal-title"
+        ref={cardRef}
+        tabIndex={-1}
+      >
+        <h2 id="trade-modal-title" className="brand-title modal-title">
+          {isCounter ? t("trade.counterTitle") : t("trade.title")}
+        </h2>
         <form onSubmit={handleSubmit} className="stack">
           {!isCounter && (
             <>
