@@ -39,6 +39,7 @@ export default function GameScreen({ gameState, sessionId, turnDeadline, events,
           players={gameState.players}
           currentTurnPlayerId={gameState.currentTurnPlayerId}
           onHoverPlayer={setHoveredPlayerId}
+          jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
         />
         <div className="app-board-area">
           <Board board={gameState.board} players={gameState.players} hoveredPlayerId={hoveredPlayerId} />
@@ -58,6 +59,11 @@ export default function GameScreen({ gameState, sessionId, turnDeadline, events,
             <p className="game-over-winner">
               {winner.nickname} {t("game.winner")}
             </p>
+            {gameState.winReason && gameState.winReason !== "lastStanding" && (
+              <p className="game-over-reason">
+                {t(gameState.winReason === "turnLimit" ? "game.winByTurnLimit" : "game.winByTimeLimit")}
+              </p>
+            )}
             <button type="button" className="btn btn--primary" onClick={onLeave}>
               {t("game.leaveGame")}
             </button>

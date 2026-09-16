@@ -5,6 +5,8 @@ interface HudProps {
   players: Player[];
   currentTurnPlayerId?: PlayerSessionId | null;
   onHoverPlayer?: (playerId: PlayerSessionId | null) => void;
+  /** null = regola del jackpot non attiva in questa partita: niente da mostrare (Fase 7, US-703). */
+  jackpotAmount?: number | null;
 }
 
 function statusLabel(player: Player): string | null {
@@ -15,10 +17,15 @@ function statusLabel(player: Player): string | null {
   return null;
 }
 
-export default function Hud({ players, currentTurnPlayerId, onHoverPlayer }: HudProps) {
+export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, jackpotAmount }: HudProps) {
   return (
     <aside className="hud">
       <h2 className="hud__title">{t("hud.players")}</h2>
+      {jackpotAmount != null && (
+        <p className="hud__jackpot">
+          🅿️ {t("hud.jackpot")}: <strong>${jackpotAmount}</strong>
+        </p>
+      )}
       <ul className="hud__player-list">
         {players.map((player) => {
           const isCurrent = player.sessionId === currentTurnPlayerId;

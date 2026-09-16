@@ -196,24 +196,24 @@ varianti "quick game" con limiti di tempo/turni.
 per la partita che sto per creare, restando disattivata di default.
 
 **Criteri di accettazione:**
-- [ ] `GameRules` guadagna `mortgageEnabled: boolean` (default `false`).
-- [ ] Toggle in `Lobby.tsx`, visibile solo all'host, accanto al selettore
+- [x] `GameRules` guadagna `mortgageEnabled: boolean` (default `false`).
+- [x] Toggle in `Lobby.tsx`, visibile solo all'host, accanto al selettore
   mappa.
-- [ ] Quando `false`, tutto resta come oggi (solo vendita diretta).
+- [x] Quando `false`, tutto resta come oggi (solo vendita diretta).
 
 #### US-702: Ipotecare una proprietà
 **Descrizione:** Come giocatore in una partita con ipoteca attiva, voglio
 ipotecare una proprietà per liquidità immediata senza perderla del tutto.
 
 **Criteri di accettazione:**
-- [ ] Nuovo intent `MORTGAGE_PROPERTY { tileId }`: incassa metà
+- [x] Nuovo intent `MORTGAGE_PROPERTY { tileId }`: incassa metà
   `purchasePrice`, imposta `tile.mortgaged = true`; la proprietà smette di
   generare rent finché resta ipotecata; richiede zero case/hotel sopra
   (vanno vendute prima).
-- [ ] Nuovo intent `UNMORTGAGE_PROPERTY { tileId }`: ripaga metà prezzo più
+- [x] Nuovo intent `UNMORTGAGE_PROPERTY { tileId }`: ripaga metà prezzo più
   un interesse fisso (10%, valore in `GameRules`), `tile.mortgaged = false`.
-- [ ] Se `mortgageEnabled === false`, entrambi gli intent vengono rifiutati.
-- [ ] Test automatico su entrambi i percorsi, incluso il rifiuto quando
+- [x] Se `mortgageEnabled === false`, entrambi gli intent vengono rifiutati.
+- [x] Test automatico su entrambi i percorsi, incluso il rifiuto quando
   disattivata.
 
 #### US-703: Jackpot al Parcheggio Gratuito
@@ -221,12 +221,12 @@ ipotecare una proprietà per liquidità immediata senza perderla del tutto.
 multe vanno in un piatto raccolto da chi atterra su Free Parking.
 
 **Criteri di accettazione:**
-- [ ] `GameRules` guadagna `freeParkingJackpot: boolean` (default `false`).
-- [ ] Quando attiva, ogni pagamento verso la banca (`payAmount` con
+- [x] `GameRules` guadagna `freeParkingJackpot: boolean` (default `false`).
+- [x] Quando attiva, ogni pagamento verso la banca (`payAmount` con
   `payee: null`) alimenta un `state.jackpotAmount` invece di sparire; chi
   atterra su Free Parking lo incassa e lo azzera.
-- [ ] Toggle in Lobby, visibile in HUD quando attivo (importo accumulato).
-- [ ] Test automatico: tasse/multe che si accumulano, incasso su Free
+- [x] Toggle in Lobby, visibile in HUD quando attivo (importo accumulato).
+- [x] Test automatico: tasse/multe che si accumulano, incasso su Free
   Parking, azzeramento.
 
 #### US-704: Modalità "quick game"
@@ -234,14 +234,14 @@ multe vanno in un piatto raccolto da chi atterra su Free Parking.
 tempo totale, per partite più brevi con amici che hanno poco tempo.
 
 **Criteri di accettazione:**
-- [ ] `GameRules` guadagna `turnLimit?: number` e `gameTimeLimitMinutes?: number`
+- [x] `GameRules` guadagna `turnLimit?: number` e `gameTimeLimitMinutes?: number`
   (entrambi opzionali, nessuno attivo di default).
-- [ ] Al raggiungimento del limite, vince chi ha il patrimonio netto più alto
+- [x] Al raggiungimento del limite, vince chi ha il patrimonio netto più alto
   (cash + proprietà/case al valore nominale, non a metà prezzo) invece di
   aspettare l'ultimo giocatore non bancarottato; evento `GAME_OVER` con un
   campo che distingue "vittoria per bancarotta altrui" da "vittoria a tempo/turni".
-- [ ] Toggle + input numerico in Lobby.
-- [ ] Test automatico sul calcolo del vincitore a limite raggiunto.
+- [x] Toggle + input numerico in Lobby.
+- [x] Test automatico sul calcolo del vincitore a limite raggiunto.
 
 ### Functional Requirements
 

@@ -90,6 +90,18 @@ export interface GameRules {
   maxPlayers: number;
   auctionOnDecline: boolean;
   turnTimerSeconds: number | "off";
+  // --- Fase 7: regole economiche opzionali, tutte disattivate/assenti di
+  // default così le partite Classic restano invariate per chi non le attiva. ---
+  /** Ipoteca delle proprietà (US-701/702). Default false: solo vendita diretta come oggi. */
+  mortgageEnabled?: boolean;
+  /** Interesse fisso al riscatto di un'ipoteca (US-702), non configurabile dall'host. */
+  mortgageInterestRate?: number;
+  /** Tasse/multe verso la banca si accumulano in un piatto, incassato da chi atterra su Free Parking (US-703). */
+  freeParkingJackpot?: boolean;
+  /** Limite di turni totali giocati prima della vittoria per patrimonio netto (US-704). */
+  turnLimit?: number;
+  /** Limite di tempo di gioco in minuti prima della vittoria per patrimonio netto (US-704). */
+  gameTimeLimitMinutes?: number;
 }
 
 export type GameStateMachineState =
@@ -175,6 +187,8 @@ export interface AuctionState {
   minimumBid: number;
 }
 
+export type WinReason = "lastStanding" | "turnLimit" | "timeLimit";
+
 export interface GameState {
   roomCode: string;
   board: BoardConfig;
@@ -184,10 +198,14 @@ export interface GameState {
   lastDiceRoll?: [number, number];
   pendingDecision: PendingDecision;
   winnerId?: PlayerSessionId;
+  /** Distingue una vittoria per bancarotta altrui da una a limite di turni/tempo raggiunto (Fase 7, US-704). */
+  winReason?: WinReason;
   trades: TradeOffer[];
   contracts: Contract[];
   accusations: ContractAccusation[];
   auction: AuctionState | null;
+  /** Piatto accumulato dalle tasse/multe quando `rules.freeParkingJackpot` è attivo (Fase 7, US-703). */
+  jackpotAmount: number;
 }
 
 // Intent: client -> server. Elenco iniziale, estendere per fase.
@@ -211,7 +229,9 @@ export type ClientIntent =
   | { type: "PASS_AUCTION" }
   | { type: "START_PLAYER_AUCTION"; tileId: string; minimumBid: number }
   | { type: "BUILD_HOUSE"; tileId: string }
-  | { type: "SELL_HOUSE"; tileId: string };
+  | { type: "SELL_HOUSE"; tileId: string }
+  | { type: "MORTGAGE_PROPERTY"; tileId: string }
+  | { type: "UNMORTGAGE_PROPERTY"; tileId: string };
 
 // Event: server -> client. Elenco iniziale, estendere per fase.
 export type ServerEvent =
@@ -228,7 +248,7 @@ export type ServerEvent =
   | { type: "LEFT_JAIL"; playerId: PlayerSessionId; method: "paid" | "doubles" | "card" }
   | { type: "PLAYER_BANKRUPT"; playerId: PlayerSessionId }
   | { type: "TURN_ENDED"; playerId: PlayerSessionId; extraTurn: boolean }
-  | { type: "GAME_OVER"; winnerId: PlayerSessionId }
+  | { type: "GAME_OVER"; winnerId: PlayerSessionId; reason: WinReason }
   | { type: "PLAYER_DISCONNECTED"; playerId: PlayerSessionId; timeoutSeconds: number }
   | { type: "PLAYER_RECONNECTED"; playerId: PlayerSessionId }
   | { type: "PLAYER_AFK"; playerId: PlayerSessionId }
@@ -250,7 +270,10 @@ export type ServerEvent =
   | { type: "AUCTION_ENDED"; tileId: string; winnerId: PlayerSessionId | null; amount: number }
   | { type: "HOUSE_BUILT"; playerId: PlayerSessionId; tileId: string; houses: number }
   | { type: "HOTEL_BUILT"; playerId: PlayerSessionId; tileId: string }
-  | { type: "HOUSE_SOLD"; playerId: PlayerSessionId; tileId: string; amount: number };
+  | { type: "HOUSE_SOLD"; playerId: PlayerSessionId; tileId: string; amount: number }
+  | { type: "PROPERTY_MORTGAGED"; playerId: PlayerSessionId; tileId: string; amount: number }
+  | { type: "PROPERTY_UNMORTGAGED"; playerId: PlayerSessionId; tileId: string; amount: number }
+  | { type: "JACKPOT_WON"; playerId: PlayerSessionId; amount: number };
 
 export * from "./maps/index";
 export * from "./socket";

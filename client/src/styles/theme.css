@@ -104,6 +104,12 @@ body {
   margin: 0 0 12px;
 }
 
+.hud__jackpot {
+  font-size: 0.8rem;
+  color: var(--color-accent);
+  margin: -4px 0 12px;
+}
+
 .hud__player-list {
   list-style: none;
   margin: 0;
@@ -580,6 +586,37 @@ body {
   color: var(--color-text-muted);
 }
 
+.rules-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.rules-picker__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.rules-picker__number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.rules-picker__number .text-input--small {
+  width: 90px;
+}
+
 .lobby-player-list {
   list-style: none;
   margin: 0 0 24px;
@@ -852,6 +889,12 @@ body {
   margin: 12px 0 20px;
 }
 
+.game-over-reason {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: -14px 0 20px;
+}
+
 /* ---------------------------------------------------------------- */
 /* Trading & contratti sociali (Fase 4)                              */
 /* ---------------------------------------------------------------- */
@@ -976,6 +1019,11 @@ body {
 
 .my-property-row__name {
   color: var(--color-text);
+}
+
+.my-property-row__mortgaged {
+  color: var(--color-danger);
+  font-size: 0.75rem;
 }
 
 .my-property-row__buildings {
