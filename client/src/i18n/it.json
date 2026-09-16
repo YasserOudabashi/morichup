@@ -35,6 +35,7 @@
   "lobby.disconnected": "disconnesso",
 
   "game.rollDice": "Tira i dadi",
+  "game.doubles": "Doppio!",
   "game.buyProperty": "Compra",
   "game.decline": "Rifiuta",
   "game.endTurn": "Fine turno",

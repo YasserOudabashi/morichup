@@ -1,17 +1,21 @@
 import type { BoardConfig, Player, PlayerSessionId } from "@morichup/shared";
 import Tile from "./Tile";
+import Dice from "./Dice";
+import type { DiceRoll } from "../state/useGameConnection";
 
 interface BoardProps {
   board: BoardConfig;
   players: Player[];
   hoveredPlayerId?: PlayerSessionId | null;
+  diceRoll?: DiceRoll | null;
 }
 
 const CORNER_TYPES = new Set(["start", "jail", "freeParking", "goToJail"]);
 
-export default function Board({ board, players, hoveredPlayerId }: BoardProps) {
+export default function Board({ board, players, hoveredPlayerId, diceRoll }: BoardProps) {
   const aspectRatio = board.width / board.height;
   const hoveredPlayer = hoveredPlayerId ? players.find((p) => p.sessionId === hoveredPlayerId) : null;
+  const rollingPlayer = diceRoll ? players.find((p) => p.sessionId === diceRoll.playerId) : null;
   return (
     <div
       className="board"
@@ -27,6 +31,12 @@ export default function Board({ board, players, hoveredPlayerId }: BoardProps) {
         style={{ gridColumn: `2 / ${board.width}`, gridRow: `2 / ${board.height}` }}
       >
         <span className="board__center-title">{board.name}</span>
+        <Dice roll={diceRoll ?? null} />
+        {rollingPlayer && (
+          <span className="board__center-roller" style={{ color: rollingPlayer.color }}>
+            {rollingPlayer.nickname}
+          </span>
+        )}
       </div>
       {board.tiles.map((tile, index) => (
         <Tile

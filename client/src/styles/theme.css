@@ -176,8 +176,10 @@ body {
 .board__center {
   background: var(--color-surface);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 14px;
 }
 
 .board__center-title {
@@ -186,7 +188,81 @@ body {
   color: var(--color-primary);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.6;
+  opacity: 0.35;
+}
+
+.board__center-roller {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Dadi (Fase 6.5 — visual core) */
+
+.dice-pair {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  perspective: 400px;
+}
+
+.die {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1;
+  color: var(--color-text);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+  transition: transform 0.15s ease;
+}
+
+.dice-pair--rolling .die {
+  animation: dice-tumble 0.16s linear infinite;
+}
+
+.dice-pair--rolling .die:nth-child(2) {
+  animation-delay: -0.08s;
+}
+
+@keyframes dice-tumble {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.dice-pair__double {
+  position: absolute;
+  bottom: -1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  white-space: nowrap;
+  animation: dice-double-pop 0.3s ease;
+}
+
+@keyframes dice-double-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-pair--rolling .die {
+    animation: none;
+  }
+  .dice-pair__double {
+    animation: none;
+  }
 }
 
 .board-tile {

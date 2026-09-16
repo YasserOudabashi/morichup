@@ -57,6 +57,7 @@ export default function App() {
           sessionId={sessionId}
           turnDeadline={conn.turnDeadline}
           events={conn.events}
+          diceRoll={conn.diceRoll}
           onIntent={conn.sendIntent}
           onLeave={conn.leaveRoom}
         />
