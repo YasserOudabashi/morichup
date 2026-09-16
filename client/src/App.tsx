@@ -3,11 +3,14 @@ import { getSavedNickname, getSessionId } from "./lib/session";
 import { parseJoinCodeFromUrl } from "./lib/url";
 import { useGameConnection } from "./state/useGameConnection";
 import { useLocale } from "./i18n";
+import type { MatchHistoryEntry } from "./lib/matchHistory";
 import Landing from "./components/Landing";
 import MainMenu from "./components/MainMenu";
 import Lobby from "./components/Lobby";
 import GameScreen from "./components/GameScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import MatchHistory from "./components/MatchHistory";
+import Replay from "./components/Replay";
 
 export default function App() {
   // In cima all'albero: un cambio lingua deve far ri-renderizzare ogni
@@ -16,6 +19,8 @@ export default function App() {
   const sessionId = useMemo(() => getSessionId(), []);
   const [joinCode] = useState(() => parseJoinCodeFromUrl());
   const conn = useGameConnection(sessionId);
+  const [showHistory, setShowHistory] = useState(false);
+  const [replayEntry, setReplayEntry] = useState<MatchHistoryEntry | null>(null);
 
   function handleLandingSubmit(nickname: string) {
     if (joinCode) {
@@ -31,10 +36,13 @@ export default function App() {
       screen = <Landing joinCode={joinCode} reconnecting={conn.reconnecting} onSubmit={handleLandingSubmit} />;
       break;
     case "menu":
-      screen = (
+      screen = showHistory ? (
+        <MatchHistory onBack={() => setShowHistory(false)} onReplay={(entry) => setReplayEntry(entry)} />
+      ) : (
         <MainMenu
           onCreate={() => conn.createRoom(getSavedNickname())}
           onJoin={(code) => conn.joinRoom(code, getSavedNickname())}
+          onHistory={() => setShowHistory(true)}
         />
       );
       break;
@@ -71,6 +79,10 @@ export default function App() {
         />
       ) : null;
       break;
+  }
+
+  if (replayEntry) {
+    return <Replay entry={replayEntry} onExit={() => setReplayEntry(null)} />;
   }
 
   return (

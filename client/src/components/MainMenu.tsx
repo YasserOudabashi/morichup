@@ -4,9 +4,10 @@ import { t } from "../i18n";
 interface MainMenuProps {
   onCreate: () => void;
   onJoin: (code: string) => void;
+  onHistory: () => void;
 }
 
-export default function MainMenu({ onCreate, onJoin }: MainMenuProps) {
+export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps) {
   const [joining, setJoining] = useState(false);
   const [code, setCode] = useState("");
 
@@ -30,6 +31,10 @@ export default function MainMenu({ onCreate, onJoin }: MainMenuProps) {
             <button type="button" className="menu-option" onClick={() => setJoining(true)}>
               <span className="menu-option__title">{t("menu.joinGame")}</span>
               <span className="menu-option__hint">{t("menu.joinGameHint")}</span>
+            </button>
+            <button type="button" className="menu-option" onClick={onHistory}>
+              <span className="menu-option__title">{t("menu.history")}</span>
+              <span className="menu-option__hint">{t("menu.historyHint")}</span>
             </button>
           </div>
         ) : (

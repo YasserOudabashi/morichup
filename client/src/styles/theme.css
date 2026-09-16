@@ -509,6 +509,10 @@ body {
   max-width: 360px;
 }
 
+.card--wide {
+  max-width: 640px;
+}
+
 .card--center {
   text-align: center;
 }
@@ -688,6 +692,90 @@ body {
 .menu-option__hint {
   font-size: 0.82rem;
   color: var(--color-text-muted);
+}
+
+/* Cronologia partite (Fase 11, US-1101) */
+
+.match-history-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.match-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.match-history-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.match-history-item__result {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.match-history-item__result--won {
+  color: var(--color-success);
+}
+
+.match-history-item__result--lost {
+  color: var(--color-danger);
+}
+
+.match-history-item__result--spectated {
+  color: var(--color-text-muted);
+}
+
+.match-history-item__map {
+  font-weight: 600;
+}
+
+.match-history-item__meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Replay (Fase 11, US-1102) */
+
+.replay-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.replay-controls__step {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.replay-scrubber {
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  accent-color: var(--color-primary);
 }
 
 /* Lobby */
