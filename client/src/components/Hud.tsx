@@ -38,6 +38,11 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, jackp
               onMouseLeave={() => onHoverPlayer?.(null)}
             >
               <span className="hud__player-color" style={{ backgroundColor: player.color }} />
+              {isCurrent && (
+                <span className="hud__player-turn-indicator" aria-hidden="true">
+                  ▶
+                </span>
+              )}
               <span className="hud__player-name">{player.nickname}</span>
               {status && <span className="hud__player-status">{status}</span>}
               <span className="hud__player-money">${player.money}</span>

@@ -41,6 +41,7 @@
   "lobby.rules.off": "off",
 
   "game.rollDice": "Tira i dadi",
+  "game.doubles": "Doppio!",
   "game.buyProperty": "Compra",
   "game.decline": "Rifiuta",
   "game.endTurn": "Fine turno",

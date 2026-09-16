@@ -17,13 +17,61 @@ come per le Fasi 0-5.
 
 | # | Fase | Perché in questo ordine |
 |---|------|--------------------------|
-| 1 | **Fase 6 — Costruzione case/hotel** | Unica vera lacuna rispetto al motore di gioco *core* già previsto dalla PRD originale (§13); senza building, "Classic Monopoly first" non è ancora vero. Tutto il resto è feature aggiuntiva, non correzione di uno scope mancante. |
-| 2 | Fase 7 — Regole economiche opzionali | Estende naturalmente il lavoro appena fatto su building/economia (ipoteca, jackpot, quick game), stesso'area di codice (`GameEngine`, `GameRules`). |
-| 3 | Fase 8 — Feature sociali | Building the community layer": chat, spettatore, rivincita — usa pattern già rodati (bypass del turno, pannelli client) da Fase 4. |
-| 4 | Fase 9 — Editor di mappe | Dipende da un game engine e da un set di regole ormai stabili (building incluso) prima di esporre un editor che li deve rispettare tutti. |
-| 5 | Fase 10 — Personalizzazione, UX, accessibilità | Polish, non blocca nessun'altra fase: va bene più avanti. |
-| 6 | Fase 11 — Dati di partita | Ha senso solo dopo che il set di eventi/regole è stabile (altrimenti cronologia e statistiche vanno riscritte). |
-| 7 | Fase 12 — Infrastruttura & qualità | Test/CI/cleanup non sono mai "in ritardo" rispetto al codice esistente, ma non bloccano le feature: si accumulano in parallelo o alla fine. |
+| 1 | **Fase 6 — Costruzione case/hotel** ✅ | Unica vera lacuna rispetto al motore di gioco *core* già previsto dalla PRD originale (§13); senza building, "Classic Monopoly first" non è ancora vero. Tutto il resto è feature aggiuntiva, non correzione di uno scope mancante. |
+| 2 | **Fase 6.5 — Visual core** | Riprioritizzata sopra le Fasi 7-9 su richiesta esplicita: il gameplay (P0) è completo e testato, ma manca il "game feel" — dadi senza animazione, pedina che teletrasporta, proprietario poco leggibile. Vedi sotto. |
+| 3 | Fase 7 — Regole economiche opzionali | Estende naturalmente il lavoro appena fatto su building/economia (ipoteca, jackpot, quick game), stessa area di codice (`GameEngine`, `GameRules`). |
+| 4 | Fase 8 — Feature sociali | Chat, whisper, lancio di pomodori, voting UI dedicata per le promesse, spettatore, rivincita — usa pattern già rodati (bypass del turno, pannelli client) da Fase 4. |
+| 5 | Fase 9 — Editor di mappe | Dipende da un game engine e da un set di regole ormai stabili (building incluso) prima di esporre un editor che li deve rispettare tutti. |
+| 6 | Fase 10 — Personalizzazione, UX, accessibilità | Mobile, audio, avatar, notifiche turno, accessibilità: polish che non blocca nessun'altra fase. |
+| 7 | Fase 11 — Dati di partita | Ha senso solo dopo che il set di eventi/regole è stabile (altrimenti cronologia e statistiche vanno riscritte). |
+| 8 | Fase 12 — Infrastruttura & qualità | Test client, CI, cleanup stanze, stanze con password, developer mode: si accumulano in parallelo o alla fine. |
+
+---
+
+## Fase 6.5 — Visual core
+
+### Introduzione
+
+Il gameplay è server-authoritative e completo, ma "sembra" statico: nessuna
+animazione dei dadi, la pedina salta direttamente da una casella all'altra
+invece di percorrerle, il proprietario di una casella non si vede a colpo
+d'occhio. Questa fase copre esattamente quei punti, in ordine di priorità
+dichiarata (dadi > movimento > ownership > case/hotel > action area).
+Nessuna di queste modifiche cambia lo stato di gioco: animano eventi che il
+server ha già deciso, mai lo anticipano né lo inventano lato client.
+
+### Sotto-fasi
+
+1. **Animazione dadi** (priorità più alta): due dadi visibili, animazione di
+   "tumble" avviata alla ricezione dell'evento `DICE_RESULT`, si ferma sui
+   valori reali mandati dal server. Mai un valore inventato lato client.
+2. **Movimento casella-per-casella**: la pedina attraversa ogni casella
+   intermedia tra `from` e `to` (evento `PLAYER_MOVED`, con gestione del giro
+   quando `passedGo`), invece di teletrasportarsi. Richiede di spostare il
+   rendering dei token da "dentro ogni Tile" a un livello assoluto sopra la
+   griglia, con un nodo DOM persistente per giocatore (necessario per poter
+   animare una transizione CSS reale).
+3. **Ownership visualization**: bordo/tint colorato del proprietario sempre
+   visibile sulla casella, non solo tramite hover.
+4. **Leggibilità case/hotel**: le icone già aggiunte in Fase 6 sono piccole;
+   vanno ingrandite/rese a contrasto più alto, con una piccola animazione
+   alla costruzione/vendita.
+5. **Action area e turn indicator**: il pulsante Roll/azione corrente deve
+   essere il punto focale quando è il proprio turno; il cambio di turno deve
+   avere un feedback visivo chiaro (non solo testo "Waiting for X").
+
+Ogni sotto-fase viene implementata, verificata (build + Playwright) e
+committata separatamente, con lo stesso ritmo delle fasi precedenti.
+
+### Non-Goals
+
+- Nessuna riscrittura dello stack (resta Vite+React+Socket.IO+Express, in
+  memoria — deciso esplicitamente: il brief permette di mantenere uno stack
+  esistente "ragionevole").
+- Nessun asset audio in questa fase (l'architettura resta "audio-ready": i
+  punti di aggancio per i suoni — roll, acquisto, rent, turno — vanno
+  lasciati ovvi nel codice, ma i file audio arrivano solo in Fase 10 se
+  richiesti).
 
 ---
 
