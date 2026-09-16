@@ -28,6 +28,12 @@ export function registerSocketServer(io: AppServer): void {
     broadcastRoomOrGame(code);
   });
 
+  // Fase 12, US-1203: la soglia di abbandono è 2h, uno sweep ogni 30 minuti la rispetta
+  // con ampio margine senza controllare ad ogni minuto per nulla.
+  const ROOM_SWEEP_INTERVAL_MS = 30 * 60 * 1000;
+  const roomSweepTimer = setInterval(() => lobbyManager.sweepAbandonedRooms(), ROOM_SWEEP_INTERVAL_MS);
+  roomSweepTimer.unref?.();
+
   function clearRoomTimer(code: string): void {
     const timer = turnTimers.get(code);
     if (timer) {
@@ -157,9 +163,9 @@ export function registerSocketServer(io: AppServer): void {
   }
 
   io.on("connection", (socket: AppSocket) => {
-    socket.on("create_room", ({ sessionId, nickname }, ack) => {
+    socket.on("create_room", ({ sessionId, nickname, password }, ack) => {
       try {
-        const room = lobbyManager.createRoom(sessionId, nickname, socket.id);
+        const room = lobbyManager.createRoom(sessionId, nickname, socket.id, password);
         socket.data.sessionId = sessionId;
         socket.data.roomCode = room.code;
         socket.join(room.code);
@@ -170,9 +176,9 @@ export function registerSocketServer(io: AppServer): void {
       }
     });
 
-    socket.on("join_room", ({ sessionId, nickname, code }, ack) => {
+    socket.on("join_room", ({ sessionId, nickname, code, password }, ack) => {
       try {
-        const room = lobbyManager.joinRoom(code, sessionId, nickname, socket.id);
+        const room = lobbyManager.joinRoom(code, sessionId, nickname, socket.id, password);
         socket.data.sessionId = sessionId;
         socket.data.roomCode = room.code;
         socket.join(room.code);

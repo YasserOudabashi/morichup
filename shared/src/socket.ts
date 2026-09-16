@@ -3,12 +3,15 @@ import type { ClientIntent, GameState, PlayerSessionId, ServerEvent } from "./in
 export interface CreateRoomRequest {
   sessionId: PlayerSessionId;
   nickname: string;
+  /** Fase 12, US-1204: se presente, la stanza richiede questa password per essere raggiunta. */
+  password?: string;
 }
 
 export interface JoinRoomRequest {
   sessionId: PlayerSessionId;
   nickname: string;
   code: string;
+  password?: string;
 }
 
 export interface RejoinRequest {
@@ -95,6 +98,8 @@ export interface RoomState {
   status: RoomStatus;
   mapId: string;
   optionalRules: OptionalRulesState;
+  /** Fase 12, US-1204: mai la password vera, solo se ne serve una per entrare. */
+  hasPassword: boolean;
 }
 
 export type AckResponse<T> = { ok: true; data: T } | { ok: false; error: string };

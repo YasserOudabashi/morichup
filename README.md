@@ -1,5 +1,7 @@
 # Morichup
 
+[![CI](https://github.com/YasserOudabashi/morichup/actions/workflows/ci.yml/badge.svg)](https://github.com/YasserOudabashi/morichup/actions/workflows/ci.yml)
+
 Browser multiplayer economic game ispirato al gameplay classico di Monopoly e
 all'esperienza UX di Richup.io, con identità visiva propria e sistemi sociali
 aggiuntivi (trading, contratti, chat, pomodori).

@@ -33,8 +33,8 @@ export default function App() {
     case "menu":
       screen = (
         <MainMenu
-          onCreate={() => conn.createRoom(getSavedNickname())}
-          onJoin={(code) => conn.joinRoom(code, getSavedNickname())}
+          onCreate={(password) => conn.createRoom(getSavedNickname(), password)}
+          onJoin={(code, password) => conn.joinRoom(code, getSavedNickname(), password)}
         />
       );
       break;

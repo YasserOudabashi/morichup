@@ -58,6 +58,11 @@ export default function Lobby({
         <div className="room-code-box">
           <span className="room-code-box__label">{t("lobby.roomCode")}</span>
           <span className="room-code-box__code">{room.code}</span>
+          {room.hasPassword && (
+            <span className="room-code-box__lock" title={t("lobby.passwordProtected")} aria-label={t("lobby.passwordProtected")}>
+              🔒
+            </span>
+          )}
           <button type="button" className="btn btn--ghost btn--small" onClick={handleCopyLink}>
             {copied ? t("lobby.linkCopied") : t("lobby.copyLink")}
           </button>

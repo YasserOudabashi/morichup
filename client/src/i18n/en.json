@@ -17,6 +17,8 @@
   "menu.roomCodePlaceholder": "ROOM CODE",
   "menu.join": "Join",
   "menu.back": "Back",
+  "menu.passwordOptionalLabel": "Password (optional)",
+  "menu.passwordPlaceholder": "Leave empty for a public room",
 
   "lobby.title": "Lobby",
   "lobby.roomCode": "Room code",
@@ -34,6 +36,7 @@
   "lobby.leaveRoom": "Leave room",
   "lobby.disconnected": "disconnected",
   "lobby.spectators": "Spectators",
+  "lobby.passwordProtected": "Password-protected room",
   "lobby.optionalRules": "Optional rules",
   "lobby.rules.mortgage": "Property mortgage",
   "lobby.rules.jackpot": "Free Parking jackpot",
