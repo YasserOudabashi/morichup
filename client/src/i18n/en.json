@@ -33,12 +33,18 @@
   "lobby.notEnoughPlayers": "Waiting for at least {min} players",
   "lobby.leaveRoom": "Leave room",
   "lobby.disconnected": "disconnected",
+  "lobby.spectators": "Spectators",
   "lobby.optionalRules": "Optional rules",
   "lobby.rules.mortgage": "Property mortgage",
   "lobby.rules.jackpot": "Free Parking jackpot",
   "lobby.rules.turnLimit": "Turn limit",
   "lobby.rules.timeLimit": "Time limit (min)",
   "lobby.rules.off": "off",
+
+  "chat.title": "Chat",
+  "chat.noMessages": "No messages yet",
+  "chat.placeholder": "Type a message…",
+  "chat.send": "Send",
 
   "game.rollDice": "Roll dice",
   "game.doubles": "Doubles!",
@@ -54,6 +60,8 @@
   "game.leaveGame": "Leave game",
   "game.gameOver": "Game over",
   "game.winner": "wins the game!",
+  "game.rematch": "Rematch",
+  "game.spectatorNotice": "You're watching this game — no actions available.",
   "game.winByTurnLimit": "Turn limit reached — highest net worth wins.",
   "game.winByTimeLimit": "Time limit reached — highest net worth wins.",
 

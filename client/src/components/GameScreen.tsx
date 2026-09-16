@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ClientIntent, GameState, PlayerSessionId, ServerEvent } from "@morichup/shared";
+import type { ChatMessage, ClientIntent, GameState, PlayerSessionId, ServerEvent } from "@morichup/shared";
 import type { DiceRoll, MoveBatch } from "../state/useGameConnection";
 import Board from "./Board";
 import Hud from "./Hud";
@@ -7,6 +7,7 @@ import ActionPanel from "./ActionPanel";
 import TurnTimerBar from "./TurnTimerBar";
 import EventLog from "./EventLog";
 import SocialPanel from "./SocialPanel";
+import ChatPanel from "./ChatPanel";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { t } from "../i18n";
 
@@ -19,6 +20,10 @@ interface GameScreenProps {
   moveBatch: MoveBatch | null;
   onIntent: (intent: ClientIntent) => void;
   onLeave: () => void;
+  chatMessages: ChatMessage[];
+  onSendChatMessage: (text: string) => void;
+  onRematch: () => void;
+  isHost: boolean;
 }
 
 export default function GameScreen({
@@ -30,9 +35,15 @@ export default function GameScreen({
   moveBatch,
   onIntent,
   onLeave,
+  chatMessages,
+  onSendChatMessage,
+  onRematch,
+  isHost,
 }: GameScreenProps) {
   const winner = gameState.state === "GAME_OVER" ? gameState.players.find((p) => p.sessionId === gameState.winnerId) : null;
   const [hoveredPlayerId, setHoveredPlayerId] = useState<PlayerSessionId | null>(null);
+  const me = gameState.players.find((p) => p.sessionId === sessionId);
+  const isSpectator = me?.status === "spectator";
 
   return (
     <div className="app-layout">
@@ -63,9 +74,16 @@ export default function GameScreen({
           />
         </div>
         <aside className="game-side-panel">
-          <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
+          {isSpectator ? (
+            <div className="action-panel">
+              <p className="action-panel__waiting">{t("game.spectatorNotice")}</p>
+            </div>
+          ) : (
+            <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
+          )}
           <SocialPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
           <EventLog events={events} board={gameState.board} players={gameState.players} accusations={gameState.accusations} />
+          <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
         </aside>
       </div>
       <div className="desktop-only-notice">{t("app.desktopOnly")}</div>
@@ -82,9 +100,16 @@ export default function GameScreen({
                 {t(gameState.winReason === "turnLimit" ? "game.winByTurnLimit" : "game.winByTimeLimit")}
               </p>
             )}
-            <button type="button" className="btn btn--primary" onClick={onLeave}>
-              {t("game.leaveGame")}
-            </button>
+            <div className="button-row">
+              {isHost && (
+                <button type="button" className="btn btn--primary" onClick={onRematch}>
+                  {t("game.rematch")}
+                </button>
+              )}
+              <button type="button" className="btn btn--ghost" onClick={onLeave}>
+                {t("game.leaveGame")}
+              </button>
+            </div>
           </div>
         </div>
       )}

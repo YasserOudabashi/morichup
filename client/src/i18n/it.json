@@ -33,12 +33,18 @@
   "lobby.notEnoughPlayers": "In attesa di almeno {min} giocatori",
   "lobby.leaveRoom": "Esci dalla stanza",
   "lobby.disconnected": "disconnesso",
+  "lobby.spectators": "Spettatori",
   "lobby.optionalRules": "Regole opzionali",
   "lobby.rules.mortgage": "Ipoteca delle proprietà",
   "lobby.rules.jackpot": "Jackpot Parcheggio Gratuito",
   "lobby.rules.turnLimit": "Limite di turni",
   "lobby.rules.timeLimit": "Limite di tempo (min)",
   "lobby.rules.off": "off",
+
+  "chat.title": "Chat",
+  "chat.noMessages": "Ancora nessun messaggio",
+  "chat.placeholder": "Scrivi un messaggio…",
+  "chat.send": "Invia",
 
   "game.rollDice": "Tira i dadi",
   "game.doubles": "Doppio!",
@@ -54,6 +60,8 @@
   "game.leaveGame": "Esci dalla partita",
   "game.gameOver": "Partita finita",
   "game.winner": "vince la partita!",
+  "game.rematch": "Rivincita",
+  "game.spectatorNotice": "Stai guardando questa partita: nessuna azione disponibile.",
   "game.winByTurnLimit": "Limite di turni raggiunto — vince il patrimonio netto più alto.",
   "game.winByTimeLimit": "Limite di tempo raggiunto — vince il patrimonio netto più alto.",
 

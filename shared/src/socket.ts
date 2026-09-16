@@ -60,11 +60,29 @@ export interface GameIntentRequest {
   intent: ClientIntent;
 }
 
+export interface ChatMessageRequest {
+  code: string;
+  text: string;
+}
+
+export interface ChatMessage {
+  playerId: PlayerSessionId;
+  nickname: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface RematchRequest {
+  code: string;
+}
+
 export interface RoomPlayer {
   sessionId: PlayerSessionId;
   nickname: string;
   isHost: boolean;
   connected: boolean;
+  /** Fase 8, US-802: è entrato a stanza piena o a partita già iniziata, guarda senza giocare. */
+  isSpectator: boolean;
 }
 
 export type RoomStatus = "lobby" | "playing" | "ended";
@@ -91,6 +109,10 @@ export interface ClientToServerEvents {
   kick_player: (payload: KickPlayerRequest, ack: (res: AckResponse<null>) => void) => void;
   leave_room: (payload: LeaveRoomRequest) => void;
   game_intent: (payload: GameIntentRequest, ack: (res: AckResponse<null>) => void) => void;
+  // Fase 8: chat di stanza (US-801, non uno stato di gioco: vive fuori dal GameEngine)
+  // e rivincita (US-803, un evento di lobby: crea un nuovo GameEngine, non muta quello esistente).
+  chat_message: (payload: ChatMessageRequest) => void;
+  rematch: (payload: RematchRequest, ack: (res: AckResponse<null>) => void) => void;
 }
 
 export interface ServerToClientEvents {
@@ -98,4 +120,5 @@ export interface ServerToClientEvents {
   game_state: (state: GameState) => void;
   game_events: (events: ServerEvent[]) => void;
   turn_timer: (payload: { deadline: number } | null) => void;
+  chat_message: (message: ChatMessage) => void;
 }

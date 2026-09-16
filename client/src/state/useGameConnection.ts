@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientIntent, GameState, OptionalRulesInput, PlayerSessionId, RoomState, ServerEvent } from "@morichup/shared";
+import type {
+  ChatMessage,
+  ClientIntent,
+  GameState,
+  OptionalRulesInput,
+  PlayerSessionId,
+  RoomState,
+  ServerEvent,
+} from "@morichup/shared";
 import { getSocket } from "../lib/socket";
 import { getLastRoomCode, saveLastRoomCode } from "../lib/session";
 
@@ -36,6 +44,7 @@ export interface ConnectionState {
   gameState: GameState | null;
   turnDeadline: number | null;
   events: ServerEvent[];
+  chatMessages: ChatMessage[];
   diceRoll: DiceRoll | null;
   moveBatch: MoveBatch | null;
   error: string | null;
@@ -49,6 +58,8 @@ export interface ConnectionState {
   kickPlayer: (targetSessionId: PlayerSessionId) => void;
   leaveRoom: () => void;
   sendIntent: (intent: ClientIntent) => void;
+  sendChatMessage: (text: string) => void;
+  rematch: () => void;
   dismissError: () => void;
 }
 
@@ -58,6 +69,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const [events, setEvents] = useState<ServerEvent[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [diceRoll, setDiceRoll] = useState<DiceRoll | null>(null);
   const [moveBatch, setMoveBatch] = useState<MoveBatch | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +115,15 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     const onTurnTimer = (payload: { deadline: number } | null) => {
       setTurnDeadline(payload?.deadline ?? null);
     };
+    const onChatMessage = (message: ChatMessage) => {
+      setChatMessages((prev) => [...prev, message].slice(-100));
+    };
 
     socket.on("room_state", onRoomState);
     socket.on("game_state", onGameState);
     socket.on("game_events", onGameEvents);
     socket.on("turn_timer", onTurnTimer);
+    socket.on("chat_message", onChatMessage);
 
     // Rientro automatico: se eravamo in una stanza prima di un reload, ci riproviamo subito.
     const lastCode = getLastRoomCode();
@@ -124,6 +140,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
       socket.off("game_state", onGameState);
       socket.off("game_events", onGameEvents);
       socket.off("turn_timer", onTurnTimer);
+      socket.off("chat_message", onChatMessage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -189,6 +206,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     saveLastRoomCode(null);
     setRoomState(null);
     setGameState(null);
+    setChatMessages([]);
     setScreen("menu");
   }, []);
 
@@ -200,6 +218,20 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     });
   }, []);
 
+  const sendChatMessage = useCallback((text: string) => {
+    const code = roomCodeRef.current;
+    if (!code || !text.trim()) return;
+    getSocket().emit("chat_message", { code, text });
+  }, []);
+
+  const rematch = useCallback(() => {
+    const code = roomCodeRef.current;
+    if (!code) return;
+    getSocket().emit("rematch", { code }, (res) => {
+      if (!res.ok) setError(res.error);
+    });
+  }, []);
+
   return {
     screen,
     sessionId,
@@ -207,6 +239,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     gameState,
     turnDeadline,
     events,
+    chatMessages,
     diceRoll,
     moveBatch,
     error,
@@ -220,6 +253,8 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
     kickPlayer,
     leaveRoom,
     sendIntent,
+    sendChatMessage,
+    rematch,
     dismissError,
   };
 }
