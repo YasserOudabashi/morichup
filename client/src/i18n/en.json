@@ -35,6 +35,8 @@
   "menu.roomCodePlaceholder": "ROOM CODE",
   "menu.join": "Join",
   "menu.back": "Back",
+  "menu.passwordOptionalLabel": "Password (optional)",
+  "menu.passwordPlaceholder": "Leave empty for a public room",
   "menu.history": "Match history",
   "menu.historyHint": "Review past games and replay them.",
 
@@ -71,6 +73,7 @@
   "lobby.leaveRoom": "Leave room",
   "lobby.disconnected": "disconnected",
   "lobby.spectators": "Spectators",
+  "lobby.passwordProtected": "Password-protected room",
   "lobby.optionalRules": "Optional rules",
   "lobby.rules.mortgage": "Property mortgage",
   "lobby.rules.jackpot": "Free Parking jackpot",

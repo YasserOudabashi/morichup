@@ -2,19 +2,28 @@ import { useState } from "react";
 import { t } from "../i18n";
 
 interface MainMenuProps {
-  onCreate: () => void;
-  onJoin: (code: string) => void;
+  onCreate: (password?: string) => void;
+  onJoin: (code: string, password?: string) => void;
   onHistory: () => void;
 }
 
+type Mode = "menu" | "joining" | "creating";
+
 export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps) {
-  const [joining, setJoining] = useState(false);
+  const [mode, setMode] = useState<Mode>("menu");
   const [code, setCode] = useState("");
+  const [joinPassword, setJoinPassword] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
 
   function handleJoinSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = code.trim();
-    if (trimmed) onJoin(trimmed);
+    if (trimmed) onJoin(trimmed, joinPassword.trim() || undefined);
+  }
+
+  function handleCreateSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onCreate(createPassword.trim() || undefined);
   }
 
   return (
@@ -22,13 +31,13 @@ export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps)
       <div className="card card--narrow">
         <h1 className="brand-title">{t("app.title")}</h1>
 
-        {!joining ? (
+        {mode === "menu" && (
           <div className="menu-options">
-            <button type="button" className="menu-option" onClick={onCreate}>
+            <button type="button" className="menu-option" onClick={() => setMode("creating")}>
               <span className="menu-option__title">{t("menu.createGame")}</span>
               <span className="menu-option__hint">{t("menu.createGameHint")}</span>
             </button>
-            <button type="button" className="menu-option" onClick={() => setJoining(true)}>
+            <button type="button" className="menu-option" onClick={() => setMode("joining")}>
               <span className="menu-option__title">{t("menu.joinGame")}</span>
               <span className="menu-option__hint">{t("menu.joinGameHint")}</span>
             </button>
@@ -37,7 +46,35 @@ export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps)
               <span className="menu-option__hint">{t("menu.historyHint")}</span>
             </button>
           </div>
-        ) : (
+        )}
+
+        {mode === "creating" && (
+          <form onSubmit={handleCreateSubmit} className="stack">
+            <label className="field-label" htmlFor="create-password">
+              {t("menu.passwordOptionalLabel")}
+            </label>
+            <input
+              id="create-password"
+              type="password"
+              className="text-input"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
+              placeholder={t("menu.passwordPlaceholder")}
+              maxLength={100}
+              autoFocus
+            />
+            <div className="button-row">
+              <button type="button" className="btn btn--ghost" onClick={() => setMode("menu")}>
+                {t("menu.back")}
+              </button>
+              <button type="submit" className="btn btn--primary">
+                {t("menu.createGame")}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mode === "joining" && (
           <form onSubmit={handleJoinSubmit} className="stack">
             <input
               className="text-input text-input--code"
@@ -47,8 +84,20 @@ export default function MainMenu({ onCreate, onJoin, onHistory }: MainMenuProps)
               maxLength={10}
               autoFocus
             />
+            <label className="field-label" htmlFor="join-password">
+              {t("menu.passwordOptionalLabel")}
+            </label>
+            <input
+              id="join-password"
+              type="password"
+              className="text-input"
+              value={joinPassword}
+              onChange={(e) => setJoinPassword(e.target.value)}
+              placeholder={t("menu.passwordPlaceholder")}
+              maxLength={100}
+            />
             <div className="button-row">
-              <button type="button" className="btn btn--ghost" onClick={() => setJoining(false)}>
+              <button type="button" className="btn btn--ghost" onClick={() => setMode("menu")}>
                 {t("menu.back")}
               </button>
               <button type="submit" className="btn btn--primary" disabled={!code.trim()}>

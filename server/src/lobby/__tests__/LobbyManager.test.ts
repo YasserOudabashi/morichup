@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { PLAYER_COLOR_PALETTE } from "@morichup/shared";
 import { LobbyManager } from "../LobbyManager";
 
-function buildManager() {
+function buildManager(now?: () => number) {
   const events: { code: string; events: unknown[] }[] = [];
-  const manager = new LobbyManager((code, evts) => events.push({ code, events: evts }));
+  const manager = new LobbyManager((code, evts) => events.push({ code, events: evts }), now);
   return { manager, events };
 }
 
@@ -237,6 +237,27 @@ test("Fase 8, US-801: la chat rispetta il rate limit e tronca i messaggi troppo 
   assert.throws(() => manager.sendChatMessage(room.code, "unknown-session", "ciao"), /non trovato/);
 });
 
+test("Fase 12, US-1204: una stanza con password richiede la password corretta per entrare", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1", undefined, "segreto");
+  assert.equal(manager.getRoomState(room.code).hasPassword, true);
+
+  assert.throws(() => manager.joinRoom(room.code, "s2", "Dany", "sock2", undefined, "sbagliata"), /Password errata/);
+  assert.throws(() => manager.joinRoom(room.code, "s2", "Dany", "sock2"), /Password errata/);
+
+  manager.joinRoom(room.code, "s2", "Dany", "sock2", undefined, "segreto");
+  assert.equal(manager.getRoomState(room.code).players.length, 2);
+});
+
+test("Fase 12, US-1204: una stanza senza password non la richiede, e non appare nello stato pubblico", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1");
+  assert.equal(manager.getRoomState(room.code).hasPassword, false);
+  manager.joinRoom(room.code, "s2", "Dany", "sock2");
+  assert.equal(manager.getRoomState(room.code).players.length, 2);
+  assert.equal((manager.getRoomState(room.code) as unknown as Record<string, unknown>).password, undefined);
+});
+
 test("Fase 10, US-1005: il colore preferito viene rispettato se libero all'avvio", () => {
   const { manager } = buildManager();
   const room = manager.createRoom("s1", "Yasser", "sock1", PLAYER_COLOR_PALETTE[3]);
@@ -258,4 +279,45 @@ test("Fase 10, US-1005: due giocatori che vogliono lo stesso colore, solo il pri
   assert.equal(colorS1, PLAYER_COLOR_PALETTE[0]);
   assert.notEqual(colorS2, colorS1);
   assert.ok(PLAYER_COLOR_PALETTE.includes(colorS2!));
+});
+
+test("Fase 12, US-1203: lo sweep rimuove solo le stanze vuote da più della soglia configurata", () => {
+  let current = 0;
+  const shortManager = new LobbyManager(() => {}, () => current, 1000);
+
+  const room = shortManager.createRoom("s1", "Yasser", "sock1");
+  shortManager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  // Tutti connessi: lo sweep non tocca nulla, qualunque sia il tempo trascorso.
+  current = 10_000;
+  assert.deepEqual(shortManager.sweepAbandonedRooms(), []);
+
+  // s1 si disconnette, ma s2 resta: la stanza non è ancora vuota.
+  shortManager.handleDisconnect("s1", "sock1");
+  current = 10_500;
+  assert.deepEqual(shortManager.sweepAbandonedRooms(), []);
+
+  // Anche s2 si disconnette: ORA la stanza è vuota, il timer di abbandono riparte da qui.
+  shortManager.handleDisconnect("s2", "sock2");
+  current = 11_000; // solo 500ms dopo che l'ultimo giocatore si è disconnesso
+  assert.deepEqual(shortManager.sweepAbandonedRooms(), []);
+
+  current = 12_600; // oltre 1000ms dopo che la stanza è rimasta vuota
+  assert.deepEqual(shortManager.sweepAbandonedRooms(), [room.code]);
+  assert.throws(() => shortManager.getRoomState(room.code), /non trovata/);
+});
+
+test("Fase 12, US-1203: una riconnessione azzera il timer di abbandono", () => {
+  let current = 0;
+  const shortManager = new LobbyManager(() => {}, () => current, 1000);
+  const room = shortManager.createRoom("s1", "Yasser", "sock1");
+  shortManager.joinRoom(room.code, "s2", "Dany", "sock2");
+
+  shortManager.handleDisconnect("s1", "sock1");
+  shortManager.handleDisconnect("s2", "sock2");
+  current = 500;
+  shortManager.rejoin(room.code, "s1", "sock1-new");
+
+  current = 2000; // oltre la soglia dall'istante in cui la stanza era rimasta vuota, ma s1 è tornato
+  assert.deepEqual(shortManager.sweepAbandonedRooms(), []);
 });

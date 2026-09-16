@@ -17,6 +17,9 @@ const ROOM_CODE_LENGTH = 6;
 const DISCONNECT_GRACE_MS = 60_000;
 const DEFAULT_MIN_PLAYERS = 2;
 const DEFAULT_MAX_PLAYERS = 8;
+/** Fase 12, US-1203: dopo quanto tempo senza NESSUN giocatore connesso una stanza
+ * viene considerata abbandonata e ripulita dallo sweep periodico. */
+const DEFAULT_ABANDONED_AFTER_MS = 2 * 60 * 60 * 1000;
 
 /** Fase 8, US-801: rate limit minimo per la chat, un messaggio al secondo a testa. */
 const CHAT_MIN_INTERVAL_MS = 1000;
@@ -52,6 +55,11 @@ interface Room {
   mapId: string;
   /** Regole opzionali Fase 7, configurabili dall'host in lobby, applicate a `board.rules` all'avvio. */
   optionalRules: OptionalRulesState;
+  /** Fase 12, US-1204: null = stanza pubblica, nessuna password richiesta. */
+  password: string | null;
+  /** Fase 12, US-1203: istante in cui l'ultimo giocatore connesso ha lasciato la stanza;
+   * null mentre c'è almeno un giocatore connesso. Base per lo sweep delle stanze abbandonate. */
+  emptyStartedAt: number | null;
 }
 
 /**
@@ -66,9 +74,21 @@ export class LobbyManager {
   /** Chiamato ogni volta che qualcosa cambia fuori da una risposta diretta a
    * un intent (disconnessioni, riconnessioni, conversione AFK): chi usa questa
    * classe (SocketServer) deve fare un broadcast dello stato aggiornato. */
-  constructor(private notify: (roomCode: string, events: ServerEvent[]) => void) {}
+  constructor(
+    private notify: (roomCode: string, events: ServerEvent[]) => void,
+    /** Iniettabile per i test (come ScriptedDice per i dadi): niente setTimeout reali per
+     * verificare lo sweep delle stanze abbandonate (Fase 12, US-1203). */
+    private now: () => number = Date.now,
+    private abandonedAfterMs: number = DEFAULT_ABANDONED_AFTER_MS
+  ) {}
 
-  createRoom(sessionId: PlayerSessionId, nickname: string, socketId: string, preferredColor?: string): Room {
+  createRoom(
+    sessionId: PlayerSessionId,
+    nickname: string,
+    socketId: string,
+    preferredColor?: string,
+    password?: string
+  ): Room {
     const code = this.generateCode();
     const room: Room = {
       code,
@@ -80,6 +100,8 @@ export class LobbyManager {
       engine: null,
       mapId: AVAILABLE_MAPS[0].id,
       optionalRules: { ...DEFAULT_OPTIONAL_RULES },
+      password: password?.trim() ? password.trim() : null,
+      emptyStartedAt: null,
     };
     room.players.set(sessionId, {
       sessionId,
@@ -99,15 +121,28 @@ export class LobbyManager {
    * rifiuta più il nuovo arrivato, lo accoglie come spettatore. Se la partita è già in
    * corso, entra subito anche nel GameEngine (status "spectator", visibile in HUD).
    */
-  joinRoom(code: string, sessionId: PlayerSessionId, nickname: string, socketId: string, preferredColor?: string): Room {
+  joinRoom(
+    code: string,
+    sessionId: PlayerSessionId,
+    nickname: string,
+    socketId: string,
+    preferredColor?: string,
+    password?: string
+  ): Room {
     const room = this.getRoom(code);
     const existing = room.players.get(sessionId);
     if (existing) {
+      // Chi è già membro della stanza (reload, riconnessione) non deve reinserire la
+      // password: l'ha già superata la prima volta.
       this.clearDisconnectTimer(existing);
       existing.socketId = socketId;
       existing.connected = true;
       existing.nickname = nickname;
+      this.updateEmptyState(room);
       return room;
+    }
+    if (room.password && room.password !== password) {
+      throw new Error("Password errata");
     }
     const asPlayer = room.status === "lobby" && room.players.size < room.maxPlayers;
     room.players.set(sessionId, {
@@ -122,6 +157,7 @@ export class LobbyManager {
     if (!asPlayer && room.engine) {
       room.engine.addSpectator(sessionId, nickname);
     }
+    this.updateEmptyState(room);
     return room;
   }
 
@@ -141,6 +177,7 @@ export class LobbyManager {
       }
       this.notify(code, [{ type: "PLAYER_RECONNECTED", playerId: sessionId }]);
     }
+    this.updateEmptyState(room);
     return room;
   }
 
@@ -170,6 +207,7 @@ export class LobbyManager {
 
     player.disconnectTimer = setTimeout(() => this.convertToAfk(room.code, sessionId), DISCONNECT_GRACE_MS);
     player.disconnectTimer.unref?.(); // non deve tenere vivo il processo (utile anche nei test)
+    this.updateEmptyState(room);
   }
 
   private convertToAfk(code: string, sessionId: PlayerSessionId): void {
@@ -209,7 +247,11 @@ export class LobbyManager {
         const next = [...room.players.values()][0];
         if (next) room.hostSessionId = next.sessionId;
       }
-      if (room.players.size === 0) this.rooms.delete(code);
+      if (room.players.size === 0) {
+        this.rooms.delete(code);
+      } else {
+        this.updateEmptyState(room);
+      }
     } else {
       // A partita iniziata trattiamo l'uscita esplicita come una disconnessione:
       // il posto resta finché non scade la finestra di riconnessione.
@@ -341,6 +383,7 @@ export class LobbyManager {
     if (!player) throw new Error("Giocatore non trovato");
     this.clearDisconnectTimer(player);
     room.players.delete(targetSessionId);
+    this.updateEmptyState(room);
     return room;
   }
 
@@ -365,6 +408,30 @@ export class LobbyManager {
     return undefined;
   }
 
+  /** Fase 12, US-1203: quante partite dallo sweep periodico rimuove chi non ha più
+   * nessun giocatore connesso da almeno `abandonedAfterMs`. Non tocca mai una stanza
+   * con anche un solo giocatore connesso (`emptyStartedAt` resta null finché c'è). */
+  sweepAbandonedRooms(): string[] {
+    const removed: string[] = [];
+    const now = this.now();
+    for (const [code, room] of this.rooms) {
+      if (room.emptyStartedAt !== null && now - room.emptyStartedAt >= this.abandonedAfterMs) {
+        this.rooms.delete(code);
+        removed.push(code);
+      }
+    }
+    return removed;
+  }
+
+  private updateEmptyState(room: Room): void {
+    const anyConnected = [...room.players.values()].some((p) => p.connected);
+    if (anyConnected) {
+      room.emptyStartedAt = null;
+    } else if (room.emptyStartedAt === null) {
+      room.emptyStartedAt = this.now();
+    }
+  }
+
   private toRoomState(room: Room): RoomState {
     return {
       code: room.code,
@@ -373,6 +440,7 @@ export class LobbyManager {
       status: room.status,
       mapId: room.mapId,
       optionalRules: room.optionalRules,
+      hasPassword: room.password !== null,
       players: [...room.players.values()].map((p) => ({
         sessionId: p.sessionId,
         nickname: p.nickname,

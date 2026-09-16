@@ -40,8 +40,8 @@ export default function App() {
         <MatchHistory onBack={() => setShowHistory(false)} onReplay={(entry) => setReplayEntry(entry)} />
       ) : (
         <MainMenu
-          onCreate={() => conn.createRoom(getSavedNickname(), getSavedColor() ?? undefined)}
-          onJoin={(code) => conn.joinRoom(code, getSavedNickname(), getSavedColor() ?? undefined)}
+          onCreate={(password) => conn.createRoom(getSavedNickname(), getSavedColor() ?? undefined, password)}
+          onJoin={(code, password) => conn.joinRoom(code, getSavedNickname(), getSavedColor() ?? undefined, password)}
           onHistory={() => setShowHistory(true)}
         />
       );

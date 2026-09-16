@@ -35,6 +35,8 @@
   "menu.roomCodePlaceholder": "CODICE STANZA",
   "menu.join": "Entra",
   "menu.back": "Indietro",
+  "menu.passwordOptionalLabel": "Password (opzionale)",
+  "menu.passwordPlaceholder": "Lascia vuoto per una stanza pubblica",
   "menu.history": "Cronologia partite",
   "menu.historyHint": "Rivedi le partite passate e rigiocale.",
 
@@ -71,6 +73,7 @@
   "lobby.leaveRoom": "Esci dalla stanza",
   "lobby.disconnected": "disconnesso",
   "lobby.spectators": "Spettatori",
+  "lobby.passwordProtected": "Stanza protetta da password",
   "lobby.optionalRules": "Regole opzionali",
   "lobby.rules.mortgage": "Ipoteca delle proprietà",
   "lobby.rules.jackpot": "Jackpot Parcheggio Gratuito",

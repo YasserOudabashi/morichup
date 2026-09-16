@@ -1,5 +1,7 @@
 # Morichup
 
+[![CI](https://github.com/YasserOudabashi/morichup/actions/workflows/ci.yml/badge.svg)](https://github.com/YasserOudabashi/morichup/actions/workflows/ci.yml)
+
 Browser multiplayer economic game ispirato al gameplay classico di Monopoly e
 all'esperienza UX di Richup.io, con identità visiva propria e sistemi sociali
 aggiuntivi (trading, contratti, chat, pomodori).
@@ -36,7 +38,8 @@ morichup/
 
 ## Sviluppo locale
 
-Richiede Node.js 20+.
+Richiede Node.js 22+ (la suite di test del server usa i pattern glob di
+`node --test`, non risolti correttamente su Node 20).
 
 ```bash
 npm install

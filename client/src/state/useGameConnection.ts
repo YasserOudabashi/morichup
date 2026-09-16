@@ -52,8 +52,8 @@ export interface ConnectionState {
   error: string | null;
   reconnecting: boolean;
   goToMenu: () => void;
-  createRoom: (nickname: string, preferredColor?: string) => void;
-  joinRoom: (code: string, nickname: string, preferredColor?: string) => void;
+  createRoom: (nickname: string, preferredColor?: string, password?: string) => void;
+  joinRoom: (code: string, nickname: string, preferredColor?: string, password?: string) => void;
   startGame: () => void;
   selectMap: (mapId: string) => void;
   setRules: (rules: OptionalRulesInput) => void;
@@ -199,8 +199,8 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const dismissError = useCallback(() => setError(null), []);
 
   const createRoom = useCallback(
-    (nickname: string, preferredColor?: string) => {
-      getSocket().emit("create_room", { sessionId, nickname, preferredColor }, (res) => {
+    (nickname: string, preferredColor?: string, password?: string) => {
+      getSocket().emit("create_room", { sessionId, nickname, preferredColor, password }, (res) => {
         if (!res.ok) setError(res.error);
       });
     },
@@ -208,8 +208,8 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   );
 
   const joinRoom = useCallback(
-    (code: string, nickname: string, preferredColor?: string) => {
-      getSocket().emit("join_room", { sessionId, nickname, code: code.toUpperCase(), preferredColor }, (res) => {
+    (code: string, nickname: string, preferredColor?: string, password?: string) => {
+      getSocket().emit("join_room", { sessionId, nickname, code: code.toUpperCase(), preferredColor, password }, (res) => {
         if (!res.ok) setError(res.error);
       });
     },
