@@ -38,7 +38,8 @@ morichup/
 
 ## Sviluppo locale
 
-Richiede Node.js 20+.
+Richiede Node.js 22+ (la suite di test del server usa i pattern glob di
+`node --test`, non risolti correttamente su Node 20).
 
 ```bash
 npm install
