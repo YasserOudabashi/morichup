@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { AVAILABLE_MAPS, type PlayerSessionId, type RoomState } from "@morichup/shared";
+import { AVAILABLE_MAPS, type ChatMessage, type PlayerSessionId, type RoomState } from "@morichup/shared";
 import { t } from "../i18n";
 import { buildJoinUrl } from "../lib/url";
+import ChatPanel from "./ChatPanel";
 
 interface LobbyProps {
   room: RoomState;
@@ -10,12 +11,25 @@ interface LobbyProps {
   onSelectMap: (mapId: string) => void;
   onKick: (targetSessionId: PlayerSessionId) => void;
   onLeave: () => void;
+  chatMessages: ChatMessage[];
+  onSendChatMessage: (text: string) => void;
 }
 
-export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, onLeave }: LobbyProps) {
+export default function Lobby({
+  room,
+  sessionId,
+  onStart,
+  onSelectMap,
+  onKick,
+  onLeave,
+  chatMessages,
+  onSendChatMessage,
+}: LobbyProps) {
   const [copied, setCopied] = useState(false);
+  const players = room.players.filter((p) => !p.isSpectator);
+  const spectators = room.players.filter((p) => p.isSpectator);
   const isHost = room.players.find((p) => p.sessionId === sessionId)?.isHost ?? false;
-  const connectedCount = room.players.filter((p) => p.connected).length;
+  const connectedCount = players.filter((p) => p.connected).length;
   const canStart = isHost && connectedCount >= room.minPlayers;
 
   async function handleCopyLink() {
@@ -63,10 +77,10 @@ export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, o
         </div>
 
         <h2 className="section-label">
-          {t("lobby.players")} ({room.players.length}/{room.maxPlayers})
+          {t("lobby.players")} ({players.length}/{room.maxPlayers})
         </h2>
         <ul className="lobby-player-list">
-          {room.players.map((player) => (
+          {players.map((player) => (
             <li key={player.sessionId} className="lobby-player">
               <span className={`status-dot${player.connected ? "" : " status-dot--off"}`} />
               <span className="lobby-player__name">
@@ -84,6 +98,25 @@ export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, o
           ))}
         </ul>
 
+        {spectators.length > 0 && (
+          <>
+            <h2 className="section-label">
+              {t("lobby.spectators")} ({spectators.length})
+            </h2>
+            <ul className="lobby-player-list">
+              {spectators.map((player) => (
+                <li key={player.sessionId} className="lobby-player">
+                  <span className={`status-dot${player.connected ? "" : " status-dot--off"}`} />
+                  <span className="lobby-player__name">
+                    {player.nickname}
+                    {player.sessionId === sessionId && <em> ({t("lobby.you")})</em>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         {isHost ? (
           <button type="button" className="btn btn--primary" disabled={!canStart} onClick={onStart}>
             {canStart ? t("lobby.startGame") : t("lobby.notEnoughPlayers", { min: room.minPlayers })}
@@ -95,6 +128,8 @@ export default function Lobby({ room, sessionId, onStart, onSelectMap, onKick, o
         <button type="button" className="btn btn--ghost btn--small leave-link" onClick={onLeave}>
           {t("lobby.leaveRoom")}
         </button>
+
+        <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
       </div>
     </div>
   );

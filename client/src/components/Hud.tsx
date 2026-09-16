@@ -9,6 +9,7 @@ interface HudProps {
 
 function statusLabel(player: Player): string | null {
   if (player.status === "bankrupt") return "💀";
+  if (player.status === "spectator") return "👁️";
   if (player.status === "afk") return "😴";
   if (player.status === "disconnected") return "📡";
   if (player.inJail) return "🔒";
@@ -26,14 +27,14 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer }: Hud
           return (
             <li
               key={player.sessionId}
-              className={`hud__player${isCurrent ? " hud__player--current" : ""}${player.status === "bankrupt" ? " hud__player--bankrupt" : ""}`}
+              className={`hud__player${isCurrent ? " hud__player--current" : ""}${player.status === "bankrupt" || player.status === "spectator" ? " hud__player--bankrupt" : ""}`}
               onMouseEnter={() => onHoverPlayer?.(player.sessionId)}
               onMouseLeave={() => onHoverPlayer?.(null)}
             >
               <span className="hud__player-color" style={{ backgroundColor: player.color }} />
               <span className="hud__player-name">{player.nickname}</span>
               {status && <span className="hud__player-status">{status}</span>}
-              <span className="hud__player-money">${player.money}</span>
+              {player.status !== "spectator" && <span className="hud__player-money">${player.money}</span>}
             </li>
           );
         })}

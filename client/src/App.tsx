@@ -47,6 +47,8 @@ export default function App() {
           onSelectMap={conn.selectMap}
           onKick={conn.kickPlayer}
           onLeave={conn.leaveRoom}
+          chatMessages={conn.chatMessages}
+          onSendChatMessage={conn.sendChatMessage}
         />
       ) : null;
       break;
@@ -59,6 +61,10 @@ export default function App() {
           events={conn.events}
           onIntent={conn.sendIntent}
           onLeave={conn.leaveRoom}
+          chatMessages={conn.chatMessages}
+          onSendChatMessage={conn.sendChatMessage}
+          onRematch={conn.rematch}
+          isHost={conn.roomState?.players.find((p) => p.sessionId === sessionId)?.isHost ?? false}
         />
       ) : null;
       break;

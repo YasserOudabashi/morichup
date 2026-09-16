@@ -280,17 +280,17 @@ trading/contratti già esistenti.
 nella stanza, per coordinarmi/scherzare durante la partita.
 
 **Criteri di accettazione:**
-- [ ] Nuovo evento socket `chat_message` (client→server: `{code, text}`;
+- [x] Nuovo evento socket `chat_message` (client→server: `{code, text}`;
   server→client broadcast: `{playerId, nickname, text, timestamp}`), non un
   `ClientIntent`/`ServerEvent` del `GameEngine` (la chat non è stato di
   gioco, non deve essere replicata/validata dal motore).
-- [ ] Rate limit server-side minimo (es. max 1 messaggio/secondo per
+- [x] Rate limit server-side minimo (es. max 1 messaggio/secondo per
   giocatore) per evitare spam accidentale.
-- [ ] Testo troncato a una lunghezza massima (es. 300 caratteri), sanitizzato
+- [x] Testo troncato a una lunghezza massima (es. 300 caratteri), sanitizzato
   come testo semplice (nessun HTML/markdown eseguito).
-- [ ] UI: pannello chat nel game screen (nuovo componente `ChatPanel.tsx`),
+- [x] UI: pannello chat nel game screen (nuovo componente `ChatPanel.tsx`),
   scroll automatico sull'ultimo messaggio, funziona anche in lobby.
-- [ ] Verificato in browser con 2+ contesti Playwright: messaggio scritto da
+- [x] Verificato in browser con 2+ contesti Playwright: messaggio scritto da
   A appare su B in tempo reale.
 
 #### US-802: Modalità spettatore
@@ -298,15 +298,16 @@ nella stanza, per coordinarmi/scherzare durante la partita.
 partita, voglio poter guardare senza giocare.
 
 **Criteri di accettazione:**
-- [ ] `joinRoom` accetta uno spettatore quando la stanza è piena o già
+- [x] `joinRoom` accetta uno spettatore quando la stanza è piena o già
   `playing`: il giocatore entra con `status: "spectator"` (già nel tipo,
   mai usato) invece di essere rifiutato.
-- [ ] Uno spettatore vede la board e l'HUD in sola lettura: nessun
+- [x] Uno spettatore vede la board e l'HUD in sola lettura: nessun
   `ActionPanel`, nessuna possibilità di inviare intent di gioco (il server
   li rifiuta comunque, ma il client non li offre nemmeno).
-- [ ] Uno spettatore può comunque scrivere in chat (separata o taggata
-  "spettatore", scelta di design da confermare in fase di sviluppo).
-- [ ] Test automatico lato server: uno spettatore che tenta un
+- [x] Uno spettatore può comunque scrivere in chat (stessa chat di stanza,
+  senza tag speciale: scelta più semplice, coerente con "un solo componente
+  ChatPanel riusato ovunque").
+- [x] Test automatico lato server: uno spettatore che tenta un
   `ClientIntent` di gioco viene rifiutato.
 
 #### US-803: Rivincita a fine partita
@@ -314,14 +315,14 @@ partita, voglio poter guardare senza giocare.
 iniziarne subito un'altra senza ricreare la stanza da capo.
 
 **Criteri di accettazione:**
-- [ ] Nell'overlay di game-over, un pulsante "Rivincita" (solo host) che
+- [x] Nell'overlay di game-over, un pulsante "Rivincita" (solo host) che
   resetta lo stato: nuovi `Player` con `startingMoney`, board pulita,
   `status: "lobby"`, stessi giocatori/stessa stanza.
-- [ ] Gli altri giocatori vedono automaticamente la lobby riapparire (stesso
+- [x] Gli altri giocatori vedono automaticamente la lobby riapparire (stesso
   meccanismo di `room_state` già esistente).
-- [ ] Test automatico: dopo `GAME_OVER`, `REMATCH` (nuovo intent lobby, non
-  di gioco) riporta la stanza a `status: "lobby"` con giocatori invariati e
-  un nuovo `GameEngine`.
+- [x] Test automatico: dopo `GAME_OVER`, `REMATCH` (nuovo evento di lobby,
+  non un `ClientIntent` di gioco) riporta la stanza a `status: "lobby"` con
+  giocatori invariati e un nuovo `GameEngine`.
 
 ### Functional Requirements
 

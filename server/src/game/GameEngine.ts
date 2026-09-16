@@ -29,6 +29,9 @@ import { buildingLevel, computeRent, groupTilesOf, isPropertyLike, ownsFullGroup
 import { executeTrade, validateAssetsOwnership } from "./TradeEngine";
 import { checkVictory } from "./VictoryEngine";
 
+/** Colore neutro per i token degli spettatori: mai nella rotazione PLAYER_COLORS dei giocatori veri. */
+const SPECTATOR_COLOR = "#5a5f73";
+
 interface HeldCard {
   ownerId: PlayerSessionId;
   deck: DeckName;
@@ -71,6 +74,29 @@ export class GameEngine {
 
   getState(): GameState {
     return this.state;
+  }
+
+  /**
+   * Fase 8, US-802: aggiunge chi si unisce a una partita già iniziata come
+   * osservatore, senza soldi/proprietà/turno. Idempotente per sicurezza
+   * (LobbyManager non dovrebbe mai chiamarla due volte per la stessa sessione).
+   */
+  addSpectator(sessionId: PlayerSessionId, nickname: string): void {
+    if (this.state.players.some((p) => p.sessionId === sessionId)) return;
+    this.state.players.push({
+      sessionId,
+      nickname,
+      color: SPECTATOR_COLOR,
+      money: 0,
+      position: 0,
+      properties: [],
+      status: "spectator",
+      inJail: false,
+      jailTurns: 0,
+      consecutiveDoubles: 0,
+      getOutOfJailFreeCards: 0,
+      pendingDebts: [],
+    });
   }
 
   applyIntent(playerId: PlayerSessionId, intent: ClientIntent): ServerEvent[] {
@@ -960,9 +986,11 @@ export class GameEngine {
     let nextIndex = currentIndex;
     for (let i = 0; i < players.length; i++) {
       nextIndex = (nextIndex + 1) % players.length;
-      // Salta anche gli AFK (disconnessi oltre la finestra di riconnessione, Fase 3):
-      // restano in partita con i loro asset ma non giocano finché non tornano.
-      if (players[nextIndex].status !== "bankrupt" && players[nextIndex].status !== "afk") break;
+      // Turno solo a chi gioca davvero: "active" o "disconnected" (ancora nella finestra di
+      // riconnessione, Fase 3, il turn timer lo farà passare automaticamente se non torna).
+      // Esclusi "bankrupt", "afk" e "spectator" (Fase 8, US-802: mai un turno a chi guarda soltanto).
+      const status = players[nextIndex].status;
+      if (status === "active" || status === "disconnected") break;
     }
     const next = players[nextIndex];
     next.consecutiveDoubles = 0;
