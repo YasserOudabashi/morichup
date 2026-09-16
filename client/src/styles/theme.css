@@ -144,10 +144,36 @@ body {
 }
 
 .hud__player--current {
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   border-radius: 8px;
   margin: -4px -6px;
   padding: 4px 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.hud__player-turn-indicator {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  animation: turn-indicator-pulse 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud__player-turn-indicator {
+    animation: none;
+  }
+}
+
+@keyframes turn-indicator-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(2px);
+  }
 }
 
 .hud__player--bankrupt {
@@ -290,6 +316,20 @@ body {
   transition: background-color 0.15s ease;
 }
 
+/* Proprietà: colore del proprietario sempre visibile (non solo su hover),
+ * distinto dall'evidenziazione temporanea di .board-tile--highlighted. */
+.board-tile--owned {
+  background: color-mix(in srgb, var(--owner-color, var(--color-primary)) 10%, var(--color-surface));
+}
+
+.board-tile__owner-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+}
+
 .board-tile__band {
   position: absolute;
   top: 0;
@@ -308,11 +348,16 @@ body {
 
 .board-tile__buildings {
   position: absolute;
-  top: 8px;
+  top: 6px;
   left: 2px;
-  font-size: 0.5rem;
+  font-size: 0.75rem;
   line-height: 1;
   letter-spacing: -1px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.board-tile__buildings--hotel {
+  font-size: 0.95rem;
 }
 
 .board-tile__name {
@@ -852,6 +897,32 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Quando è il mio turno l'area azioni diventa il fulcro visivo dello
+ * schermo (bordo + bagliore pulsante), invece di confondersi col resto
+ * del pannello laterale. */
+.action-panel--active {
+  border-bottom-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  animation: action-panel-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes action-panel-glow {
+  0%,
+  100% {
+    background: var(--color-surface);
+  }
+  50% {
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-panel--active {
+    animation: none;
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  }
 }
 
 .action-panel__waiting {

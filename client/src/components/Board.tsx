@@ -20,6 +20,7 @@ export default function Board({ board, players, hoveredPlayerId, diceRoll, moveB
   const hoveredPlayer = hoveredPlayerId ? players.find((p) => p.sessionId === hoveredPlayerId) : null;
   const rollingPlayer = diceRoll ? players.find((p) => p.sessionId === diceRoll.playerId) : null;
   const { displayPositions, arrivedNonces } = useAnimatedPositions(players, board, moveBatch);
+  const colorByPlayerId = new Map(players.map((p) => [p.sessionId, p.color]));
   return (
     <div
       className="board"
@@ -49,6 +50,7 @@ export default function Board({ board, players, hoveredPlayerId, diceRoll, moveB
           isCorner={CORNER_TYPES.has(tile.type)}
           isHighlighted={hoveredPlayer != null && tile.ownerId === hoveredPlayer.sessionId}
           highlightColor={hoveredPlayer?.color}
+          ownerColor={tile.ownerId ? colorByPlayerId.get(tile.ownerId) : undefined}
         />
       ))}
       <TokenLayer board={board} players={players} displayPositions={displayPositions} arrivedNonces={arrivedNonces} />

@@ -7,19 +7,22 @@ interface TileProps {
   isCorner: boolean;
   isHighlighted?: boolean;
   highlightColor?: string;
+  /** Colore del proprietario, se posseduta: mostrato sempre, non solo su hover. */
+  ownerColor?: string;
 }
 
-export default function Tile({ tile, isCorner, isHighlighted, highlightColor }: TileProps) {
+export default function Tile({ tile, isCorner, isHighlighted, highlightColor, ownerColor }: TileProps) {
   const flag = tile.type === "property" ? flagFor(tile.name) : null;
-  const buildings = tile.hotel ? "🏨" : tile.houses ? "🏠".repeat(tile.houses) : null;
+  const houseCount = tile.hotel ? 0 : (tile.houses ?? 0);
 
   return (
     <div
-      className={`board-tile${isCorner ? " board-tile--corner" : ""}${isHighlighted ? " board-tile--highlighted" : ""}`}
+      className={`board-tile${isCorner ? " board-tile--corner" : ""}${isHighlighted ? " board-tile--highlighted" : ""}${ownerColor ? " board-tile--owned" : ""}`}
       style={{
         gridColumn: tile.position.x + 1,
         gridRow: tile.position.y + 1,
         ...(highlightColor ? { "--tile-highlight-color": highlightColor } : {}),
+        ...(ownerColor ? { "--owner-color": ownerColor } : {}),
       } as CSSProperties}
     >
       {tile.groupColor && (
@@ -34,11 +37,17 @@ export default function Tile({ tile, isCorner, isHighlighted, highlightColor }: 
       {tile.purchasePrice !== undefined && (
         <span className="board-tile__price">${tile.purchasePrice}</span>
       )}
-      {buildings && (
-        <span className="board-tile__buildings" aria-hidden="true">
-          {buildings}
+      {tile.hotel && (
+        <span className="board-tile__buildings board-tile__buildings--hotel" aria-hidden="true" title="Hotel">
+          🏨
         </span>
       )}
+      {houseCount > 0 && (
+        <span className="board-tile__buildings" aria-hidden="true" title={`${houseCount} case`}>
+          {"🏠".repeat(houseCount)}
+        </span>
+      )}
+      {ownerColor && <div className="board-tile__owner-bar" style={{ backgroundColor: ownerColor }} />}
     </div>
   );
 }
