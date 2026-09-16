@@ -28,6 +28,19 @@ export interface PendingDebt {
   payeeId: PlayerSessionId | null;
 }
 
+/** Colori assegnabili ai giocatori: unica fonte condivisa tra il color picker
+ * del client (Fase 10, US-1005) e l'assegnazione lato server in LobbyManager. */
+export const PLAYER_COLOR_PALETTE = [
+  "#3d5af1",
+  "#e91e8c",
+  "#ffb703",
+  "#2e7d32",
+  "#e53935",
+  "#1a237e",
+  "#f5821f",
+  "#7ec8e3",
+];
+
 export type TileType =
   | "start"
   | "property"

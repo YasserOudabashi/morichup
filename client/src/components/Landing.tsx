@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { PLAYER_COLOR_PALETTE } from "@morichup/shared";
 import { t } from "../i18n";
-import { getSavedNickname, saveNickname } from "../lib/session";
+import { getSavedColor, getSavedNickname, saveColor, saveNickname } from "../lib/session";
 
 interface LandingProps {
   joinCode: string | null;
@@ -10,6 +11,7 @@ interface LandingProps {
 
 export default function Landing({ joinCode, reconnecting, onSubmit }: LandingProps) {
   const [nickname, setNickname] = useState(getSavedNickname());
+  const [color, setColor] = useState(getSavedColor() ?? PLAYER_COLOR_PALETTE[0]);
 
   if (reconnecting) {
     return (
@@ -26,6 +28,7 @@ export default function Landing({ joinCode, reconnecting, onSubmit }: LandingPro
     const trimmed = nickname.trim();
     if (!trimmed) return;
     saveNickname(trimmed);
+    saveColor(color);
     onSubmit(trimmed);
   }
 
@@ -52,6 +55,21 @@ export default function Landing({ joinCode, reconnecting, onSubmit }: LandingPro
             maxLength={20}
             autoFocus
           />
+          <span className="field-label">{t("landing.colorLabel")}</span>
+          <div className="color-picker" role="radiogroup" aria-label={t("landing.colorLabel")}>
+            {PLAYER_COLOR_PALETTE.map((swatch) => (
+              <button
+                key={swatch}
+                type="button"
+                role="radio"
+                aria-checked={swatch === color}
+                aria-label={swatch}
+                className={`color-picker__swatch${swatch === color ? " color-picker__swatch--selected" : ""}`}
+                style={{ backgroundColor: swatch }}
+                onClick={() => setColor(swatch)}
+              />
+            ))}
+          </div>
           <button type="submit" className="btn btn--primary" disabled={!nickname.trim()}>
             {t("landing.continue")}
           </button>

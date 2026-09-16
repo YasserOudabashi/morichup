@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import type { GameState, TradeAssets, TradeOffer } from "@morichup/shared";
 import { t } from "../i18n";
+import { useEscapeToClose } from "../hooks/useEscapeToClose";
 
 interface TradeViewModalProps {
   gameState: GameState;
@@ -10,6 +12,12 @@ interface TradeViewModalProps {
 /** Vista di sola lettura di uno scambio tra due ALTRI giocatori (non il tuo):
  * niente pulsanti di risposta, solo cosa sta offrendo chi. */
 export default function TradeViewModal({ gameState, trade, onClose }: TradeViewModalProps) {
+  useEscapeToClose(onClose);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    cardRef.current?.focus();
+  }, []);
+
   function nameOf(id: string): string {
     return gameState.players.find((p) => p.sessionId === id)?.nickname ?? id;
   }
@@ -26,8 +34,18 @@ export default function TradeViewModal({ gameState, trade, onClose }: TradeViewM
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="card modal-card" onClick={(e) => e.stopPropagation()}>
-        <h2 className="brand-title modal-title">{t("trade.viewTitle")}</h2>
+      <div
+        className="card modal-card"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trade-view-modal-title"
+        ref={cardRef}
+        tabIndex={-1}
+      >
+        <h2 id="trade-view-modal-title" className="brand-title modal-title">
+          {t("trade.viewTitle")}
+        </h2>
         <div className="trade-columns">
           <div className="trade-column">
             <h3 className="section-label">{nameOf(trade.fromPlayerId)}</h3>

@@ -1,6 +1,7 @@
 const SESSION_KEY = "morichup.sessionId";
 const NICKNAME_KEY = "morichup.nickname";
 const ROOM_CODE_KEY = "morichup.lastRoomCode";
+const COLOR_KEY = "morichup.color";
 
 function randomId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -33,6 +34,24 @@ export function saveNickname(nickname: string): void {
     localStorage.setItem(NICKNAME_KEY, nickname);
   } catch {
     // localStorage non disponibile (es. modalità privata): nickname resta solo in memoria.
+  }
+}
+
+/** Colore avatar scelto dal giocatore (Fase 10, US-1005): null = nessuna preferenza,
+ * il server assegna il primo libero della palette. */
+export function getSavedColor(): string | null {
+  try {
+    return localStorage.getItem(COLOR_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveColor(color: string): void {
+  try {
+    localStorage.setItem(COLOR_KEY, color);
+  } catch {
+    // localStorage non disponibile: la preferenza resta solo in memoria.
   }
 }
 

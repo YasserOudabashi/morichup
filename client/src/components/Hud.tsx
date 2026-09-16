@@ -5,6 +5,8 @@ interface HudProps {
   players: Player[];
   currentTurnPlayerId?: PlayerSessionId | null;
   onHoverPlayer?: (playerId: PlayerSessionId | null) => void;
+  /** Touch non ha hover: un tap esplicito attiva/disattiva l'evidenziazione (Fase 10, US-1001). */
+  onTapPlayer?: (playerId: PlayerSessionId) => void;
   /** null = regola del jackpot non attiva in questa partita: niente da mostrare (Fase 7, US-703). */
   jackpotAmount?: number | null;
 }
@@ -18,7 +20,17 @@ function statusLabel(player: Player): string | null {
   return null;
 }
 
-export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, jackpotAmount }: HudProps) {
+/** Alternativa testuale dell'emoji di stato per chi usa uno screen reader. */
+function statusText(player: Player): string | null {
+  if (player.status === "bankrupt") return t("status.bankrupt");
+  if (player.status === "spectator") return t("status.spectator");
+  if (player.status === "afk") return t("status.afk");
+  if (player.status === "disconnected") return t("status.disconnected");
+  if (player.inJail) return t("status.inJail");
+  return null;
+}
+
+export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, onTapPlayer, jackpotAmount }: HudProps) {
   return (
     <aside className="hud">
       <h2 className="hud__title">{t("hud.players")}</h2>
@@ -37,6 +49,7 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, jackp
               className={`hud__player${isCurrent ? " hud__player--current" : ""}${player.status === "bankrupt" || player.status === "spectator" ? " hud__player--bankrupt" : ""}`}
               onMouseEnter={() => onHoverPlayer?.(player.sessionId)}
               onMouseLeave={() => onHoverPlayer?.(null)}
+              onClick={() => onTapPlayer?.(player.sessionId)}
             >
               <span className="hud__player-color" style={{ backgroundColor: player.color }}>
                 <span className="hud__player-color__face">
@@ -50,7 +63,11 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, jackp
                 </span>
               )}
               <span className="hud__player-name">{player.nickname}</span>
-              {status && <span className="hud__player-status">{status}</span>}
+              {status && (
+                <span className="hud__player-status" role="img" aria-label={statusText(player) ?? undefined}>
+                  {status}
+                </span>
+              )}
               {player.status !== "spectator" && <span className="hud__player-money">${player.money}</span>}
             </li>
           );

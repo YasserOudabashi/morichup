@@ -21,6 +21,14 @@
   box-sizing: border-box;
 }
 
+/* Accessibilità (Fase 10, US-1006): outline visibile per la navigazione da
+   tastiera su qualunque elemento interattivo, senza comparire al click col
+   mouse (:focus-visible lo distingue già da solo). */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 html,
 body,
 #root {
@@ -462,25 +470,82 @@ body {
   transform: translate(-50%, -50%);
 }
 
-/* Desktop-only notice */
+/* Layout mobile a schede (Fase 10, US-1001): sotto i 900px, HUD/board/pannello
+   laterale occupano ciascuno tutta l'area disponibile, uno alla volta,
+   selezionabili dalle schede sotto la topbar invece di stare affiancati. */
 
-.desktop-only-notice {
+.mobile-tabs {
   display: none;
 }
 
+.app-main__hud {
+  display: contents;
+}
+
 @media (max-width: 900px) {
+  .mobile-tabs {
+    display: flex;
+    flex: 0 0 auto;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .mobile-tabs__item {
+    flex: 1 1 0;
+    padding: 10px;
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+
+  .mobile-tabs__item--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
   .app-main {
+    flex-direction: column;
+  }
+
+  /* :not() alza la specificità sopra le regole base di .app-board-area/.game-side-panel
+     definite più avanti nel file (altrimenti, a parità di specificità, vincerebbero loro
+     per ordine di sorgente e il pannello resterebbe visibile su ogni scheda). */
+  .app-main__hud {
     display: none;
   }
 
-  .desktop-only-notice {
+  .app-board-area:not(.app-board-area--active),
+  .game-side-panel:not(.game-side-panel--active) {
+    display: none;
+  }
+
+  .app-main__hud--active {
+    display: block;
+  }
+
+  .app-main__hud--active .hud {
+    flex: 1 1 auto;
+    width: 100%;
+    border-right: none;
+  }
+
+  .app-board-area--active {
     display: flex;
     flex: 1 1 auto;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    text-align: center;
-    color: var(--color-text-muted);
+    width: 100%;
+    padding: 12px;
+  }
+
+  .game-side-panel--active {
+    display: flex;
+    flex: 1 1 auto;
+    width: 100%;
+    border-left: none;
+    overflow-y: auto;
   }
 }
 
@@ -577,6 +642,28 @@ body {
 .text-input--small {
   padding: 8px 10px;
   width: 100px;
+}
+
+/* Color picker (Fase 10, US-1005) */
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.color-picker__swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-picker__swatch--selected {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary);
 }
 
 /* Bottoni */
