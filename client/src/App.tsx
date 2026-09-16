@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { getSavedNickname, getSessionId } from "./lib/session";
+import { getSavedColor, getSavedNickname, getSessionId } from "./lib/session";
 import { parseJoinCodeFromUrl } from "./lib/url";
 import { useGameConnection } from "./state/useGameConnection";
 import { useLocale } from "./i18n";
@@ -24,7 +24,7 @@ export default function App() {
 
   function handleLandingSubmit(nickname: string) {
     if (joinCode) {
-      conn.joinRoom(joinCode, nickname);
+      conn.joinRoom(joinCode, nickname, getSavedColor() ?? undefined);
     } else {
       conn.goToMenu();
     }
@@ -40,8 +40,8 @@ export default function App() {
         <MatchHistory onBack={() => setShowHistory(false)} onReplay={(entry) => setReplayEntry(entry)} />
       ) : (
         <MainMenu
-          onCreate={() => conn.createRoom(getSavedNickname())}
-          onJoin={(code) => conn.joinRoom(code, getSavedNickname())}
+          onCreate={() => conn.createRoom(getSavedNickname(), getSavedColor() ?? undefined)}
+          onJoin={(code) => conn.joinRoom(code, getSavedNickname(), getSavedColor() ?? undefined)}
           onHistory={() => setShowHistory(true)}
         />
       );

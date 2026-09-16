@@ -11,6 +11,7 @@ import type {
 import { getSocket } from "../lib/socket";
 import { getLastRoomCode, saveLastRoomCode } from "../lib/session";
 import { saveMatchHistoryEntry } from "../lib/matchHistory";
+import { playSound } from "../lib/sound";
 
 export type Screen = "landing" | "menu" | "lobby" | "game";
 
@@ -51,8 +52,8 @@ export interface ConnectionState {
   error: string | null;
   reconnecting: boolean;
   goToMenu: () => void;
-  createRoom: (nickname: string) => void;
-  joinRoom: (code: string, nickname: string) => void;
+  createRoom: (nickname: string, preferredColor?: string) => void;
+  joinRoom: (code: string, nickname: string, preferredColor?: string) => void;
   startGame: () => void;
   selectMap: (mapId: string) => void;
   setRules: (rules: OptionalRulesInput) => void;
@@ -85,6 +86,7 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const matchStepEventCountsRef = useRef<number[]>([]);
   const matchStartRef = useRef<number>(0);
   const matchSavedRef = useRef(false);
+  const prevTurnPlayerRef = useRef<PlayerSessionId | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -127,6 +129,10 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
           stepEventCounts: [...matchStepEventCountsRef.current],
         });
       }
+      if (state.currentTurnPlayerId !== prevTurnPlayerRef.current && state.currentTurnPlayerId === sessionId) {
+        playSound("turnStart");
+      }
+      prevTurnPlayerRef.current = state.currentTurnPlayerId;
     };
     const onGameEvents = (newEvents: ServerEvent[]) => {
       setEvents((prev) => [...newEvents, ...prev].slice(0, 40));
@@ -140,6 +146,12 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
           isDouble: diceEvent.isDouble,
           nonce: diceNonceRef.current,
         });
+        playSound("dice");
+      }
+      for (const e of newEvents) {
+        if (e.type === "PROPERTY_PURCHASED") playSound("purchase");
+        else if (e.type === "RENT_PAID") playSound("rent");
+        else if (e.type === "PLAYER_BANKRUPT") playSound("bankrupt");
       }
       const moves = newEvents.filter(
         (e): e is Extract<ServerEvent, { type: "PLAYER_MOVED" | "SENT_TO_JAIL" }> =>
@@ -187,8 +199,8 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   const dismissError = useCallback(() => setError(null), []);
 
   const createRoom = useCallback(
-    (nickname: string) => {
-      getSocket().emit("create_room", { sessionId, nickname }, (res) => {
+    (nickname: string, preferredColor?: string) => {
+      getSocket().emit("create_room", { sessionId, nickname, preferredColor }, (res) => {
         if (!res.ok) setError(res.error);
       });
     },
@@ -196,8 +208,8 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
   );
 
   const joinRoom = useCallback(
-    (code: string, nickname: string) => {
-      getSocket().emit("join_room", { sessionId, nickname, code: code.toUpperCase() }, (res) => {
+    (code: string, nickname: string, preferredColor?: string) => {
+      getSocket().emit("join_room", { sessionId, nickname, code: code.toUpperCase(), preferredColor }, (res) => {
         if (!res.ok) setError(res.error);
       });
     },

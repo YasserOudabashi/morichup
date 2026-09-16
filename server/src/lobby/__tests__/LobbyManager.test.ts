@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { PLAYER_COLOR_PALETTE } from "@morichup/shared";
 import { LobbyManager } from "../LobbyManager";
 
 function buildManager() {
@@ -234,4 +235,27 @@ test("Fase 8, US-801: la chat rispetta il rate limit e tronca i messaggi troppo 
   assert.equal(long?.text.length, 300);
 
   assert.throws(() => manager.sendChatMessage(room.code, "unknown-session", "ciao"), /non trovato/);
+});
+
+test("Fase 10, US-1005: il colore preferito viene rispettato se libero all'avvio", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1", PLAYER_COLOR_PALETTE[3]);
+  manager.joinRoom(room.code, "s2", "Dany", "sock2", PLAYER_COLOR_PALETTE[1]);
+  manager.startGame(room.code, "s1");
+  const players = manager.getEngine(room.code)!.getState().players;
+  assert.equal(players.find((p) => p.sessionId === "s1")?.color, PLAYER_COLOR_PALETTE[3]);
+  assert.equal(players.find((p) => p.sessionId === "s2")?.color, PLAYER_COLOR_PALETTE[1]);
+});
+
+test("Fase 10, US-1005: due giocatori che vogliono lo stesso colore, solo il primo entrato lo tiene", () => {
+  const { manager } = buildManager();
+  const room = manager.createRoom("s1", "Yasser", "sock1", PLAYER_COLOR_PALETTE[0]);
+  manager.joinRoom(room.code, "s2", "Dany", "sock2", PLAYER_COLOR_PALETTE[0]);
+  manager.startGame(room.code, "s1");
+  const players = manager.getEngine(room.code)!.getState().players;
+  const colorS1 = players.find((p) => p.sessionId === "s1")?.color;
+  const colorS2 = players.find((p) => p.sessionId === "s2")?.color;
+  assert.equal(colorS1, PLAYER_COLOR_PALETTE[0]);
+  assert.notEqual(colorS2, colorS1);
+  assert.ok(PLAYER_COLOR_PALETTE.includes(colorS2!));
 });
