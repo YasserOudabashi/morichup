@@ -7,11 +7,18 @@ interface TradeViewModalProps {
   gameState: GameState;
   trade: TradeOffer;
   onClose: () => void;
+  /** Presenti solo quando lo scambio è realmente rivolto a te e in attesa di
+   * risposta: trasformano la vista di sola lettura (per scambi altrui, o per
+   * il click da cronologia) in un pop-up d'offerta con pulsanti d'azione. */
+  onAccept?: () => void;
+  onReject?: () => void;
+  onCounter?: () => void;
 }
 
-/** Vista di sola lettura di uno scambio tra due ALTRI giocatori (non il tuo):
- * niente pulsanti di risposta, solo cosa sta offrendo chi. */
-export default function TradeViewModal({ gameState, trade, onClose }: TradeViewModalProps) {
+/** Vista di uno scambio: di sola lettura per scambi tra ALTRI giocatori o
+ * quando aperta dalla cronologia, con pulsanti di risposta quando invece è
+ * un'offerta in arrivo rivolta a te (vedi onAccept/onReject/onCounter). */
+export default function TradeViewModal({ gameState, trade, onClose, onAccept, onReject, onCounter }: TradeViewModalProps) {
   useEscapeToClose(onClose);
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -32,8 +39,10 @@ export default function TradeViewModal({ gameState, trade, onClose }: TradeViewM
     return parts.length > 0 ? parts.join(", ") : t("trade.nothing");
   }
 
+  const isIncomingOffer = Boolean(onAccept || onReject || onCounter);
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className={`modal-overlay${isIncomingOffer ? " modal-overlay--offer" : ""}`} onClick={onClose}>
       <div
         className="card modal-card"
         onClick={(e) => e.stopPropagation()}
@@ -44,8 +53,11 @@ export default function TradeViewModal({ gameState, trade, onClose }: TradeViewM
         tabIndex={-1}
       >
         <h2 id="trade-view-modal-title" className="brand-title modal-title">
-          {t("trade.viewTitle")}
+          {isIncomingOffer ? t("trade.incomingOfferTitle") : t("trade.viewTitle")}
         </h2>
+        {isIncomingOffer && (
+          <p className="trade-card__parties">{t("trade.between", { from: nameOf(trade.fromPlayerId), to: nameOf(trade.toPlayerId) })}</p>
+        )}
         <div className="trade-columns">
           <div className="trade-column">
             <h3 className="section-label">{nameOf(trade.fromPlayerId)}</h3>
@@ -57,6 +69,25 @@ export default function TradeViewModal({ gameState, trade, onClose }: TradeViewM
           </div>
         </div>
         {trade.specialConditions && <p className="trade-card__conditions">"{trade.specialConditions}"</p>}
+        {isIncomingOffer && (
+          <div className="button-row">
+            {onReject && (
+              <button type="button" className="btn btn--ghost" onClick={onReject}>
+                {t("trade.reject")}
+              </button>
+            )}
+            {onCounter && (
+              <button type="button" className="btn btn--ghost" onClick={onCounter}>
+                {t("trade.counter")}
+              </button>
+            )}
+            {onAccept && (
+              <button type="button" className="btn btn--primary" onClick={onAccept}>
+                {t("trade.accept")}
+              </button>
+            )}
+          </div>
+        )}
         <div className="button-row">
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             {t("trade.cancelForm")}

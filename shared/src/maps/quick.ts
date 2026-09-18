@@ -22,7 +22,7 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Pokhara",
+    "name": "Amsterdam",
     "group": "brown",
     "groupColor": "#8b5a2b",
     "purchasePrice": 60,
@@ -56,7 +56,7 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Lalitpur",
+    "name": "Rotterdam",
     "group": "brown",
     "groupColor": "#8b5a2b",
     "purchasePrice": 60,
@@ -104,7 +104,7 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Hue",
+    "name": "Rome",
     "group": "lightBlue",
     "groupColor": "#7ec8e3",
     "purchasePrice": 100,
@@ -138,7 +138,7 @@ const tiles: Tile[] = [
       "y": 1
     },
     "type": "property",
-    "name": "Da Nang",
+    "name": "Milan",
     "group": "lightBlue",
     "groupColor": "#7ec8e3",
     "purchasePrice": 100,
@@ -172,7 +172,7 @@ const tiles: Tile[] = [
       "y": 3
     },
     "type": "property",
-    "name": "Cancun",
+    "name": "Berlin",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 140,
@@ -219,7 +219,7 @@ const tiles: Tile[] = [
       "y": 5
     },
     "type": "property",
-    "name": "Guadalajara",
+    "name": "Munich",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 140,
@@ -253,7 +253,7 @@ const tiles: Tile[] = [
       "y": 5
     },
     "type": "property",
-    "name": "Izmir",
+    "name": "London",
     "group": "orange",
     "groupColor": "#f5821f",
     "purchasePrice": 180,
@@ -291,7 +291,7 @@ const tiles: Tile[] = [
       "y": 5
     },
     "type": "property",
-    "name": "Antalya",
+    "name": "Manchester",
     "group": "orange",
     "groupColor": "#f5821f",
     "purchasePrice": 180,
@@ -334,7 +334,7 @@ const tiles: Tile[] = [
       "y": 4
     },
     "type": "property",
-    "name": "Luxor",
+    "name": "Athens",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 220,
@@ -368,7 +368,7 @@ const tiles: Tile[] = [
       "y": 2
     },
     "type": "property",
-    "name": "Alexandria",
+    "name": "Thessaloniki",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 220,

@@ -1,18 +1,24 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, ClientIntent, GameState, PlayerSessionId, ServerEvent } from "@morichup/shared";
 import type { DiceRoll, MoveBatch } from "../state/useGameConnection";
 import Board from "./Board";
 import Hud from "./Hud";
 import ActionPanel from "./ActionPanel";
 import TurnTimerBar from "./TurnTimerBar";
-import EventLog from "./EventLog";
+import type { EventTarget as LogEventTarget } from "./EventLog";
 import SocialPanel from "./SocialPanel";
 import ChatPanel from "./ChatPanel";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SoundToggle from "./SoundToggle";
 import NotificationToggle from "./NotificationToggle";
+import TradeViewModal from "./TradeViewModal";
+import TileInfoModal from "./TileInfoModal";
 import { useTurnNotification } from "../hooks/useTurnNotification";
 import { t } from "../i18n";
+
+/** Quanto resta evidenziata una casella cliccata dal log — deve combaciare
+ * con la durata di @keyframes tile-event-highlight in theme.css. */
+const EVENT_HIGHLIGHT_MS = 1600;
 
 interface GameScreenProps {
   gameState: GameState;
@@ -46,6 +52,11 @@ export default function GameScreen({
   const winner = gameState.state === "GAME_OVER" ? gameState.players.find((p) => p.sessionId === gameState.winnerId) : null;
   const [hoveredPlayerId, setHoveredPlayerId] = useState<PlayerSessionId | null>(null);
   const [mobileTab, setMobileTab] = useState<"chat" | "board" | "players">("board");
+  const [eventHighlightTileId, setEventHighlightTileId] = useState<string | null>(null);
+  const [logTradeId, setLogTradeId] = useState<string | null>(null);
+  const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const [incomingTradeId, setIncomingTradeId] = useState<string | null>(null);
+  const seenTradeIds = useRef<Set<string>>(new Set());
   const me = gameState.players.find((p) => p.sessionId === sessionId);
   const isSpectator = me?.status === "spectator";
 
@@ -57,6 +68,32 @@ export default function GameScreen({
   function handleTapPlayer(playerId: PlayerSessionId) {
     setHoveredPlayerId((prev) => (prev === playerId ? null : playerId));
   }
+
+  // Clic su una riga del log: evidenzia la casella bersaglio per un attimo,
+  // o apre il dettaglio (sola lettura) di uno scambio proposto/controproposto.
+  function handleSelectEvent(target: LogEventTarget) {
+    if (target.type === "tile") {
+      setEventHighlightTileId(target.tileId);
+      window.setTimeout(() => setEventHighlightTileId((prev) => (prev === target.tileId ? null : prev)), EVENT_HIGHLIGHT_MS);
+    } else {
+      setLogTradeId(target.tradeId);
+    }
+  }
+
+  // Pop-up a tutto schermo per una NUOVA offerta di scambio rivolta a me: non un
+  // polling, solo il confronto tra gli id visti finora e quelli del gameState
+  // corrente (gameState.trades è già lo stato server autoritativo).
+  useEffect(() => {
+    for (const trade of gameState.trades) {
+      if (seenTradeIds.current.has(trade.id)) continue;
+      seenTradeIds.current.add(trade.id);
+      if (trade.toPlayerId === sessionId) setIncomingTradeId(trade.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState.trades]);
+
+  const logTrade = logTradeId ? gameState.trades.find((tr) => tr.id === logTradeId) : undefined;
+  const incomingTrade = incomingTradeId ? gameState.trades.find((tr) => tr.id === incomingTradeId) : undefined;
 
   return (
     <div className="app-layout">
@@ -93,7 +130,6 @@ export default function GameScreen({
               <div className="game-left-rail__actions">
                 <SoundToggle />
                 <NotificationToggle />
-                <LanguageSwitcher variant="inline" />
                 <button type="button" className="btn btn--ghost btn--small" onClick={onLeave}>
                   {t("game.leaveGame")}
                 </button>
@@ -114,6 +150,9 @@ export default function GameScreen({
             sessionId={sessionId}
             onIntent={onIntent}
             events={events}
+            eventHighlightTileId={eventHighlightTileId}
+            onSelectEvent={handleSelectEvent}
+            onSelectTile={setSelectedTileId}
           />
         </div>
         {/* Colonna destra (riferimento visivo): giocatori + azioni + scambi/proprietà. */}
@@ -124,6 +163,7 @@ export default function GameScreen({
             onHoverPlayer={setHoveredPlayerId}
             onTapPlayer={handleTapPlayer}
             jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
+            headerRight={<LanguageSwitcher variant="inline" />}
           />
           {isSpectator ? (
             <div className="action-panel">
@@ -133,7 +173,6 @@ export default function GameScreen({
             <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
           )}
           <SocialPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
-          <EventLog events={events} board={gameState.board} players={gameState.players} accusations={gameState.accusations} />
         </aside>
       </div>
 
@@ -162,6 +201,32 @@ export default function GameScreen({
           </div>
         </div>
       )}
+
+      {logTrade && <TradeViewModal gameState={gameState} trade={logTrade} onClose={() => setLogTradeId(null)} />}
+
+      {incomingTrade && (
+        <TradeViewModal
+          gameState={gameState}
+          trade={incomingTrade}
+          onClose={() => setIncomingTradeId(null)}
+          onAccept={() => {
+            onIntent({ type: "ACCEPT_TRADE", tradeId: incomingTrade.id });
+            setIncomingTradeId(null);
+          }}
+          onReject={() => {
+            onIntent({ type: "REJECT_TRADE", tradeId: incomingTrade.id });
+            setIncomingTradeId(null);
+          }}
+        />
+      )}
+
+      {selectedTileId &&
+        (() => {
+          const tile = gameState.board.tiles.find((tl) => tl.id === selectedTileId);
+          if (!tile) return null;
+          const owner = tile.ownerId ? (gameState.players.find((p) => p.sessionId === tile.ownerId) ?? null) : null;
+          return <TileInfoModal tile={tile} owner={owner} onClose={() => setSelectedTileId(null)} />;
+        })()}
     </div>
   );
 }

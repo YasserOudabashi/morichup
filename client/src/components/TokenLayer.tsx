@@ -1,11 +1,13 @@
 import type { BoardConfig, Player, PlayerSessionId } from "@morichup/shared";
 import PlayerToken from "./PlayerToken";
+import { centerPercent } from "../lib/boardGeometry";
 
 interface TokenLayerProps {
   board: BoardConfig;
   players: Player[];
   displayPositions: Record<PlayerSessionId, number>;
   arrivedNonces: Record<PlayerSessionId, number>;
+  moveDurations?: Record<PlayerSessionId, number>;
 }
 
 /**
@@ -13,7 +15,7 @@ interface TokenLayerProps {
  * persistente per giocatore: è quello che rende possibile animare left/top
  * con una transizione CSS invece di ricreare il token ad ogni casella.
  */
-export default function TokenLayer({ board, players, displayPositions, arrivedNonces }: TokenLayerProps) {
+export default function TokenLayer({ board, players, displayPositions, arrivedNonces, moveDurations }: TokenLayerProps) {
   // Quanti giocatori condividono la stessa casella "visualizzata" in questo momento,
   // per il piccolo offset che evita di sovrapporli del tutto.
   const stackIndexByPlayer = new Map<PlayerSessionId, number>();
@@ -35,10 +37,11 @@ export default function TokenLayer({ board, players, displayPositions, arrivedNo
           <PlayerToken
             key={player.sessionId}
             player={player}
-            leftPercent={((tile.position.x + 0.5) / board.width) * 100}
-            topPercent={((tile.position.y + 0.5) / board.height) * 100}
+            leftPercent={centerPercent(tile.position.x, board.width)}
+            topPercent={centerPercent(tile.position.y, board.height)}
             stackIndex={stackIndexByPlayer.get(player.sessionId) ?? 0}
             arrivedNonce={arrivedNonces[player.sessionId]}
+            moveDurationMs={moveDurations?.[player.sessionId]}
           />
         );
       })}

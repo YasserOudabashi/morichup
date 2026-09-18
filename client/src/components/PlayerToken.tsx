@@ -13,7 +13,13 @@ interface PlayerTokenProps {
   stackIndex: number;
   /** Cambia ogni volta che la pedina termina un movimento: fa scattare il "bounce". */
   arrivedNonce?: number;
+  /** Durata del volo verso la casella corrente, decisa da useAnimatedPositions
+   * in base alla distanza percorsa: un volo lungo dura di più di uno corto,
+   * invece di una velocità di traslazione fissa uguale per ogni mossa. */
+  moveDurationMs?: number;
 }
+
+const DEFAULT_MOVE_DURATION_MS = 400;
 
 // Offset fissi in pixel (non più in percentuale di casella: qui la pedina è
 // posizionata sull'intera board, non dentro un singolo Tile).
@@ -24,7 +30,14 @@ const STACK_OFFSETS_PX = [
   { dx: 9, dy: 6 },
 ];
 
-export default function PlayerToken({ player, leftPercent, topPercent, stackIndex, arrivedNonce }: PlayerTokenProps) {
+export default function PlayerToken({
+  player,
+  leftPercent,
+  topPercent,
+  stackIndex,
+  arrivedNonce,
+  moveDurationMs = DEFAULT_MOVE_DURATION_MS,
+}: PlayerTokenProps) {
   const { dx, dy } = STACK_OFFSETS_PX[stackIndex % STACK_OFFSETS_PX.length];
   const [bouncing, setBouncing] = useState(false);
 
@@ -45,6 +58,7 @@ export default function PlayerToken({ player, leftPercent, topPercent, stackInde
           top: `${topPercent}%`,
           transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`,
           "--token-color": player.color,
+          "--move-duration": `${moveDurationMs}ms`,
         } as CSSProperties
       }
       title={player.nickname}

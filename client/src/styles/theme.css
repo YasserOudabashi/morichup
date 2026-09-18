@@ -142,12 +142,20 @@ body {
   overflow-y: auto;
 }
 
+.hud__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
 .hud__title {
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
-  margin: 0 0 12px;
+  margin: 0;
 }
 
 .hud__jackpot {
@@ -189,31 +197,34 @@ body {
 .hud__player {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  border-radius: 8px;
-  margin: -4px -6px;
-  padding: 4px 6px;
-  transition: background-color 0.15s ease;
+  gap: 10px;
+  font-size: 0.92rem;
+  border-radius: 10px;
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
   cursor: default;
 }
 
 .hud__player:hover {
-  background: var(--color-surface-raised);
+  transform: translateX(1px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
 }
 
 .hud__player-color {
-  width: 22px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
 }
 
 .hud__player-color .player-token__svg {
-  width: 18px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 .hud__player-name {
@@ -254,11 +265,8 @@ body {
 }
 
 .hud__player--current {
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-  border-radius: 8px;
-  margin: -4px -6px;
-  padding: 4px 6px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface-raised));
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
 }
 
 .hud__player-turn-indicator {
@@ -364,6 +372,11 @@ body {
   background: var(--color-border);
   border: 2px solid var(--color-border);
   max-width: 100%;
+  /* Query container: la dimensione del testo delle caselle (sotto) si scala
+   * sulla larghezza REALE della board (via cqw), non sulla viewport (vw) —
+   * altrimenti restava tarata per una board piccola anche dopo l'averla
+   * ingrandita, e il testo appariva sproporzionatamente minuscolo. */
+  container-type: inline-size;
 }
 
 .board__center {
@@ -393,18 +406,27 @@ body {
 }
 
 .board__center-roller {
-  font-size: 0.85rem;
+  font-size: clamp(0.9rem, 1.6vw, 1.15rem);
   font-weight: 700;
 }
 
 .board__center-roll-btn {
-  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  padding: clamp(14px, 2vw, 20px) clamp(24px, 4vw, 36px);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.board__center-roll-icon,
+.board__center-roll-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
 .dice-pair__double-icon {
   width: 15px;
   height: 15px;
@@ -438,16 +460,19 @@ body {
 .board__ticker {
   list-style: none;
   margin: 6px 0 0;
-  padding: 0;
+  padding: 0 4px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  max-width: 90%;
+  align-items: stretch;
+  gap: 1px;
+  max-width: 92%;
+  max-height: 34vh;
+  overflow-y: auto;
+  mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
 }
 
 .board__ticker-line {
-  font-size: 0.6rem;
+  font-size: clamp(0.66rem, 0.95vw, 0.78rem);
   color: var(--color-text-muted);
   text-align: center;
   overflow: hidden;
@@ -474,6 +499,27 @@ body {
   }
 }
 
+.board__ticker-line--clickable {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 1px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.board__ticker-line--clickable:hover {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-text);
+}
+
+/* L'ultima riga (la più recente: l'array è ordinato dal più vecchio in cima
+ * al più vecchio in fondo, vedi Board.tsx) resta a piena leggibilità; il resto
+ * sfuma via via più debole via lo style inline `opacity` per riga. */
 .board__ticker-line:first-child {
   color: var(--color-text);
 }
@@ -488,8 +534,8 @@ body {
 }
 
 .die {
-  width: clamp(2.2rem, 5.2vw, 3.4rem);
-  height: clamp(2.2rem, 5.2vw, 3.4rem);
+  width: clamp(3.8rem, 8vw, 5.6rem);
+  height: clamp(3.8rem, 8vw, 5.6rem);
   display: block;
   border-radius: 20%;
   background: linear-gradient(155deg, #fbfbff 0%, #d9dae6 100%);
@@ -507,14 +553,14 @@ body {
   grid-template-rows: repeat(3, 1fr);
   width: 100%;
   height: 100%;
-  padding: 14%;
+  padding: 8%;
 }
 
 .die__pip {
   align-self: center;
   justify-self: center;
-  width: 22%;
-  height: 22%;
+  width: 40%;
+  height: 40%;
   border-radius: 50%;
   background: transparent;
 }
@@ -581,29 +627,24 @@ body {
 
 .board-tile {
   position: relative;
+  min-width: 0;
+  min-height: 0;
   background: var(--color-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   padding: 3px 2px;
-  font-size: clamp(0.55rem, 0.9vw, 0.72rem);
+  /* Rapporto font/casella preso dal riferimento (passo casella 113px, testo
+   * ~15px): con 1.7cqw il testo era circa una volta e mezza troppo grande e
+   * nomi comuni come "Amsterdam" andavano a capo invece di stare su una riga. */
+  font-size: clamp(0.52rem, 1.22cqw, 0.85rem);
   line-height: 1.1;
   text-align: center;
   overflow: hidden;
   border-radius: 5px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
-}
-
-/* Wash di colore del gruppo su tutta la casella, non solo la fascia in
- * cima: un color-mix leggero mantiene leggibile testo/sfondo. */
-.board-tile__wash {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, var(--tile-group-color) 0%, color-mix(in srgb, var(--tile-group-color) 55%, #05060c) 100%);
-  opacity: 0.55;
-  z-index: 0;
 }
 
 .board-tile--owned {
@@ -658,11 +699,100 @@ body {
   .board-tile--clickable:hover {
     transform: none;
   }
+  .board-tile--event-highlight {
+    animation: none;
+  }
+}
+
+/* Evidenziazione da click sul log eventi: più lunga e marcata del flash di
+ * atterraggio (non lega ad alcun colore giocatore, è un puntatore neutro). */
+.board-tile--event-highlight {
+  z-index: 2;
+  animation: tile-event-highlight 1.6s ease;
+}
+
+@keyframes tile-event-highlight {
+  0%,
+  70% {
+    box-shadow: inset 0 0 0 3px var(--color-accent), 0 0 14px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
 }
 
 .board-tile--corner {
-  font-size: 0.6rem;
-  font-weight: 600;
+  font-size: clamp(0.65rem, 2cqw, 1.05rem);
+  font-weight: 700;
+}
+
+.board-tile--corner .board-tile__corner-icon {
+  width: clamp(28px, 5.5cqw, 52px);
+  height: clamp(28px, 5.5cqw, 52px);
+}
+
+/* Angolo Jail/Just Visiting: due zone chiaramente separate da una linea
+ * diagonale, non più un'unica etichetta ambigua "Jail / Just Visiting". */
+.board-tile__jail-split {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.board-tile__jail-split-zone {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* "Jail" sempre in basso, "Just Visiting" sempre in cima (richiesto
+ * esplicitamente): non legato all'angolo fisico della board dove questa
+ * casella si trova, la sua interna divisione alto/basso è fissa. */
+.board-tile__jail-split-zone--jail {
+  bottom: 0;
+  left: 0;
+  width: 72%;
+  height: 72%;
+  background: color-mix(in srgb, var(--color-danger) 22%, var(--color-surface));
+  clip-path: polygon(0 100%, 100% 100%, 0 0);
+  border-top: 2px solid color-mix(in srgb, var(--color-danger) 60%, var(--color-border));
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0 0 4px 4px;
+}
+
+.board-tile__jail-split-zone--jail .board-tile__corner-icon {
+  width: clamp(14px, 2vw, 20px);
+  height: clamp(14px, 2vw, 20px);
+  stroke: var(--color-danger);
+  stroke-width: 2;
+  margin: 0;
+}
+
+.board-tile__jail-split-zone--visiting {
+  top: 0;
+  right: 0;
+  width: 72%;
+  height: 72%;
+  justify-content: flex-start;
+  padding-top: 5px;
+  padding-right: 2px;
+}
+
+.board-tile__jail-split-label {
+  font-size: clamp(0.52rem, 0.85vw, 0.68rem);
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.board-tile__jail-split-zone--jail .board-tile__jail-split-label {
+  color: var(--color-danger);
 }
 
 .board-tile--highlighted {
@@ -682,54 +812,290 @@ body {
   background: color-mix(in srgb, var(--owner-color, var(--color-primary)) 10%, var(--color-surface));
 }
 
+/* Barra del proprietario: sul lato rivolto verso il centro del tabellone
+ * (deciso da Board.tsx in base alla posizione della casella), non sempre in
+ * basso — su metà delle caselle "in basso" era il lato rivolto FUORI dal
+ * tabellone, quindi la barra era la cosa meno visibile della casella. */
 .board-tile__owner-bar {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 4px;
+  z-index: 1;
+  box-shadow: 0 0 6px 1px color-mix(in srgb, currentColor 0%, transparent);
 }
 
+.board-tile__owner-bar--top,
+.board-tile__owner-bar--bottom {
+  left: 0;
+  right: 0;
+  height: 5px;
+}
+
+.board-tile__owner-bar--top {
+  top: 0;
+}
+
+.board-tile__owner-bar--bottom {
+  bottom: 0;
+}
+
+.board-tile__owner-bar--left,
+.board-tile__owner-bar--right {
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+
+.board-tile__owner-bar--left {
+  left: 0;
+}
+
+.board-tile__owner-bar--right {
+  right: 0;
+}
+
+/* Fascia del gruppo colore in cima alla casella: resta il colore del gruppo
+ * finché è libera; appena posseduta, --owner-color (impostata più sotto)
+ * prende il sopravvento, così la fascia diventa un secondo indicatore
+ * immediato di chi la possiede, oltre alla barra sul lato centro-tavolo. */
+/* Fascia in cima alla casella: trasparente finché la proprietà è libera (la
+ * bandiera già segnala il gruppo/paese, vedi sotto) — diventa colorata solo
+ * quando qualcuno la compra, col colore di chi l'ha comprata. */
 .board-tile__band {
   position: absolute;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 1;
+}
+
+/* Nel riferimento il colore del gruppo non è una righina, ma un blocco
+ * arrotondato che occupa circa un terzo della profondità della casella sul
+ * bordo esterno della board. */
+.board-tile__band--top {
   top: 0;
   left: 0;
   right: 0;
-  height: 6px;
+  height: 9px;
+  border-radius: 5px 5px 0 0;
+}
+.board-tile__band--bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+  border-radius: 0 0 5px 5px;
+}
+.board-tile__band--left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  border-radius: 5px 0 0 5px;
+}
+.board-tile__band--right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  border-radius: 0 5px 5px 0;
 }
 
-/* La bandiera diventa una grande filigrana semi-trasparente sullo sfondo
- * della casella (dietro nome/prezzo), non più una piccola icona d'angolo. */
-.board-tile__flag {
+/* Contenuto della casella (icona + nome + prezzo): nelle colonne laterali
+ * ruota in blocco. Le celle della griglia sono quadrate, quindi un blocco
+ * 100%x100% ruotato di 90° continua a combaciare esattamente con la cella,
+ * senza bisogno di scambiare larghezza e altezza a mano. */
+.board-tile__content {
   position: absolute;
-  inset: -15%;
+  inset: 0;
+  z-index: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: clamp(2.6rem, 6vw, 4.2rem);
-  line-height: 1;
-  opacity: 0.5;
-  filter: saturate(1.3) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
-  z-index: 0;
-  pointer-events: none;
+  justify-content: flex-end;
+  padding: 4px 3px;
+  gap: 1px;
 }
 
-.board-tile__type-badge {
-  position: absolute;
-  top: 5px;
+/* Le celle delle colonne laterali non sono quadrate (sono larghe
+ * --corner-weight volte la loro altezza), quindi il blocco ruotato deve
+ * scambiare le due dimensioni prima della rotazione, altrimenti sborda:
+ * larghezza = altezza della cella, altezza = larghezza della cella. */
+.board-tile__content--cw,
+.board-tile__content--ccw {
+  inset: auto;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: 15px;
-  height: 15px;
+  width: calc(100% / var(--corner-weight, 1));
+  height: calc(100% * var(--corner-weight, 1));
+}
+
+.board-tile__content--cw {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.board-tile__content--ccw {
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+/* Il testo deve stare alla larga da due cose, sempre su lati opposti: la
+ * bandierina che sporge sul bordo interno, e il blocco colorato del gruppo
+ * sul bordo esterno. I nomi delle classi indicano il lato della bandierina
+ * (nel sistema di riferimento del contenuto, cioè prima della rotazione). */
+.board-tile__content--flagpad-bottom {
+  padding-bottom: 12px;
+  padding-top: 11px;
+}
+
+.board-tile__content--flagpad-top {
+  padding-top: 12px;
+  padding-bottom: 11px;
+}
+
+.board-tile--owned .board-tile__band {
+  background: var(--owner-color);
+}
+
+/* Sfondo colorato del gruppo su gran parte della casella (non solo la
+ * fascia in cima): il riferimento visivo tinge quasi tutta la casella col
+ * colore del gruppo, non un tocco sottile. Semi-trasparente sopra la base
+ * scura, così il testo resta leggibile. */
+.board-tile--type-property {
+  background: color-mix(in srgb, var(--tile-group-color, var(--color-surface)) 22%, var(--color-surface));
+}
+
+/* Anche le caselle speciali hanno un colore fisso per tipo, come nel
+ * riferimento: non tutte dello stesso grigio-blu monotono. */
+.board-tile--type-communityChest {
+  background: color-mix(in srgb, #b8860b 32%, var(--color-surface));
+}
+.board-tile--type-chance {
+  background: color-mix(in srgb, #c04fd4 32%, var(--color-surface));
+}
+.board-tile--type-railroad {
+  background: color-mix(in srgb, #8a7bd8 32%, var(--color-surface));
+}
+.board-tile--type-utility {
+  background: color-mix(in srgb, #34b3a6 32%, var(--color-surface));
+}
+.board-tile--type-incomeTax,
+.board-tile--type-luxuryTax {
+  background: color-mix(in srgb, #5a6b7a 32%, var(--color-surface));
+}
+.board-tile--type-freeParking {
+  background: color-mix(in srgb, #3aa65a 30%, var(--color-surface));
+}
+.board-tile--type-goToJail {
+  background: color-mix(in srgb, #2a2a2a 40%, var(--color-surface));
+}
+
+/* Bandiera "di sfondo": grande, sfocata e ingrandita, quasi tutta la
+ * casella (non più un piccolo rettangolo nitido in un angolo) — il testo
+ * resta sopra e leggibile perché la sfocatura + bassa opacità la rendono
+ * un semplice sfondo, non un elemento in competizione visiva. */
+.board-tile__flag-bg-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 5px;
+}
+
+/* Niente zoom né sfocatura pesante: con inset:-20% + scale(1.3) + blur(4px)
+ * la bandiera usciva dai bordi, sembrava scentrata e diversi paesi non erano
+ * più riconoscibili. A 100%x100% l'SVG (viewBox 24x16) si adatta restando
+ * centrato, e una sfocatura minima basta a tenerlo sullo sfondo. */
+.board-tile__flag-watermark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.38;
+  filter: blur(1.5px);
+}
+
+.board-tile__flag-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Livello delle bandierine "esterne" (FlagLayer.tsx): un solo layer sopra
+ * l'intera griglia, come board-token-layer — nessun overflow:hidden a
+ * ritagliarle, così restano cerchi interi anche se sporgono oltre il
+ * confine della loro casella, esattamente come nel riferimento visivo. */
+.board-flag-layer {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  position: relative;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.board-flag-layer__badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px var(--color-bg), 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Il cerchietto va riempito per intero dalla bandiera: l'SVG ha ratio 3:2
+ * (viewBox 24x16), quindi per coprire un quadrato serve larghezza = 1.5 ×
+ * altezza, centrata orizzontalmente (left:-25%). Con width/height al 100%
+ * restavano invece due bande vuote sopra e sotto dentro al cerchio. */
+.board-flag-layer__svg {
+  position: absolute;
+  top: 0;
+  left: -25%;
+  width: 150%;
+  height: 100%;
+  display: block;
+}
+
+/* Icona delle caselle speciali (Treasury/Surprise/Airport/Utility ecc.):
+ * grande e nel flusso normale sopra il nome, non più un piccolo cerchio in
+ * overlay — così non si scontra mai col testo (il riferimento visivo la
+ * mostra come un disegno che occupa gran parte della metà alta). */
+.board-tile__type-badge {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.6rem;
+  width: 78%;
+  aspect-ratio: 1;
+  max-height: 52%;
+  margin-bottom: 2px;
+  font-size: clamp(1.1rem, 4.2cqw, 2rem);
   font-weight: 700;
-  background: var(--color-surface-raised);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  z-index: 0;
+  color: var(--color-text-muted);
+}
+
+.board-tile__type-badge-icon {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.6;
+}
+
+/* Icone "vivaci" per tipo, come nel riferimento visivo — non tutte dello
+ * stesso grigio spento. */
+.board-tile__type-badge-icon--chest {
+  stroke: #e0a83c;
+}
+
+.board-tile__type-badge-surprise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #e05fd0;
+  color: #fff;
 }
 
 .board-tile__corner-icon {
@@ -740,6 +1106,22 @@ body {
   stroke-width: 1.6;
   fill: none;
   opacity: 0.7;
+}
+
+.board-tile__corner-icon--start {
+  color: #4ade80;
+  opacity: 1;
+}
+
+.board-tile__corner-icon--vacation {
+  stroke: #4ade80;
+  opacity: 1;
+}
+
+.board-tile__corner-icon--gotojail {
+  stroke: #e2e2e2;
+  fill: #e2e2e2;
+  opacity: 0.9;
 }
 
 /* Non c'è modo economico di distinguere "casa appena costruita" da "casa già
@@ -786,18 +1168,72 @@ body {
   }
 }
 
+.board-tile__buildings-count {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  align-self: center;
+}
+
+/* Il riferimento visivo non abbrevia mai il nome (va a capo su due righe
+ * piuttosto che tagliarlo con "..."): possibile perché la board occupa
+ * molto più spazio (vedi il fix di dimensionamento in Board.tsx), quindi
+ * ogni casella è abbastanza larga da ospitare due righe leggibili. */
 .board-tile__name {
   position: relative;
   z-index: 1;
   margin-top: 4px;
+  width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* 3, non 2: nomi come "Airport - Americas" non ci stanno in due righe a
+   * questa larghezza di casella, e finivano comunque troncati con "..."
+   * sulla seconda riga anche col wrap delle parole lunghe attivo. */
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  /* Senza questo, una parola singola più larga della casella (es.
+   * "Amsterdam") non va mai a capo: resta tutta sulla prima riga e viene
+   * tagliata a metà dall'overflow:hidden orizzontale, senza nemmeno "...".
+   * overflow-wrap fa spezzare la parola stessa quando serve. */
+  overflow-wrap: break-word;
+  word-break: break-word;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.6);
 }
+
+/* Nomi lunghi ("Airport - Americas", 19 caratteri) non ci stanno in 3 righe
+ * alla dimensione font normale della casella: un font più piccolo, solo per
+ * questi, evita che vengano comunque troncati con "...". */
+.board-tile__name--long {
+  font-size: clamp(0.5rem, 1.1cqw, 0.8rem);
+}
+
+/* La rotazione delle caselle laterali avviene ora sull'intero contenuto
+ * (.board-tile__content--cw/--ccw), non più sul solo nome: il prezzo deve
+ * ruotare insieme al testo, ed è l'unico modo perché il nome abbia tutta la
+ * lunghezza della casella a disposizione invece di essere tagliato. */
 
 .board-tile__price {
   position: relative;
   z-index: 1;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text-muted);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* Una volta comprata, il prezzo diventa una "pillola" colorata in fondo
+ * alla casella (riferimento visivo), non più un semplice testo. */
+.board-tile__price--owned {
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--owner-color, var(--tile-group-color, var(--color-primary))) 55%, var(--color-surface));
+  color: var(--color-text);
+  font-weight: 700;
 }
 
 /* Livello dei token: sopra la griglia delle caselle, un solo nodo DOM
@@ -816,11 +1252,15 @@ body {
 .player-token {
   position: absolute;
   width: 26px;
-  height: 30px;
+  height: 26px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  transition: left 0.15s linear, top 0.15s linear;
+  /* Volo diretto verso la casella d'arrivo (--move-duration, impostata da
+   * PlayerToken.tsx in base alla distanza): ease-out anziché linear, per un
+   * atterraggio che rallenta invece di fermarsi di colpo. */
+  transition: left var(--move-duration, 0.4s) cubic-bezier(0.22, 0.61, 0.36, 1),
+    top var(--move-duration, 0.4s) cubic-bezier(0.22, 0.61, 0.36, 1);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55));
 }
 
@@ -837,20 +1277,25 @@ body {
 .player-token__body,
 .player-token__accent {
   fill: var(--token-color, #8a7dff);
-}
-
-.player-token__head {
-  fill: var(--token-color, #8a7dff);
-  stroke: color-mix(in srgb, var(--token-color, #8a7dff) 60%, #000 40%);
+  stroke: color-mix(in srgb, var(--token-color, #8a7dff) 55%, #000 45%);
   stroke-width: 0.6;
 }
 
 .player-token__shadow {
   fill: rgba(0, 0, 0, 0.35);
+  stroke: none;
 }
 
 .player-token__eye {
   fill: #10121e;
+  stroke: none;
+}
+
+.player-token__smile {
+  fill: none;
+  stroke: #10121e;
+  stroke-width: 1.4;
+  stroke-linecap: round;
 }
 
 .player-token--bounce .player-token__inner {
@@ -936,7 +1381,7 @@ body {
 /* Colonna sinistra della partita: marchio + azioni rapide + chat, non più
  * una topbar a tutta larghezza (allineato al riferimento visivo). */
 .game-left-rail {
-  flex: 0 0 300px;
+  flex: 0 0 260px;
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-inner);
@@ -2091,7 +2536,7 @@ body {
 /* Pannello laterale di gioco: azioni + log eventi */
 
 .game-side-panel {
-  flex: 0 0 340px;
+  flex: 0 0 300px;
   border-left: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-inner);
@@ -2255,6 +2700,23 @@ body {
   border-bottom: 1px solid var(--color-border);
   border-left: 2px solid transparent;
   animation: log-line-in 0.25s ease;
+}
+
+.event-log__line--clickable {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border-top: none;
+  border-right: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.event-log__line--clickable:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
 }
 
 @keyframes log-line-in {
@@ -2583,6 +3045,93 @@ body {
   animation: overlay-fade-in 0.18s ease;
 }
 
+/* Popup info casella: click su una casella qualunque della board mostra
+ * affitto per numero di case/hotel, costo costruzione, proprietario. */
+.tile-info-modal {
+  position: relative;
+  overflow: hidden;
+}
+
+.tile-info-modal__band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--tile-group-color);
+}
+
+.tile-info-modal__title {
+  margin: 4px 0 8px;
+}
+
+.tile-info-modal__owner {
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.tile-info-modal__price,
+.tile-info-modal__mortgaged {
+  color: var(--color-text-muted);
+  margin: 0 0 6px;
+}
+
+.tile-info-modal__rent-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.tile-info-modal__rent-table td {
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tile-info-modal__rent-table td:last-child {
+  text-align: right;
+  font-weight: 700;
+}
+
+.tile-info-modal__build-cost {
+  display: flex;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+.tile-info-modal__close {
+  margin-top: 8px;
+}
+
+/* Offerta di scambio in arrivo: sfondo più scuro e bordo dorato pulsante
+ * sulla card, per distinguerla da un modale qualunque — è pensata per
+ * "interrompere" chi la riceve, come richiesto (pop-up a tutto schermo). */
+.modal-overlay--offer {
+  background: rgba(10, 8, 20, 0.78);
+}
+
+.modal-overlay--offer .modal-card {
+  box-shadow: var(--shadow-panel), 0 0 0 2px var(--color-accent), 0 0 30px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  animation: modal-pop-in 0.3s var(--ease-pop), offer-glow-pulse 1.8s ease-in-out 0.3s infinite;
+}
+
+@keyframes offer-glow-pulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-panel), 0 0 0 2px var(--color-accent), 0 0 30px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: var(--shadow-panel), 0 0 0 2px var(--color-accent), 0 0 46px color-mix(in srgb, var(--color-accent) 65%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay--offer .modal-card {
+    animation: none;
+  }
+}
+
 .modal-card {
   max-width: 560px;
   max-height: 90vh;
@@ -2634,22 +3183,197 @@ body {
   gap: 6px;
 }
 
-.trade-property-list {
-  max-height: 140px;
+/* Proprietà per lo scambio: barre a tutta larghezza (bandiera + nome +
+ * prezzo) invece di una griglia di quadrati o una lista di checkbox — più
+ * vicino a come il riferimento visivo elenca le proprietà nel form di
+ * scambio, e stesso linguaggio delle caselle sul tabellone. */
+.property-bar-list {
+  max-height: 160px;
   overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  padding: 2px;
 }
 
-.trade-property-item {
+.property-bar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: 8px;
+  font: inherit;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-border);
+  border-left: 4px solid var(--tile-group-color, var(--color-border));
+  background: color-mix(in srgb, var(--tile-group-color, var(--color-surface-raised)) 12%, var(--color-surface));
+  color: var(--color-text);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.property-bar:hover {
+  transform: translateX(2px);
+  border-color: color-mix(in srgb, var(--tile-group-color, var(--color-primary)) 60%, var(--color-border));
+}
+
+.property-bar--selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent);
+  animation: property-card-select 0.2s var(--ease-pop);
+}
+
+@keyframes property-card-select {
+  from {
+    transform: scale(0.97);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.property-bar__flag {
+  width: 18px;
+  height: 13px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+}
+
+.property-bar__name {
+  flex: 1 1 auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.property-bar__mortgaged {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  color: var(--color-danger);
+}
+
+.property-bar__price {
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .property-bar {
+    transition: none;
+  }
+  .property-bar--selected {
+    animation: none;
+  }
+  .property-bar:hover {
+    transform: none;
+  }
+}
+
+.trade-columns__swap {
+  align-self: center;
+  flex: 0 0 auto;
+  font-size: 1.3rem;
+  color: var(--color-text-muted);
+  padding-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .trade-columns__swap {
+    display: none;
+  }
+}
+
+/* Slider per l'importo in denaro dello scambio. */
+.cash-slider {
+  position: relative;
+  padding-top: 26px;
+  margin-bottom: 2px;
+}
+
+.cash-slider__input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-primary) 0%,
+    var(--color-primary) var(--fill-percent, 0%),
+    var(--color-border) var(--fill-percent, 0%),
+    var(--color-border) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.cash-slider__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.cash-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  cursor: grab;
+  transition: transform 0.1s ease;
+}
+
+.cash-slider__input:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
+.cash-slider__input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  cursor: grab;
+}
+
+.cash-slider__input::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+/* "Pillola" col valore corrente, sempre sopra il pollice dello slider. */
+.cash-slider__bubble {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.cash-slider__scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
 }
 
 .trade-textarea {

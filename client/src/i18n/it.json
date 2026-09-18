@@ -176,6 +176,7 @@
   "trade.title": "Nuova offerta di scambio",
   "trade.counterTitle": "Controfferta",
   "trade.viewTitle": "Offerta di scambio",
+  "trade.incomingOfferTitle": "Nuova offerta di scambio per te!",
   "trade.selectPlayer": "Scambia con",
   "trade.youGive": "Tu dai",
   "trade.youReceive": "Tu ricevi",
@@ -262,5 +263,16 @@
   "log.gameOverWinnerByLimit": "🏆 {name} vince per patrimonio netto!",
   "log.propertyMortgaged": "{name} ipoteca {tile} per ${amount}",
   "log.propertyUnmortgaged": "{name} riscatta l'ipoteca su {tile} per ${amount}",
-  "log.jackpotWon": "{name} incassa il jackpot da ${amount} del Parcheggio Gratuito"
+  "log.jackpotWon": "{name} incassa il jackpot da ${amount} del Parcheggio Gratuito",
+  "common.close": "Chiudi",
+  "tileInfo.ownedBy": "Di proprietà di {name}",
+  "tileInfo.price": "Prezzo",
+  "tileInfo.mortgaged": "Ipotecata",
+  "tileInfo.rentBase": "Affitto",
+  "tileInfo.rentHouse": "Affitto con 1 casa",
+  "tileInfo.rentHouses": "Affitto con {count} case",
+  "tileInfo.rentHotel": "Affitto con hotel",
+  "tileInfo.houseCost": "Costo casa",
+  "tileInfo.hotelCost": "Costo hotel",
+  "tileInfo.amount": "Importo"
 }

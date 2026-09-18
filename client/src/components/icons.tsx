@@ -129,6 +129,80 @@ export function BellIcon({ className }: IconProps) {
   );
 }
 
+export function RailroadIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect x="6" y="3" width="12" height="14" rx="3" />
+      <path d="M6 8h12M9 21l-2-4h10l-2 4" />
+      <circle cx="9.5" cy="13" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="13" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function UtilityIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+    </svg>
+  );
+}
+
+export function ChestIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect x="3" y="10" width="18" height="10" rx="1.5" />
+      <path d="M3 10 5 4h14l2 6" />
+      <path d="M10 14h4" />
+    </svg>
+  );
+}
+
+export function AirportIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M12 2v9M12 11 3 15v2l9-2.5V19l-2.5 2v1.4l3-1 3 1V21l-2.5-2v-4.5l9 2.5v-2L12.5 11" />
+    </svg>
+  );
+}
+
+export function ElectricIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+    </svg>
+  );
+}
+
+export function WaterIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z" />
+    </svg>
+  );
+}
+
+export function StartArrowIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M2 5v14l8-7Z" fill="currentColor" stroke="none" />
+      <path d="M13 5v14l8-7Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function VacationIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="9.3" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="14.7" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M9 15c1 1 5 1 6 0" />
+      <path d="M4 4c2 2 2 4 0 6M20 4c-2 2-2 4 0 6" />
+    </svg>
+  );
+}
+
 export function SoundOnIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">

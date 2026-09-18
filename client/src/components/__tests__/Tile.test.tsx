@@ -13,10 +13,10 @@ describe("Tile", () => {
     const { container, rerender } = render(
       <Tile tile={makeTile({ type: "property", name: "Paris" })} isCorner={false} />
     );
-    expect(container.querySelector(".board-tile__flag")).not.toBeNull();
+    expect(container.querySelector(".board-tile__flag-watermark")).not.toBeNull();
 
     rerender(<Tile tile={makeTile({ type: "chance", name: "Fortune", purchasePrice: undefined })} isCorner={false} />);
-    expect(container.querySelector(".board-tile__flag")).toBeNull();
+    expect(container.querySelector(".board-tile__flag-watermark")).toBeNull();
   });
 
   it("mostra la barra del proprietario solo quando la casella è posseduta", () => {
@@ -27,9 +27,10 @@ describe("Tile", () => {
     expect(container.querySelector(".board-tile__owner-bar")).not.toBeNull();
   });
 
-  it("mostra una casa per ogni casa costruita, e l'hotel al posto delle case", () => {
+  it("mostra un'icona casa con il conteggio ×N, e l'hotel al posto delle case", () => {
     const { container, rerender } = render(<Tile tile={makeTile({ houses: 3 })} isCorner={false} />);
-    expect(container.querySelectorAll(".board-tile__building-icon").length).toBe(3);
+    expect(container.querySelectorAll(".board-tile__building-icon").length).toBe(1);
+    expect(screen.getByText("×3")).toBeInTheDocument();
 
     rerender(<Tile tile={makeTile({ houses: 4, hotel: true })} isCorner={false} />);
     expect(container.querySelector(".board-tile__buildings--hotel")).not.toBeNull();

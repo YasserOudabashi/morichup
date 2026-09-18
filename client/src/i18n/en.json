@@ -176,6 +176,7 @@
   "trade.title": "New trade offer",
   "trade.counterTitle": "Counter-offer",
   "trade.viewTitle": "Trade offer",
+  "trade.incomingOfferTitle": "New trade offer for you!",
   "trade.selectPlayer": "Trade with",
   "trade.youGive": "You give",
   "trade.youReceive": "You receive",
@@ -262,5 +263,16 @@
   "log.gameOverWinnerByLimit": "🏆 {name} wins by net worth!",
   "log.propertyMortgaged": "{name} mortgages {tile} for ${amount}",
   "log.propertyUnmortgaged": "{name} redeems the mortgage on {tile} for ${amount}",
-  "log.jackpotWon": "{name} collects the ${amount} Free Parking jackpot"
+  "log.jackpotWon": "{name} collects the ${amount} Free Parking jackpot",
+  "common.close": "Close",
+  "tileInfo.ownedBy": "Owned by {name}",
+  "tileInfo.price": "Price",
+  "tileInfo.mortgaged": "Mortgaged",
+  "tileInfo.rentBase": "Rent",
+  "tileInfo.rentHouse": "Rent with 1 house",
+  "tileInfo.rentHouses": "Rent with {count} houses",
+  "tileInfo.rentHotel": "Rent with hotel",
+  "tileInfo.houseCost": "House cost",
+  "tileInfo.hotelCost": "Hotel cost",
+  "tileInfo.amount": "Amount"
 }

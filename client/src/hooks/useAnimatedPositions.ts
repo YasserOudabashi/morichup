@@ -2,25 +2,35 @@ import { useEffect, useRef, useState } from "react";
 import type { BoardConfig, Player, PlayerSessionId } from "@morichup/shared";
 import type { MoveBatch } from "../state/useGameConnection";
 
-const STEP_MS = 150;
 /** Somma massima possibile di due dadi: oltre non dovrebbe mai servire un
  * percorso più lungo. Serve solo da rete di sicurezza contro dati anomali. */
 const MAX_STEPS = 12;
 /** Durata del piccolo "bounce" quando la pedina arriva a destinazione. */
 export const ARRIVAL_BOUNCE_MS = 320;
 
+const GLIDE_MS_PER_TILE = 55;
+const MIN_GLIDE_MS = 380;
+const MAX_GLIDE_MS = 950;
+
 /**
  * Calcola la casella "visualizzata" di ogni giocatore, separata dalla
  * posizione reale (`player.position`, già decisa dal server): quando arriva
- * un PLAYER_MOVED, la pedina attraversa ogni casella intermedia invece di
- * teletrasportarsi. Nessuno stato di gioco viene letto o modificato qui,
- * solo animata la rivelazione di un movimento già avvenuto.
+ * un PLAYER_MOVED, la pedina vola in un unico volo fluido verso la casella
+ * finale (durata proporzionale alla distanza), invece di saltare da una
+ * casella all'altra ad ogni tappa intermedia — quel comportamento "a
+ * teletrasporti" era proprio quello che si voleva evitare. La casella di
+ * arrivo (`to`) viene impostata subito: è la transizione CSS su left/top
+ * (durata dinamica via --move-duration, vedi PlayerToken.tsx) a disegnare il
+ * volo, non una sequenza di stati intermedi. Nessuno stato di gioco viene
+ * letto o modificato qui, solo animata la rivelazione di un movimento già
+ * avvenuto.
  */
 export function useAnimatedPositions(players: Player[], board: BoardConfig, moveBatch: MoveBatch | null) {
   const [displayPositions, setDisplayPositions] = useState<Record<PlayerSessionId, number>>({});
   const [arrivedNonces, setArrivedNonces] = useState<Record<PlayerSessionId, number>>({});
+  const [moveDurations, setMoveDurations] = useState<Record<PlayerSessionId, number>>({});
   const lastBatchNonce = useRef<number | null>(null);
-  const pendingTimers = useRef<Record<PlayerSessionId, ReturnType<typeof setTimeout>[]>>({});
+  const pendingTimers = useRef<Record<PlayerSessionId, ReturnType<typeof setTimeout>>>({});
   const animating = useRef<Set<PlayerSessionId>>(new Set());
   const arrivalCounter = useRef(0);
 
@@ -40,11 +50,11 @@ export function useAnimatedPositions(players: Player[], board: BoardConfig, move
 
       for (const move of moveBatch.moves) {
         handledByMoveBatch.add(move.playerId);
-        (pendingTimers.current[move.playerId] ?? []).forEach(clearTimeout);
-        pendingTimers.current[move.playerId] = [];
+        if (pendingTimers.current[move.playerId]) clearTimeout(pendingTimers.current[move.playerId]);
 
         if (move.type === "SENT_TO_JAIL") {
           animating.current.delete(move.playerId);
+          setMoveDurations((prev) => ({ ...prev, [move.playerId]: 0 }));
           if (jailIndex >= 0) {
             setDisplayPositions((prev) => ({ ...prev, [move.playerId]: jailIndex }));
           }
@@ -52,28 +62,26 @@ export function useAnimatedPositions(players: Player[], board: BoardConfig, move
         }
 
         const { playerId, from, to } = move;
-        const path: number[] = [];
+        let distance = 0;
         let cursor = from;
         for (let i = 0; i < tileCount; i++) {
           cursor = (cursor + 1) % tileCount;
-          path.push(cursor);
+          distance += 1;
           if (cursor === to) break;
         }
-        const steps = path.length > 0 && path.length <= MAX_STEPS ? path : [to];
+        if (distance <= 0 || distance > MAX_STEPS * (tileCount / MAX_STEPS || 1)) distance = 1;
+        const duration = Math.min(MAX_GLIDE_MS, Math.max(MIN_GLIDE_MS, distance * GLIDE_MS_PER_TILE));
 
         animating.current.add(playerId);
-        steps.forEach((tileIndex, i) => {
-          const isLast = i === steps.length - 1;
-          const timer = setTimeout(() => {
-            setDisplayPositions((prev) => ({ ...prev, [playerId]: tileIndex }));
-            if (isLast) {
-              animating.current.delete(playerId);
-              arrivalCounter.current += 1;
-              setArrivedNonces((prev) => ({ ...prev, [playerId]: arrivalCounter.current }));
-            }
-          }, (i + 1) * STEP_MS);
-          pendingTimers.current[playerId].push(timer);
-        });
+        setMoveDurations((prev) => ({ ...prev, [playerId]: duration }));
+        setDisplayPositions((prev) => ({ ...prev, [playerId]: to }));
+
+        const timer = setTimeout(() => {
+          animating.current.delete(playerId);
+          arrivalCounter.current += 1;
+          setArrivedNonces((prev) => ({ ...prev, [playerId]: arrivalCounter.current }));
+        }, duration);
+        pendingTimers.current[playerId] = timer;
       }
     }
 
@@ -95,10 +103,10 @@ export function useAnimatedPositions(players: Player[], board: BoardConfig, move
   // Pulizia dei timer pendenti se il componente viene smontato (cambio partita).
   useEffect(
     () => () => {
-      Object.values(pendingTimers.current).forEach((timers) => timers.forEach(clearTimeout));
+      Object.values(pendingTimers.current).forEach((timer) => clearTimeout(timer));
     },
     []
   );
 
-  return { displayPositions, arrivedNonces };
+  return { displayPositions, arrivedNonces, moveDurations };
 }

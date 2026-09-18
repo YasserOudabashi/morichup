@@ -13,6 +13,9 @@ interface HudProps {
   onTapPlayer?: (playerId: PlayerSessionId) => void;
   /** null = regola del jackpot non attiva in questa partita: niente da mostrare (Fase 7, US-703). */
   jackpotAmount?: number | null;
+  /** Contenuto opzionale mostrato accanto al titolo "Players" (riferimento
+   * visivo: il selettore lingua vive lì, non più nella colonna sinistra). */
+  headerRight?: ReactNode;
 }
 
 function statusIcon(player: Player): ReactNode | null {
@@ -64,12 +67,22 @@ function useMoneyDelta(players: Player[]): Map<PlayerSessionId, number> {
   return deltas;
 }
 
-export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, onTapPlayer, jackpotAmount }: HudProps) {
+export default function Hud({
+  players,
+  currentTurnPlayerId,
+  onHoverPlayer,
+  onTapPlayer,
+  jackpotAmount,
+  headerRight,
+}: HudProps) {
   const moneyDeltas = useMoneyDelta(players);
 
   return (
     <aside className="hud">
-      <h2 className="hud__title">{t("hud.players")}</h2>
+      <div className="hud__header">
+        <h2 className="hud__title">{t("hud.players")}</h2>
+        {headerRight}
+      </div>
       {jackpotAmount != null && (
         <p className="hud__jackpot">
           <ParkingIcon className="hud__jackpot-icon" /> {t("hud.jackpot")}: <strong>${jackpotAmount}</strong>

@@ -14,6 +14,7 @@ const tiles: Tile[] = [
     },
     "type": "start",
     "name": "Go"
+  
   },
   {
     "id": "tile-1",
@@ -22,9 +23,9 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Pokhara",
+    "name": "Amsterdam",
     "group": "brown",
-    "groupColor": "#8b5a2b",
+    "groupColor": "#e8741e",
     "purchasePrice": 60,
     "baseRent": 5,
     "rentLevels": [
@@ -39,6 +40,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-2",
@@ -48,6 +50,7 @@ const tiles: Tile[] = [
     },
     "type": "communityChest",
     "name": "Treasury"
+  
   },
   {
     "id": "tile-3",
@@ -56,9 +59,9 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Lalitpur",
+    "name": "Rotterdam",
     "group": "brown",
-    "groupColor": "#8b5a2b",
+    "groupColor": "#e8741e",
     "purchasePrice": 60,
     "baseRent": 5,
     "rentLevels": [
@@ -73,6 +76,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-4",
@@ -83,6 +87,7 @@ const tiles: Tile[] = [
     "type": "incomeTax",
     "name": "Income Tax",
     "amount": 200
+  
   },
   {
     "id": "tile-5",
@@ -91,11 +96,12 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "railroad",
-    "name": "Airport - Americas",
+    "name": "JFK Airport",
     "purchasePrice": 200,
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
+  
   },
   {
     "id": "tile-6",
@@ -104,9 +110,9 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Hue",
+    "name": "Rome",
     "group": "lightBlue",
-    "groupColor": "#7ec8e3",
+    "groupColor": "#009246",
     "purchasePrice": 100,
     "baseRent": 8,
     "rentLevels": [
@@ -121,6 +127,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-7",
@@ -130,6 +137,7 @@ const tiles: Tile[] = [
     },
     "type": "chance",
     "name": "Fortune"
+  
   },
   {
     "id": "tile-8",
@@ -138,9 +146,9 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Da Nang",
+    "name": "Milan",
     "group": "lightBlue",
-    "groupColor": "#7ec8e3",
+    "groupColor": "#009246",
     "purchasePrice": 100,
     "baseRent": 8,
     "rentLevels": [
@@ -155,6 +163,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-9",
@@ -163,9 +172,9 @@ const tiles: Tile[] = [
       "y": 0
     },
     "type": "property",
-    "name": "Hanoi",
+    "name": "Venice",
     "group": "lightBlue",
-    "groupColor": "#7ec8e3",
+    "groupColor": "#009246",
     "purchasePrice": 120,
     "baseRent": 10,
     "rentLevels": [
@@ -180,6 +189,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-10",
@@ -187,57 +197,20 @@ const tiles: Tile[] = [
       "x": 10,
       "y": 0
     },
-    "type": "property",
-    "name": "Cancun",
-    "group": "pink",
-    "groupColor": "#e91e8c",
-    "purchasePrice": 140,
-    "baseRent": 11,
-    "rentLevels": [
-      34,
-      50,
-      67,
-      84
-    ],
-    "houseCost": 70,
-    "hotelCost": 70,
-    "ownerId": null,
-    "houses": 0,
-    "hotel": false,
-    "mortgaged": false
+    "type": "jail",
+    "name": "Jail / Just Visiting"
+  
   },
   {
     "id": "tile-11",
     "position": {
-      "x": 11,
-      "y": 0
-    },
-    "type": "utility",
-    "name": "Global Water Co.",
-    "purchasePrice": 150,
-    "baseRent": 4,
-    "ownerId": null,
-    "mortgaged": false
-  },
-  {
-    "id": "tile-12",
-    "position": {
-      "x": 12,
-      "y": 0
-    },
-    "type": "jail",
-    "name": "Jail / Just Visiting"
-  },
-  {
-    "id": "tile-13",
-    "position": {
-      "x": 12,
+      "x": 10,
       "y": 1
     },
     "type": "property",
-    "name": "Guadalajara",
+    "name": "Berlin",
     "group": "pink",
-    "groupColor": "#e91e8c",
+    "groupColor": "#e0b400",
     "purchasePrice": 140,
     "baseRent": 11,
     "rentLevels": [
@@ -252,17 +225,58 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
+  },
+  {
+    "id": "tile-12",
+    "position": {
+      "x": 10,
+      "y": 2
+    },
+    "type": "utility",
+    "name": "Water Company",
+    "purchasePrice": 150,
+    "baseRent": 4,
+    "ownerId": null,
+    "mortgaged": false
+  
+  },
+  {
+    "id": "tile-13",
+    "position": {
+      "x": 10,
+      "y": 3
+    },
+    "type": "property",
+    "name": "Munich",
+    "group": "pink",
+    "groupColor": "#e0b400",
+    "purchasePrice": 140,
+    "baseRent": 11,
+    "rentLevels": [
+      34,
+      50,
+      67,
+      84
+    ],
+    "houseCost": 70,
+    "hotelCost": 70,
+    "ownerId": null,
+    "houses": 0,
+    "hotel": false,
+    "mortgaged": false
+  
   },
   {
     "id": "tile-14",
     "position": {
-      "x": 12,
-      "y": 2
+      "x": 10,
+      "y": 4
     },
     "type": "property",
-    "name": "Mexico City",
+    "name": "Frankfurt",
     "group": "pink",
-    "groupColor": "#e91e8c",
+    "groupColor": "#e0b400",
     "purchasePrice": 160,
     "baseRent": 13,
     "rentLevels": [
@@ -277,30 +291,32 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-15",
     "position": {
-      "x": 12,
-      "y": 3
+      "x": 10,
+      "y": 5
     },
     "type": "railroad",
-    "name": "Airport - Africa",
+    "name": "CAI Airport",
     "purchasePrice": 200,
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
+  
   },
   {
     "id": "tile-16",
     "position": {
-      "x": 12,
-      "y": 4
+      "x": 10,
+      "y": 6
     },
     "type": "property",
-    "name": "Izmir",
+    "name": "London",
     "group": "orange",
-    "groupColor": "#f5821f",
+    "groupColor": "#1b3a78",
     "purchasePrice": 180,
     "baseRent": 14,
     "rentLevels": [
@@ -315,26 +331,28 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-17",
     "position": {
-      "x": 12,
-      "y": 5
+      "x": 10,
+      "y": 7
     },
     "type": "communityChest",
     "name": "Treasury"
+  
   },
   {
     "id": "tile-18",
     "position": {
-      "x": 12,
-      "y": 6
+      "x": 10,
+      "y": 8
     },
     "type": "property",
-    "name": "Antalya",
+    "name": "Manchester",
     "group": "orange",
-    "groupColor": "#f5821f",
+    "groupColor": "#1b3a78",
     "purchasePrice": 180,
     "baseRent": 14,
     "rentLevels": [
@@ -349,17 +367,18 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-19",
     "position": {
-      "x": 12,
-      "y": 7
+      "x": 10,
+      "y": 9
     },
     "type": "property",
-    "name": "Istanbul",
+    "name": "Liverpool",
     "group": "orange",
-    "groupColor": "#f5821f",
+    "groupColor": "#1b3a78",
     "purchasePrice": 200,
     "baseRent": 16,
     "rentLevels": [
@@ -374,26 +393,28 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-20",
     "position": {
-      "x": 12,
-      "y": 8
+      "x": 10,
+      "y": 10
     },
     "type": "freeParking",
     "name": "Free Parking"
+  
   },
   {
     "id": "tile-21",
     "position": {
-      "x": 11,
-      "y": 8
+      "x": 9,
+      "y": 10
     },
     "type": "property",
-    "name": "Luxor",
+    "name": "Athens",
     "group": "red",
-    "groupColor": "#e53935",
+    "groupColor": "#2e74b5",
     "purchasePrice": 220,
     "baseRent": 18,
     "rentLevels": [
@@ -408,26 +429,28 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-22",
     "position": {
-      "x": 10,
-      "y": 8
+      "x": 8,
+      "y": 10
     },
     "type": "chance",
     "name": "Fortune"
+  
   },
   {
     "id": "tile-23",
     "position": {
-      "x": 9,
-      "y": 8
+      "x": 7,
+      "y": 10
     },
     "type": "property",
-    "name": "Alexandria",
+    "name": "Thessaloniki",
     "group": "red",
-    "groupColor": "#e53935",
+    "groupColor": "#2e74b5",
     "purchasePrice": 220,
     "baseRent": 18,
     "rentLevels": [
@@ -442,17 +465,18 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-24",
     "position": {
-      "x": 8,
-      "y": 8
+      "x": 6,
+      "y": 10
     },
     "type": "property",
-    "name": "Cairo",
+    "name": "Patras",
     "group": "red",
-    "groupColor": "#e53935",
+    "groupColor": "#2e74b5",
     "purchasePrice": 240,
     "baseRent": 19,
     "rentLevels": [
@@ -467,30 +491,32 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-25",
     "position": {
-      "x": 7,
-      "y": 8
+      "x": 5,
+      "y": 10
     },
     "type": "railroad",
-    "name": "Airport - Europe",
+    "name": "CDG Airport",
     "purchasePrice": 200,
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
+  
   },
   {
     "id": "tile-26",
     "position": {
-      "x": 6,
-      "y": 8
+      "x": 4,
+      "y": 10
     },
     "type": "property",
     "name": "Seville",
     "group": "yellow",
-    "groupColor": "#fdd835",
+    "groupColor": "#b01c22",
     "purchasePrice": 260,
     "baseRent": 21,
     "rentLevels": [
@@ -505,17 +531,18 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-27",
     "position": {
-      "x": 5,
-      "y": 8
+      "x": 3,
+      "y": 10
     },
     "type": "property",
     "name": "Valencia",
     "group": "yellow",
-    "groupColor": "#fdd835",
+    "groupColor": "#b01c22",
     "purchasePrice": 260,
     "baseRent": 21,
     "rentLevels": [
@@ -530,30 +557,32 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-28",
     "position": {
-      "x": 4,
-      "y": 8
+      "x": 2,
+      "y": 10
     },
     "type": "utility",
-    "name": "World Power Grid",
+    "name": "Electric Company",
     "purchasePrice": 150,
     "baseRent": 4,
     "ownerId": null,
     "mortgaged": false
+  
   },
   {
     "id": "tile-29",
     "position": {
-      "x": 3,
-      "y": 8
+      "x": 1,
+      "y": 10
     },
     "type": "property",
     "name": "Madrid",
     "group": "yellow",
-    "groupColor": "#fdd835",
+    "groupColor": "#b01c22",
     "purchasePrice": 280,
     "baseRent": 22,
     "rentLevels": [
@@ -568,42 +597,28 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-30",
     "position": {
-      "x": 2,
-      "y": 8
+      "x": 0,
+      "y": 10
     },
-    "type": "property",
-    "name": "Lyon",
-    "group": "green",
-    "groupColor": "#2e7d32",
-    "purchasePrice": 300,
-    "baseRent": 24,
-    "rentLevels": [
-      72,
-      108,
-      144,
-      180
-    ],
-    "houseCost": 150,
-    "hotelCost": 150,
-    "ownerId": null,
-    "houses": 0,
-    "hotel": false,
-    "mortgaged": false
+    "type": "goToJail",
+    "name": "Go To Jail"
+  
   },
   {
     "id": "tile-31",
     "position": {
-      "x": 1,
-      "y": 8
+      "x": 0,
+      "y": 9
     },
     "type": "property",
-    "name": "Marseille",
+    "name": "Lyon",
     "group": "green",
-    "groupColor": "#2e7d32",
+    "groupColor": "#3b63a8",
     "purchasePrice": 300,
     "baseRent": 24,
     "rentLevels": [
@@ -618,6 +633,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-32",
@@ -625,8 +641,25 @@ const tiles: Tile[] = [
       "x": 0,
       "y": 8
     },
-    "type": "goToJail",
-    "name": "Go To Jail"
+    "type": "property",
+    "name": "Marseille",
+    "group": "green",
+    "groupColor": "#3b63a8",
+    "purchasePrice": 300,
+    "baseRent": 24,
+    "rentLevels": [
+      72,
+      108,
+      144,
+      180
+    ],
+    "houseCost": 150,
+    "hotelCost": 150,
+    "ownerId": null,
+    "houses": 0,
+    "hotel": false,
+    "mortgaged": false
+  
   },
   {
     "id": "tile-33",
@@ -636,6 +669,7 @@ const tiles: Tile[] = [
     },
     "type": "communityChest",
     "name": "Treasury"
+  
   },
   {
     "id": "tile-34",
@@ -646,7 +680,7 @@ const tiles: Tile[] = [
     "type": "property",
     "name": "Paris",
     "group": "green",
-    "groupColor": "#2e7d32",
+    "groupColor": "#3b63a8",
     "purchasePrice": 320,
     "baseRent": 26,
     "rentLevels": [
@@ -661,6 +695,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-35",
@@ -669,11 +704,12 @@ const tiles: Tile[] = [
       "y": 5
     },
     "type": "railroad",
-    "name": "Airport - Asia",
+    "name": "NRT Airport",
     "purchasePrice": 200,
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
+  
   },
   {
     "id": "tile-36",
@@ -683,6 +719,7 @@ const tiles: Tile[] = [
     },
     "type": "chance",
     "name": "Fortune"
+  
   },
   {
     "id": "tile-37",
@@ -693,7 +730,7 @@ const tiles: Tile[] = [
     "type": "property",
     "name": "Osaka",
     "group": "darkBlue",
-    "groupColor": "#1a237e",
+    "groupColor": "#c41e3a",
     "purchasePrice": 350,
     "baseRent": 28,
     "rentLevels": [
@@ -708,6 +745,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   },
   {
     "id": "tile-38",
@@ -718,6 +756,7 @@ const tiles: Tile[] = [
     "type": "luxuryTax",
     "name": "Luxury Tax",
     "amount": 100
+  
   },
   {
     "id": "tile-39",
@@ -728,7 +767,7 @@ const tiles: Tile[] = [
     "type": "property",
     "name": "Yokohama",
     "group": "darkBlue",
-    "groupColor": "#1a237e",
+    "groupColor": "#c41e3a",
     "purchasePrice": 400,
     "baseRent": 32,
     "rentLevels": [
@@ -743,6 +782,7 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
+  
   }
 ] as Tile[];
 
@@ -750,8 +790,8 @@ export const classicBoard: BoardConfig = {
   id: "classic",
   name: "Classic",
   version: "0.2.0",
-  width: 13,
-  height: 9,
+  width: 11,
+  height: 11,
   tiles,
   rules: {
     "startingMoney": 1500,

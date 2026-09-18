@@ -249,7 +249,7 @@ const tiles: Tile[] = [
       "y": 5
     },
     "type": "property",
-    "name": "Cancun",
+    "name": "Berlin",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 160,
@@ -287,7 +287,7 @@ const tiles: Tile[] = [
       "y": 7
     },
     "type": "property",
-    "name": "Guadalajara",
+    "name": "Munich",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 160,
@@ -321,7 +321,7 @@ const tiles: Tile[] = [
       "y": 8
     },
     "type": "property",
-    "name": "Mexico City",
+    "name": "Frankfurt",
     "group": "pink",
     "groupColor": "#e91e8c",
     "purchasePrice": 180,
@@ -368,7 +368,7 @@ const tiles: Tile[] = [
       "y": 8
     },
     "type": "property",
-    "name": "Luxor",
+    "name": "Athens",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 220,
@@ -402,7 +402,7 @@ const tiles: Tile[] = [
       "y": 8
     },
     "type": "property",
-    "name": "Alexandria",
+    "name": "Thessaloniki",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 220,
@@ -436,7 +436,7 @@ const tiles: Tile[] = [
       "y": 8
     },
     "type": "property",
-    "name": "Cairo",
+    "name": "Patras",
     "group": "red",
     "groupColor": "#e53935",
     "purchasePrice": 240,

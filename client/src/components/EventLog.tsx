@@ -1,11 +1,41 @@
 import type { BoardConfig, ContractAccusation, Player, ServerEvent } from "@morichup/shared";
 import { t } from "../i18n";
 
+export type EventTarget = { type: "tile"; tileId: string } | { type: "trade"; tradeId: string };
+
 interface EventLogProps {
   events: ServerEvent[];
   board: BoardConfig;
   players: Player[];
   accusations: ContractAccusation[];
+  /** Fa evidenziare una casella o aprire il dettaglio di uno scambio quando
+   * l'utente clicca una riga: "qualcuno ha comprato Manchester" → evidenzia
+   * Manchester per un attimo; una proposta di scambio → apre il suo dettaglio. */
+  onSelectEvent?: (target: EventTarget) => void;
+}
+
+/** Ricava a cosa "punta" un evento, se c'è qualcosa di sensato da mostrare
+ * al click: una casella (acquisti, affitti, costruzioni, ipoteche...) o uno
+ * scambio proposto/controproposto. Riusato sia dalla lista laterale sia,
+ * potenzialmente, da altri punti che vogliano lo stesso comportamento. */
+export function eventTarget(event: ServerEvent): EventTarget | null {
+  switch (event.type) {
+    case "PROPERTY_PURCHASED":
+    case "PROPERTY_DECLINED":
+    case "RENT_PAID":
+    case "HOUSE_BUILT":
+    case "HOTEL_BUILT":
+    case "HOUSE_SOLD":
+    case "PROPERTY_SOLD_TO_BANK":
+    case "PROPERTY_MORTGAGED":
+    case "PROPERTY_UNMORTGAGED":
+      return { type: "tile", tileId: event.tileId };
+    case "TRADE_PROPOSED":
+    case "TRADE_COUNTERED":
+      return { type: "trade", tradeId: event.trade.id };
+    default:
+      return null;
+  }
 }
 
 function nameOf(players: Player[], id: string): string {
@@ -172,26 +202,35 @@ export function describeEvent(
   }
 }
 
-export default function EventLog({ events, board, players, accusations }: EventLogProps) {
+export default function EventLog({ events, board, players, accusations, onSelectEvent }: EventLogProps) {
   const lines = events
     .map((event, i) => ({
       id: i,
       text: describeEvent(event, board, players, accusations),
       color: players.find((p) => p.sessionId === primaryPlayerId(event))?.color,
+      target: eventTarget(event),
     }))
     .filter((l) => l.text);
 
   return (
     <div className="event-log">
-      {lines.map((line) => (
-        <p
-          key={line.id}
-          className="event-log__line"
-          style={line.color ? { borderLeftColor: line.color } : undefined}
-        >
-          {line.text}
-        </p>
-      ))}
+      {lines.map((line) =>
+        line.target && onSelectEvent ? (
+          <button
+            key={line.id}
+            type="button"
+            className="event-log__line event-log__line--clickable"
+            style={line.color ? { borderLeftColor: line.color } : undefined}
+            onClick={() => onSelectEvent(line.target!)}
+          >
+            {line.text}
+          </button>
+        ) : (
+          <p key={line.id} className="event-log__line" style={line.color ? { borderLeftColor: line.color } : undefined}>
+            {line.text}
+          </p>
+        )
+      )}
     </div>
   );
 }
