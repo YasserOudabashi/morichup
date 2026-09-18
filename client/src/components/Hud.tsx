@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { Player, PlayerSessionId } from "@morichup/shared";
 import { t } from "../i18n";
+import { TokenSprite, shapeIndexFor } from "./TokenSprite";
 
 interface HudProps {
   players: Player[];
@@ -30,7 +33,39 @@ function statusText(player: Player): string | null {
   return null;
 }
 
+/** Etichetta "+N"/"-N" che compare per un attimo quando il saldo di un
+ * giocatore cambia, per rendere visibile a colpo d'occhio l'ultima
+ * transazione senza dover leggere il log eventi. */
+function useMoneyDelta(players: Player[]): Map<PlayerSessionId, number> {
+  const prevMoney = useRef<Map<PlayerSessionId, number>>(new Map());
+  const [deltas, setDeltas] = useState<Map<PlayerSessionId, number>>(new Map());
+
+  useEffect(() => {
+    const prev = prevMoney.current;
+    const next = new Map<PlayerSessionId, number>();
+    let changed = false;
+    for (const player of players) {
+      const before = prev.get(player.sessionId);
+      if (before !== undefined && before !== player.money) {
+        next.set(player.sessionId, player.money - before);
+        changed = true;
+      }
+    }
+    prevMoney.current = new Map(players.map((p) => [p.sessionId, p.money]));
+    if (changed) {
+      setDeltas(next);
+      const timer = setTimeout(() => setDeltas(new Map()), 1500);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players]);
+
+  return deltas;
+}
+
 export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, onTapPlayer, jackpotAmount }: HudProps) {
+  const moneyDeltas = useMoneyDelta(players);
+
   return (
     <aside className="hud">
       <h2 className="hud__title">{t("hud.players")}</h2>
@@ -43,6 +78,8 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, onTap
         {players.map((player) => {
           const isCurrent = player.sessionId === currentTurnPlayerId;
           const status = statusLabel(player);
+          const isBankrupt = player.status === "bankrupt";
+          const delta = moneyDeltas.get(player.sessionId);
           return (
             <li
               key={player.sessionId}
@@ -51,11 +88,11 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, onTap
               onMouseLeave={() => onHoverPlayer?.(null)}
               onClick={() => onTapPlayer?.(player.sessionId)}
             >
-              <span className="hud__player-color" style={{ backgroundColor: player.color }}>
-                <span className="hud__player-color__face">
-                  <span className="hud__player-color__eye" />
-                  <span className="hud__player-color__eye" />
-                </span>
+              <span
+                className="hud__player-color"
+                style={{ "--token-color": player.color } as CSSProperties}
+              >
+                <TokenSprite shapeIndex={shapeIndexFor(player.sessionId)} />
               </span>
               {isCurrent && (
                 <span className="hud__player-turn-indicator" aria-hidden="true">
@@ -68,7 +105,18 @@ export default function Hud({ players, currentTurnPlayerId, onHoverPlayer, onTap
                   {status}
                 </span>
               )}
-              {player.status !== "spectator" && <span className="hud__player-money">${player.money}</span>}
+              {player.status !== "spectator" && (
+                <span className="hud__player-money-wrap">
+                  <span className={`hud__player-money${isBankrupt ? " hud__player-money--bankrupt" : ""}`}>
+                    ${player.money}
+                  </span>
+                  {delta !== undefined && delta !== 0 && (
+                    <span className={`hud__money-delta${delta > 0 ? " hud__money-delta--gain" : " hud__money-delta--loss"}`}>
+                      {delta > 0 ? `+${delta}` : delta}
+                    </span>
+                  )}
+                </span>
+              )}
             </li>
           );
         })}

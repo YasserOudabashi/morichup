@@ -6,14 +6,32 @@ interface DiceProps {
   roll: DiceRoll | null;
 }
 
-/** Glifi Unicode dei dadi (U+2680-U+2685): niente asset da caricare, scalano col font. */
-const DIE_FACES = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+/** Layout dei pallini per ogni faccia (griglia 3x3 classica), da 1 a 6. */
+const PIP_LAYOUTS: Record<number, number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+};
 
 const TUMBLE_MS = 650;
 const TUMBLE_STEP_MS = 80;
 
 function randomFace(): number {
   return 1 + Math.floor(Math.random() * 6);
+}
+
+function DieFace({ value }: { value: number }) {
+  const active = new Set(PIP_LAYOUTS[value] ?? []);
+  return (
+    <span className="die__pips">
+      {Array.from({ length: 9 }, (_, i) => (
+        <span key={i} className={`die__pip${active.has(i) ? " die__pip--on" : ""}`} />
+      ))}
+    </span>
+  );
 }
 
 /**
@@ -51,10 +69,10 @@ export default function Dice({ roll }: DiceProps) {
   return (
     <div className={`dice-pair${phase === "rolling" ? " dice-pair--rolling" : ""}`}>
       <span className="die" aria-hidden="true">
-        {DIE_FACES[displayValues[0]]}
+        <DieFace value={displayValues[0]} />
       </span>
       <span className="die" aria-hidden="true">
-        {DIE_FACES[displayValues[1]]}
+        <DieFace value={displayValues[1]} />
       </span>
       {phase === "settled" && roll.isDouble && <span className="dice-pair__double">✨ {t("game.doubles")}</span>}
     </div>

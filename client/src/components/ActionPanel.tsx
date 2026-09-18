@@ -96,11 +96,12 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
         </div>
       );
     }
+    // Il bottone "tira i dadi" per il caso normale (non in prigione) è stato
+    // spostato al centro della board (Board.tsx): qui restiamo solo con lo
+    // stato d'attesa testuale, la sidebar non duplica l'azione.
     return (
       <div className="action-panel action-panel--active">
-        <button type="button" className="btn btn--primary btn--large" onClick={() => onIntent({ type: "ROLL_DICE" })}>
-          🎲 {t("game.rollDice")}
-        </button>
+        <p className="action-panel__waiting">{t("game.yourTurn")}</p>
       </div>
     );
   }

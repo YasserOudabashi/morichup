@@ -112,6 +112,10 @@ export default function GameScreen({
             hoveredPlayerId={hoveredPlayerId}
             diceRoll={diceRoll}
             moveBatch={moveBatch}
+            gameState={gameState}
+            sessionId={sessionId}
+            onIntent={onIntent}
+            events={events}
           />
         </div>
         <aside className={`game-side-panel${mobileTab === "actions" ? " game-side-panel--active" : ""}`}>
