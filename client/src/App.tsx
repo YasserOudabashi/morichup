@@ -101,7 +101,11 @@ export default function App() {
           {conn.error}
         </button>
       )}
-      {screen}
+      {/* key sul route corrente: forza il remount così ogni cambio schermata
+          rigioca la sua animazione di ingresso invece di restare statico. */}
+      <div className="app-screen" key={conn.screen}>
+        {screen}
+      </div>
     </>
   );
 }

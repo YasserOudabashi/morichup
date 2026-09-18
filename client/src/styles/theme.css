@@ -3,18 +3,26 @@
    siano scuri di default invece di lampeggiare bianchi all'apertura. */
 :root {
   color-scheme: dark;
-  --color-bg: #0f1117;
-  --color-surface: #1a1d29;
-  --color-surface-raised: #232738;
+  --color-bg: #0b0d16;
+  --color-bg-gradient: radial-gradient(ellipse at top, #161a2c 0%, #0b0d16 60%);
+  --color-surface: #171a29;
+  --color-surface-raised: #20243a;
   --color-text: #eef0f6;
   --color-text-muted: #8b90a3;
-  --color-primary: #7c8cff;
-  --color-primary-dark: #5c6de8;
-  --color-accent: #ffc94d;
-  --color-border: #2a2e3d;
+  --color-primary: #8a7dff;
+  --color-primary-dark: #6a5cf0;
+  --color-accent: #f2b93c;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  --color-border: #2a2e46;
   --color-danger: #ff6b6b;
-  --color-success: #4caf6d;
+  --color-success: #4fd08a;
   --shadow-card: 0 10px 34px rgba(0, 0, 0, 0.55);
+  --shadow-panel: 0 18px 48px rgba(4, 5, 12, 0.65);
+  --shadow-inner: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 * {
@@ -37,7 +45,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background: var(--color-bg-gradient), var(--color-bg);
   color: var(--color-text);
   font-family: system-ui, sans-serif;
   overflow: hidden;
@@ -49,6 +57,31 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+}
+
+/* Wrapper attorno alla schermata attiva (Landing/MainMenu/Lobby/GameScreen):
+   remounta ad ogni cambio (key={screen}), quindi rigioca l'animazione ogni
+   volta senza bisogno di libreria di transizione. */
+.app-screen {
+  height: 100%;
+  animation: screen-fade-in 0.28s ease;
+}
+
+@keyframes screen-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-screen {
+    animation: none;
+  }
 }
 
 .app-topbar {
@@ -100,6 +133,7 @@ body {
   flex: 0 0 220px;
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
+  box-shadow: var(--shadow-inner);
   padding: 16px;
   overflow-y: auto;
 }
@@ -144,13 +178,17 @@ body {
 }
 
 .hud__player-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  width: 22px;
+  height: 24px;
   flex: 0 0 auto;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+}
+
+.hud__player-color .player-token__svg {
+  width: 18px;
+  height: 20px;
 }
 
 .hud__player-name {
@@ -158,6 +196,18 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Corona SVG accanto al nome dell'host, sia in HUD/Lobby: currentColor la
+ * colora con l'accento del tema senza bisogno di un asset esterno. */
+.host-crown {
+  width: 14px;
+  height: 10px;
+  flex: 0 0 auto;
+  fill: var(--color-accent);
 }
 
 .hud__player--current {
@@ -194,16 +244,72 @@ body {
 }
 
 .hud__player--bankrupt {
-  opacity: 0.5;
+  opacity: 0.6;
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
 
 .hud__player-status {
   font-size: 0.8rem;
 }
 
+.hud__player-money-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .hud__player-money {
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
+}
+
+.hud__player-money--bankrupt {
+  text-decoration: line-through;
+  color: var(--color-danger);
+}
+
+/* Etichetta "+N"/"-N" che appare per un attimo sopra il saldo quando cambia,
+ * per rendere visibile l'ultima transazione senza aprire il log eventi. */
+.hud__money-delta {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: money-delta-float 1.5s ease forwards;
+}
+
+.hud__money-delta--gain {
+  color: var(--color-success);
+}
+
+.hud__money-delta--loss {
+  color: var(--color-danger);
+}
+
+@keyframes money-delta-float {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud__money-delta {
+    animation: none;
+    opacity: 0.9;
+  }
 }
 
 /* Board */
@@ -245,6 +351,35 @@ body {
   font-weight: 700;
 }
 
+.board__center-roll-btn {
+  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+}
+
+.board__ticker {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 90%;
+}
+
+.board__ticker-line {
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.board__ticker-line:first-child {
+  color: var(--color-text);
+}
+
 /* Dadi (Fase 6.5 — visual core) */
 
 .dice-pair {
@@ -255,11 +390,40 @@ body {
 }
 
 .die {
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  line-height: 1;
-  color: var(--color-text);
+  width: clamp(2.2rem, 5.2vw, 3.4rem);
+  height: clamp(2.2rem, 5.2vw, 3.4rem);
+  display: block;
+  border-radius: 20%;
+  background: linear-gradient(155deg, #fbfbff 0%, #d9dae6 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.8),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.25),
+    0 6px 10px rgba(0, 0, 0, 0.45);
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
   transition: transform 0.15s ease;
+}
+
+.die__pips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  padding: 14%;
+}
+
+.die__pip {
+  align-self: center;
+  justify-self: center;
+  width: 22%;
+  height: 22%;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.die__pip--on {
+  background: #23263a;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
 }
 
 .dice-pair--rolling .die {
@@ -272,13 +436,13 @@ body {
 
 @keyframes dice-tumble {
   0% {
-    transform: rotate(0deg) scale(1);
+    transform: rotateX(0) rotateY(0) scale(1);
   }
   50% {
-    transform: rotate(180deg) scale(1.15);
+    transform: rotateX(190deg) rotateY(160deg) scale(1.15);
   }
   100% {
-    transform: rotate(360deg) scale(1);
+    transform: rotateX(360deg) rotateY(360deg) scale(1);
   }
 }
 
@@ -326,6 +490,52 @@ body {
   line-height: 1.1;
   text-align: center;
   overflow: hidden;
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+/* Wash di colore del gruppo su tutta la casella, non solo la fascia in
+ * cima: un color-mix leggero mantiene leggibile testo/sfondo. */
+.board-tile__wash {
+  position: absolute;
+  inset: 0;
+  background: var(--tile-group-color);
+  opacity: 0.22;
+  z-index: 0;
+}
+
+.board-tile--owned {
+  animation: tile-owned-pulse 0.5s ease;
+}
+
+@keyframes tile-owned-pulse {
+  0% {
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--owner-color, var(--color-primary)) 0%, transparent);
+  }
+  35% {
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--owner-color, var(--color-primary)) 70%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+.board-tile--clickable:hover {
+  background: var(--color-surface-raised);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-tile {
+    transition: none;
+  }
+  .board-tile--owned {
+    animation: none;
+  }
+  .board-tile--clickable:hover {
+    transform: none;
+  }
 }
 
 .board-tile--corner {
@@ -366,12 +576,47 @@ body {
   height: 6px;
 }
 
+/* La bandiera diventa una grande filigrana semi-trasparente sullo sfondo
+ * della casella (dietro nome/prezzo), non più una piccola icona d'angolo. */
 .board-tile__flag {
   position: absolute;
-  top: 8px;
-  right: 3px;
-  font-size: 0.75rem;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
   line-height: 1;
+  opacity: 0.18;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.board-tile__type-badge {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: var(--color-surface-raised);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+.board-tile__corner-icon {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 2px;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.6;
+  fill: none;
+  opacity: 0.7;
 }
 
 .board-tile__buildings {
@@ -389,10 +634,14 @@ body {
 }
 
 .board-tile__name {
+  position: relative;
+  z-index: 1;
   margin-top: 4px;
 }
 
 .board-tile__price {
+  position: relative;
+  z-index: 1;
   color: var(--color-text-muted);
 }
 
@@ -411,30 +660,70 @@ body {
 
 .player-token {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid var(--color-surface);
+  width: 26px;
+  height: 30px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
   transition: left 0.15s linear, top 0.15s linear;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55));
 }
 
-.player-token--bounce {
+.player-token__inner {
+  display: block;
+  animation: token-idle 2.6s ease-in-out infinite;
+}
+
+.player-token__svg {
+  display: block;
+  overflow: visible;
+}
+
+.player-token__body,
+.player-token__accent {
+  fill: var(--token-color, #8a7dff);
+}
+
+.player-token__head {
+  fill: var(--token-color, #8a7dff);
+  stroke: color-mix(in srgb, var(--token-color, #8a7dff) 60%, #000 40%);
+  stroke-width: 0.6;
+}
+
+.player-token__shadow {
+  fill: rgba(0, 0, 0, 0.35);
+}
+
+.player-token__eye {
+  fill: #10121e;
+}
+
+.player-token--bounce .player-token__inner {
   animation: token-arrive 0.32s ease;
+}
+
+@keyframes token-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
 }
 
 @keyframes token-arrive {
   0% {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+    transform: scale(1);
   }
-  40% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--token-color, #fff) 45%, transparent), 0 2px 6px rgba(0, 0, 0, 0.55);
+  35% {
+    transform: scale(1.28) translateY(-3px);
+  }
+  60% {
+    transform: scale(0.92);
   }
   100% {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+    transform: scale(1);
   }
 }
 
@@ -442,12 +731,14 @@ body {
   .player-token {
     transition: none;
   }
-  .player-token--bounce {
+  .player-token__inner {
+    animation: none;
+  }
+  .player-token--bounce .player-token__inner {
     animation: none;
   }
 }
 
-.player-token__face,
 .hud__player-color__face {
   display: flex;
   gap: 3px;
@@ -561,14 +852,58 @@ body {
 .screen-center {
   height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
   padding: 24px;
+  overflow-y: auto;
+}
+
+/* Lobby (Fase "polish"): due colonne affiancate invece di un'unica card
+ * lunga — sinistra codice stanza/chat, destra mappa/regole/giocatori. */
+.lobby-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+  max-width: 920px;
+}
+
+.lobby-column {
+  max-width: none;
+}
+
+.lobby-column--left {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lobby-column--right {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .lobby-layout {
+    flex-direction: column;
+  }
+  .lobby-column--left,
+  .lobby-column--right {
+    flex: 1 1 auto;
+    width: 100%;
+    max-height: none;
+  }
 }
 
 .card {
   background: var(--color-surface);
-  border-radius: 16px;
+  background-image: linear-gradient(160deg, color-mix(in srgb, var(--color-surface-raised) 40%, transparent), transparent 60%);
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   box-shadow: var(--shadow-card);
   padding: 32px;
   width: 100%;
@@ -1013,6 +1348,95 @@ body {
   cursor: pointer;
 }
 
+.rules-picker__toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.rules-picker__toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rules-picker__toggle-label {
+  font-size: 0.85rem;
+}
+
+.rules-picker__toggle-desc {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+/* Interruttore a pillola: l'<input type="checkbox"> nativo resta per
+ * l'accessibilità (tastiera/screen reader), ma è visivamente nascosto e
+ * sostituito da questa "traccia" che riflette lo stato via :checked. */
+.toggle-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.toggle-switch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.toggle-switch__track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background-color 0.15s ease;
+}
+
+.toggle-switch__track::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease;
+}
+
+.toggle-switch input:checked + .toggle-switch__track {
+  background: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-switch__track::before {
+  transform: translateX(14px);
+  background: #fff;
+}
+
+.toggle-switch input:disabled + .toggle-switch__track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-switch input:focus-visible + .toggle-switch__track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-switch__track,
+  .toggle-switch__track::before {
+    transition: none;
+  }
+}
+
 .rules-picker__number {
   display: flex;
   align-items: center;
@@ -1140,7 +1564,7 @@ body {
   position: fixed;
   bottom: 20px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   z-index: 30;
   background: var(--color-danger);
   color: #fff;
@@ -1152,6 +1576,24 @@ body {
   box-shadow: var(--shadow-card);
   cursor: pointer;
   max-width: 80vw;
+  animation: toast-in 0.22s var(--ease-pop);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-toast {
+    animation: none;
+  }
 }
 
 /* Turn timer */
@@ -1180,6 +1622,7 @@ body {
   flex: 0 0 340px;
   border-left: 1px solid var(--color-border);
   background: var(--color-surface);
+  box-shadow: var(--shadow-inner);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1189,6 +1632,7 @@ body {
   flex: 0 0 auto;
   padding: 16px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1365,6 +1809,18 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 40;
+  animation: overlay-fade-in 0.2s ease;
+}
+
+.game-over-overlay > * {
+  animation: modal-pop-in 0.28s var(--ease-pop);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-over-overlay,
+  .game-over-overlay > * {
+    animation: none;
+  }
 }
 
 .game-over-winner {
@@ -1558,12 +2014,41 @@ body {
   justify-content: center;
   z-index: 50;
   padding: 24px;
+  animation: overlay-fade-in 0.18s ease;
 }
 
 .modal-card {
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
+  animation: modal-pop-in 0.24s var(--ease-pop);
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-card {
+    animation: none;
+  }
 }
 
 .modal-title {

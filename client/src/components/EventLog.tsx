@@ -55,7 +55,9 @@ function primaryPlayerId(event: ServerEvent): string | null {
   }
 }
 
-function describe(
+/** Testo leggibile per un evento server: riusato sia dal log laterale sia dal
+ * mini-ticker al centro della board (Board.tsx). */
+export function describeEvent(
   event: ServerEvent,
   board: BoardConfig,
   players: Player[],
@@ -174,7 +176,7 @@ export default function EventLog({ events, board, players, accusations }: EventL
   const lines = events
     .map((event, i) => ({
       id: i,
-      text: describe(event, board, players, accusations),
+      text: describeEvent(event, board, players, accusations),
       color: players.find((p) => p.sessionId === primaryPlayerId(event))?.color,
     }))
     .filter((l) => l.text);
