@@ -45,7 +45,7 @@ export default function GameScreen({
 }: GameScreenProps) {
   const winner = gameState.state === "GAME_OVER" ? gameState.players.find((p) => p.sessionId === gameState.winnerId) : null;
   const [hoveredPlayerId, setHoveredPlayerId] = useState<PlayerSessionId | null>(null);
-  const [mobileTab, setMobileTab] = useState<"board" | "players" | "actions">("board");
+  const [mobileTab, setMobileTab] = useState<"chat" | "board" | "players">("board");
   const me = gameState.players.find((p) => p.sessionId === sessionId);
   const isSpectator = me?.status === "spectator";
 
@@ -60,19 +60,14 @@ export default function GameScreen({
 
   return (
     <div className="app-layout">
-      <header className="app-topbar">
-        <span className="app-topbar__title">{t("app.title")}</span>
-        <TurnTimerBar deadline={turnDeadline} />
-        <div className="app-topbar__actions">
-          <SoundToggle />
-          <NotificationToggle />
-          <LanguageSwitcher variant="inline" />
-          <button type="button" className="btn btn--ghost btn--small" onClick={onLeave}>
-            {t("game.leaveGame")}
-          </button>
-        </div>
-      </header>
       <nav className="mobile-tabs">
+        <button
+          type="button"
+          className={`mobile-tabs__item${mobileTab === "chat" ? " mobile-tabs__item--active" : ""}`}
+          onClick={() => setMobileTab("chat")}
+        >
+          {t("mobile.tabChat")}
+        </button>
         <button
           type="button"
           className={`mobile-tabs__item${mobileTab === "board" ? " mobile-tabs__item--active" : ""}`}
@@ -87,23 +82,26 @@ export default function GameScreen({
         >
           {t("mobile.tabPlayers")}
         </button>
-        <button
-          type="button"
-          className={`mobile-tabs__item${mobileTab === "actions" ? " mobile-tabs__item--active" : ""}`}
-          onClick={() => setMobileTab("actions")}
-        >
-          {t("mobile.tabActions")}
-        </button>
       </nav>
       <div className="app-main">
-        <div className={`app-main__hud${mobileTab === "players" ? " app-main__hud--active" : ""}`}>
-          <Hud
-            players={gameState.players}
-            currentTurnPlayerId={gameState.currentTurnPlayerId}
-            onHoverPlayer={setHoveredPlayerId}
-            onTapPlayer={handleTapPlayer}
-            jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
-          />
+        {/* Colonna sinistra (riferimento visivo): marchio + azioni rapide + chat, non più
+         * una topbar a tutta larghezza. */}
+        <div className={`app-main__left${mobileTab === "chat" ? " app-main__left--active" : ""}`}>
+          <aside className="game-left-rail">
+            <div className="game-left-rail__brand">
+              <span className="game-left-rail__title">{t("app.title")}</span>
+              <div className="game-left-rail__actions">
+                <SoundToggle />
+                <NotificationToggle />
+                <LanguageSwitcher variant="inline" />
+                <button type="button" className="btn btn--ghost btn--small" onClick={onLeave}>
+                  {t("game.leaveGame")}
+                </button>
+              </div>
+            </div>
+            <TurnTimerBar deadline={turnDeadline} />
+            <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
+          </aside>
         </div>
         <div className={`app-board-area${mobileTab === "board" ? " app-board-area--active" : ""}`}>
           <Board
@@ -112,9 +110,21 @@ export default function GameScreen({
             hoveredPlayerId={hoveredPlayerId}
             diceRoll={diceRoll}
             moveBatch={moveBatch}
+            gameState={gameState}
+            sessionId={sessionId}
+            onIntent={onIntent}
+            events={events}
           />
         </div>
-        <aside className={`game-side-panel${mobileTab === "actions" ? " game-side-panel--active" : ""}`}>
+        {/* Colonna destra (riferimento visivo): giocatori + azioni + scambi/proprietà. */}
+        <aside className={`game-side-panel${mobileTab === "players" ? " game-side-panel--active" : ""}`}>
+          <Hud
+            players={gameState.players}
+            currentTurnPlayerId={gameState.currentTurnPlayerId}
+            onHoverPlayer={setHoveredPlayerId}
+            onTapPlayer={handleTapPlayer}
+            jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
+          />
           {isSpectator ? (
             <div className="action-panel">
               <p className="action-panel__waiting">{t("game.spectatorNotice")}</p>
@@ -124,7 +134,6 @@ export default function GameScreen({
           )}
           <SocialPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
           <EventLog events={events} board={gameState.board} players={gameState.players} accusations={gameState.accusations} />
-          <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
         </aside>
       </div>
 

@@ -3,6 +3,7 @@ import type { ClientIntent, GameState, PlayerSessionId, TradeAssets } from "@mor
 import { t } from "../i18n";
 import TradeModal from "./TradeModal";
 import TradeViewModal from "./TradeViewModal";
+import { HotelIcon, HouseIcon } from "./icons";
 
 interface SocialPanelProps {
   gameState: GameState;
@@ -227,7 +228,15 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
         <div key={tile.id} className="my-property-row">
           <span className="my-property-row__name">
             {tile.name}
-            {level > 0 && <span className="my-property-row__buildings"> {level === 5 ? "🏨" : "🏠".repeat(level)}</span>}
+            {level > 0 && (
+              <span className="my-property-row__buildings">
+                {level === 5 ? (
+                  <HotelIcon className="board-tile__building-icon" />
+                ) : (
+                  Array.from({ length: level }, (_, i) => <HouseIcon key={i} className="board-tile__building-icon" />)
+                )}
+              </span>
+            )}
             {tile.mortgaged && <span className="my-property-row__mortgaged"> ({t("mortgage.mortgagedTag")})</span>}
           </span>
           {(canMortgage || canUnmortgage) && (

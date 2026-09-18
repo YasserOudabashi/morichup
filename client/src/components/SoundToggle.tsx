@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { t } from "../i18n";
 import { isSoundMuted, setSoundMuted } from "../lib/sound";
+import { SoundOffIcon, SoundOnIcon } from "./icons";
 
 export default function SoundToggle() {
   const [muted, setMuted] = useState(isSoundMuted());
@@ -20,7 +21,7 @@ export default function SoundToggle() {
       aria-label={muted ? t("sound.unmute") : t("sound.mute")}
       title={muted ? t("sound.unmute") : t("sound.mute")}
     >
-      {muted ? "🔇" : "🔊"}
+      {muted ? <SoundOffIcon className="icon-toggle" /> : <SoundOnIcon className="icon-toggle" />}
     </button>
   );
 }

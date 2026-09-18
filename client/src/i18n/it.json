@@ -12,6 +12,7 @@
   "mobile.tabBoard": "Tabellone",
   "mobile.tabPlayers": "Giocatori",
   "mobile.tabActions": "Azioni",
+  "mobile.tabChat": "Chat",
 
   "sound.mute": "Disattiva audio",
   "sound.unmute": "Attiva audio",
@@ -109,9 +110,13 @@
   "lobby.passwordProtected": "Stanza protetta da password",
   "lobby.optionalRules": "Regole opzionali",
   "lobby.rules.mortgage": "Ipoteca delle proprietà",
+  "lobby.rules.mortgageDescription": "Permette di ipotecare le proprietà alla banca in cambio di denaro, riscattandole in seguito con interessi.",
   "lobby.rules.jackpot": "Jackpot Parcheggio Gratuito",
+  "lobby.rules.jackpotDescription": "Tasse e multe si accumulano in un piatto, vinto da chi atterra sul Parcheggio Gratuito.",
   "lobby.rules.turnLimit": "Limite di turni",
+  "lobby.rules.turnLimitDescription": "Termina la partita dopo un numero fisso di turni; vince il giocatore rimasto più ricco.",
   "lobby.rules.timeLimit": "Limite di tempo (min)",
+  "lobby.rules.timeLimitDescription": "Termina la partita trascorso questo tempo, qualunque sia lo stato di gioco.",
   "lobby.rules.off": "off",
 
   "chat.title": "Chat",

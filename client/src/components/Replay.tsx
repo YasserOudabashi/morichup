@@ -3,6 +3,7 @@ import { t } from "../i18n";
 import Board from "./Board";
 import EventLog from "./EventLog";
 import type { MatchHistoryEntry } from "../lib/matchHistory";
+import { PauseIcon, PlayIcon } from "./icons";
 
 interface ReplayProps {
   entry: MatchHistoryEntry;
@@ -73,7 +74,7 @@ export default function Replay({ entry, onExit }: ReplayProps) {
               onClick={() => setPlaying((p) => !p)}
               aria-label={playing ? t("replay.pause") : t("replay.play")}
             >
-              {playing ? "⏸" : "▶"}
+              {playing ? <PauseIcon className="replay-controls__icon" /> : <PlayIcon className="replay-controls__icon" />}
             </button>
             <button
               type="button"

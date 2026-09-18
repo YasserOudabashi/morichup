@@ -6,6 +6,7 @@ import {
   isNotificationSupported,
   requestNotificationPermission,
 } from "../lib/notifications";
+import { BellIcon, BellOffIcon } from "./icons";
 
 export default function NotificationToggle() {
   const [enabled, setEnabled] = useState(areNotificationsEnabled());
@@ -31,7 +32,7 @@ export default function NotificationToggle() {
       aria-label={enabled ? t("notifications.disable") : t("notifications.enable")}
       title={enabled ? t("notifications.disable") : t("notifications.enable")}
     >
-      {enabled ? "🔔" : "🔕"}
+      {enabled ? <BellIcon className="icon-toggle" /> : <BellOffIcon className="icon-toggle" />}
     </button>
   );
 }

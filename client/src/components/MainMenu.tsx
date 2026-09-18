@@ -34,19 +34,39 @@ export default function MainMenu({ onCreate, onJoin, onHistory, onOpenEditor }: 
 
         {mode === "menu" && (
           <div className="menu-options">
-            <button type="button" className="menu-option" onClick={() => setMode("creating")}>
+            <button
+              type="button"
+              className="menu-option"
+              style={{ "--menu-option-index": 0 } as React.CSSProperties}
+              onClick={() => setMode("creating")}
+            >
               <span className="menu-option__title">{t("menu.createGame")}</span>
               <span className="menu-option__hint">{t("menu.createGameHint")}</span>
             </button>
-            <button type="button" className="menu-option" onClick={() => setMode("joining")}>
+            <button
+              type="button"
+              className="menu-option"
+              style={{ "--menu-option-index": 1 } as React.CSSProperties}
+              onClick={() => setMode("joining")}
+            >
               <span className="menu-option__title">{t("menu.joinGame")}</span>
               <span className="menu-option__hint">{t("menu.joinGameHint")}</span>
             </button>
-            <button type="button" className="menu-option" onClick={onHistory}>
+            <button
+              type="button"
+              className="menu-option"
+              style={{ "--menu-option-index": 2 } as React.CSSProperties}
+              onClick={onHistory}
+            >
               <span className="menu-option__title">{t("menu.history")}</span>
               <span className="menu-option__hint">{t("menu.historyHint")}</span>
             </button>
-            <button type="button" className="menu-option" onClick={onOpenEditor}>
+            <button
+              type="button"
+              className="menu-option"
+              style={{ "--menu-option-index": 3 } as React.CSSProperties}
+              onClick={onOpenEditor}
+            >
               <span className="menu-option__title">{t("menu.editor")}</span>
               <span className="menu-option__hint">{t("menu.editorHint")}</span>
             </button>

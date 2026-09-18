@@ -12,6 +12,7 @@
   "mobile.tabBoard": "Board",
   "mobile.tabPlayers": "Players",
   "mobile.tabActions": "Actions",
+  "mobile.tabChat": "Chat",
 
   "sound.mute": "Mute sound",
   "sound.unmute": "Unmute sound",
@@ -109,9 +110,13 @@
   "lobby.passwordProtected": "Password-protected room",
   "lobby.optionalRules": "Optional rules",
   "lobby.rules.mortgage": "Property mortgage",
+  "lobby.rules.mortgageDescription": "Lets players mortgage properties to the bank for cash, and redeem them later with interest.",
   "lobby.rules.jackpot": "Free Parking jackpot",
+  "lobby.rules.jackpotDescription": "Taxes and fines pile up in a pot, won by whoever lands on Free Parking.",
   "lobby.rules.turnLimit": "Turn limit",
+  "lobby.rules.turnLimitDescription": "Ends the game after a fixed number of turns; the richest player still standing wins.",
   "lobby.rules.timeLimit": "Time limit (min)",
+  "lobby.rules.timeLimitDescription": "Ends the game once the match has run this long, whatever the current state of play.",
   "lobby.rules.off": "off",
 
   "chat.title": "Chat",

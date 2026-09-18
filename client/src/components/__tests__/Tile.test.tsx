@@ -29,9 +29,10 @@ describe("Tile", () => {
 
   it("mostra una casa per ogni casa costruita, e l'hotel al posto delle case", () => {
     const { container, rerender } = render(<Tile tile={makeTile({ houses: 3 })} isCorner={false} />);
-    expect(container.querySelector(".board-tile__buildings")?.textContent).toBe("🏠🏠🏠");
+    expect(container.querySelectorAll(".board-tile__building-icon").length).toBe(3);
 
     rerender(<Tile tile={makeTile({ houses: 4, hotel: true })} isCorner={false} />);
     expect(container.querySelector(".board-tile__buildings--hotel")).not.toBeNull();
+    expect(container.querySelectorAll(".board-tile__building-icon").length).toBe(1);
   });
 });
