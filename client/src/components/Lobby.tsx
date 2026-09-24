@@ -64,6 +64,47 @@ function TimeLimitIcon() {
   );
 }
 
+function DoubleRentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="rules-picker__icon" aria-hidden="true">
+      <rect x="3" y="6" width="9" height="12" rx="1.5" />
+      <rect x="12" y="3" width="9" height="12" rx="1.5" />
+    </svg>
+  );
+}
+
+function PrisonRentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="rules-picker__icon" aria-hidden="true">
+      <rect x="4" y="3" width="16" height="18" rx="1.5" />
+      <path d="M8 3v18M12 3v18M16 3v18" />
+    </svg>
+  );
+}
+
+function StartingCashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="rules-picker__icon" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 15.5c.5 1 1.5 1.5 2.5 1.5 1.7 0 3-1 3-2.3 0-3-6-1.3-6-4.3 0-1.3 1.3-2.3 3-2.3 1 0 2 .5 2.5 1.5" />
+      <path d="M12 6.5v11" />
+    </svg>
+  );
+}
+
+function RandomOrderIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="rules-picker__icon" aria-hidden="true">
+      <path d="M3 6h5l9 12h4" />
+      <path d="M17 6h4v4M3 18h5l3-4" />
+      <path d="M17 18h4v-4" />
+    </svg>
+  );
+}
+
+/** Deve restare in sync con STARTING_MONEY_PRESETS in server/src/lobby/LobbyManager.ts. */
+const STARTING_MONEY_PRESETS = [1000, 1500, 2000, 2500, 3000];
+
 interface LobbyPlayerRowProps {
   connected: boolean;
   children: React.ReactNode;
@@ -318,6 +359,76 @@ export default function Lobby({
                   disabled={!isHost}
                   onChange={(e) => onSetRules({ gameTimeLimitMinutes: e.target.value === "" ? null : Number(e.target.value) })}
                 />
+              </label>
+            </div>
+            <label className="rules-picker__toggle-row">
+              <DoubleRentIcon />
+              <span className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={room.optionalRules.doubleRentFullSet}
+                  disabled={!isHost}
+                  onChange={(e) => onSetRules({ doubleRentFullSet: e.target.checked })}
+                />
+                <span className="toggle-switch__track" aria-hidden="true" />
+              </span>
+              <span className="rules-picker__toggle-text">
+                <span className="rules-picker__toggle-label">{t("lobby.rules.doubleRentFullSet")}</span>
+                <span className="rules-picker__toggle-desc">{t("lobby.rules.doubleRentFullSetDescription")}</span>
+              </span>
+            </label>
+            <label className="rules-picker__toggle-row">
+              <PrisonRentIcon />
+              <span className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={room.optionalRules.noRentInPrison}
+                  disabled={!isHost}
+                  onChange={(e) => onSetRules({ noRentInPrison: e.target.checked })}
+                />
+                <span className="toggle-switch__track" aria-hidden="true" />
+              </span>
+              <span className="rules-picker__toggle-text">
+                <span className="rules-picker__toggle-label">{t("lobby.rules.noRentInPrison")}</span>
+                <span className="rules-picker__toggle-desc">{t("lobby.rules.noRentInPrisonDescription")}</span>
+              </span>
+            </label>
+            <label className="rules-picker__toggle-row">
+              <RandomOrderIcon />
+              <span className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={room.optionalRules.randomizePlayerOrder}
+                  disabled={!isHost}
+                  onChange={(e) => onSetRules({ randomizePlayerOrder: e.target.checked })}
+                />
+                <span className="toggle-switch__track" aria-hidden="true" />
+              </span>
+              <span className="rules-picker__toggle-text">
+                <span className="rules-picker__toggle-label">{t("lobby.rules.randomizeOrder")}</span>
+                <span className="rules-picker__toggle-desc">{t("lobby.rules.randomizeOrderDescription")}</span>
+              </span>
+            </label>
+            <div className="rules-picker__number-row">
+              <StartingCashIcon />
+              <label className="rules-picker__number">
+                <span className="rules-picker__number-text">
+                  <span className="rules-picker__number-label">{t("lobby.rules.startingMoney")}</span>
+                  <span className="rules-picker__number-desc">{t("lobby.rules.startingMoneyDescription")}</span>
+                </span>
+                <select
+                  className="text-input text-input--small"
+                  value={room.optionalRules.startingMoney ?? ""}
+                  disabled={!isHost}
+                  onChange={(e) => onSetRules({ startingMoney: e.target.value === "" ? null : Number(e.target.value) })}
+                >
+                  <option value="">{t("lobby.rules.mapDefault")}</option>
+                  {STARTING_MONEY_PRESETS.map((amount) => (
+                    <option key={amount} value={amount}>
+                      ${amount}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
           </div>

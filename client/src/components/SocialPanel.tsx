@@ -1,20 +1,61 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ClientIntent, GameState, PlayerSessionId, TradeAssets } from "@morichup/shared";
 import { t } from "../i18n";
 import TradeModal from "./TradeModal";
 import TradeViewModal from "./TradeViewModal";
-import { HotelIcon, HouseIcon } from "./icons";
+import { AirportIcon, ElectricIcon, HotelIcon, HouseIcon, WaterIcon } from "./icons";
+import { flagFor } from "../lib/flags";
+import { CountryFlag } from "./flags";
+import TurnTimerBar from "./TurnTimerBar";
 
 interface SocialPanelProps {
   gameState: GameState;
   sessionId: PlayerSessionId;
   onIntent: (intent: ClientIntent) => void;
+  /** Click sul nome di una propria proprietà: evidenzia quella casella sulla board. */
+  onSelectTile?: (tileId: string) => void;
+  /** Impostato dal menu "proponi scambio" sul click destro di un giocatore
+   * (Hud.tsx): apre subito il form già puntato su quel giocatore. */
+  initialTradeTargetId?: PlayerSessionId | null;
+  /** Consumato dopo l'apertura, così un secondo click destro sullo stesso
+   * giocatore riapre comunque il form (altrimenti l'effect non ri-scatterebbe). */
+  onConsumeInitialTradeTarget?: () => void;
+  /** Impostato dal bottone "Controfferta" sul pop-up di un'offerta in arrivo
+   * (GameScreen.tsx): quel pop-up non aveva un modo di negoziare, apriva solo
+   * accetta/rifiuta — richiesto esplicitamente di poterlo fare. */
+  initialCounterTradeId?: string | null;
+  onConsumeInitialCounterTrade?: () => void;
 }
 
 type ModalState = { mode: "propose" } | { mode: "counter"; tradeId: string } | { mode: "view"; tradeId: string };
 
-export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPanelProps) {
+export default function SocialPanel({
+  gameState,
+  sessionId,
+  onIntent,
+  onSelectTile,
+  initialTradeTargetId,
+  onConsumeInitialTradeTarget,
+  initialCounterTradeId,
+  onConsumeInitialCounterTrade,
+}: SocialPanelProps) {
   const [modalState, setModalState] = useState<ModalState | null>(null);
+  const [tradeTargetId, setTradeTargetId] = useState<PlayerSessionId | undefined>(undefined);
+
+  useEffect(() => {
+    if (!initialTradeTargetId) return;
+    setTradeTargetId(initialTradeTargetId);
+    setModalState({ mode: "propose" });
+    onConsumeInitialTradeTarget?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTradeTargetId]);
+
+  useEffect(() => {
+    if (!initialCounterTradeId) return;
+    setModalState({ mode: "counter", tradeId: initialCounterTradeId });
+    onConsumeInitialCounterTrade?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCounterTradeId]);
   const [auctionFormTileId, setAuctionFormTileId] = useState<string | null>(null);
   const [minBid, setMinBid] = useState(0);
 
@@ -72,7 +113,13 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
     <div className="social-panel">
       <div className="social-panel__header">
         <h3 className="section-label">{t("trade.activeTrades")}</h3>
-        <button type="button" className="btn btn--ghost btn--small" onClick={() => setModalState({ mode: "propose" })}>
+        <button
+          type="button"
+          className="btn btn--ghost btn--small"
+          disabled={me?.status === "bankrupt"}
+          title={me?.status === "bankrupt" ? t("trade.bankruptCannotPropose") : undefined}
+          onClick={() => setModalState({ mode: "propose" })}
+        >
           {t("trade.propose")}
         </button>
       </div>
@@ -152,7 +199,7 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
             {t("contract.between", { a: nameOf(contract.participants[0]), b: nameOf(contract.participants[1]) })} ·{" "}
             {contract.status === "active" ? t("contract.statusActive") : t("contract.statusDisputed")}
           </p>
-          {contract.status === "active" && (
+          {contract.status === "active" && me?.status !== "bankrupt" && (
             <button
               type="button"
               className="btn btn--ghost btn--small"
@@ -184,6 +231,9 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
               {t("accusation.accuses", { accuser: nameOf(accusation.accuserId), accused: nameOf(accusation.accusedId) })}
             </p>
             <p className="accusation-card__tally">{t("accusation.tally", { guilty: tally.guilty, notGuilty: tally.notGuilty })}</p>
+            {/* Il voto ha una scadenza (accusation.deadline) ma prima non si vedeva
+             * da nessuna parte: stesso timer già usato per il turno. */}
+            <TurnTimerBar deadline={accusation.deadline} />
             {eligible && !alreadyVoted && (
               <div className="button-row">
                 <button
@@ -226,7 +276,26 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
           mortgageAmount + Math.ceil(mortgageAmount * (gameState.board.rules.mortgageInterestRate ?? 0.1));
         return (
         <div key={tile.id} className="my-property-row">
-          <span className="my-property-row__name">
+          <span
+            className="my-property-row__name my-property-row__name--clickable"
+            role={onSelectTile ? "button" : undefined}
+            tabIndex={onSelectTile ? 0 : undefined}
+            onClick={() => onSelectTile?.(tile.id)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelectTile?.(tile.id)}
+          >
+            {(() => {
+              const flag = flagFor(tile.name);
+              if (flag) return <CountryFlag code={flag} className="my-property-row__flag" />;
+              if (tile.type === "railroad") return <AirportIcon className="my-property-row__symbol" />;
+              if (tile.type === "utility") {
+                return /water/i.test(tile.name) ? (
+                  <WaterIcon className="my-property-row__symbol" />
+                ) : (
+                  <ElectricIcon className="my-property-row__symbol" />
+                );
+              }
+              return null;
+            })()}
             {tile.name}
             {level > 0 && (
               <span className="my-property-row__buildings">
@@ -323,6 +392,7 @@ export default function SocialPanel({ gameState, sessionId, onIntent }: SocialPa
           gameState={gameState}
           sessionId={sessionId}
           existingTrade={existingTradeForModal}
+          presetTargetId={modalState.mode === "propose" ? tradeTargetId : undefined}
           onSubmit={(payload) => {
             if (modalState.mode === "counter") {
               onIntent({

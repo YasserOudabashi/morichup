@@ -8,6 +8,13 @@ interface TokenLayerProps {
   displayPositions: Record<PlayerSessionId, number>;
   arrivedNonces: Record<PlayerSessionId, number>;
   moveDurations?: Record<PlayerSessionId, number>;
+  /** Di chi è il turno adesso: la sua pedina è più grande, per riconoscerla
+   * al volo (richiesto esplicitamente — è difficile capire a colpo d'occhio
+   * dove sei/chi gioca). */
+  activePlayerId?: PlayerSessionId | null;
+  /** Giocatore evidenziato dalla lista a destra (hover o tap): stesso segnale
+   * usato per illuminare le sue caselle, qui ingrandisce anche la sua pedina. */
+  hoveredPlayerId?: PlayerSessionId | null;
 }
 
 /**
@@ -15,7 +22,15 @@ interface TokenLayerProps {
  * persistente per giocatore: è quello che rende possibile animare left/top
  * con una transizione CSS invece di ricreare il token ad ogni casella.
  */
-export default function TokenLayer({ board, players, displayPositions, arrivedNonces, moveDurations }: TokenLayerProps) {
+export default function TokenLayer({
+  board,
+  players,
+  displayPositions,
+  arrivedNonces,
+  moveDurations,
+  activePlayerId,
+  hoveredPlayerId,
+}: TokenLayerProps) {
   // Quanti giocatori condividono la stessa casella "visualizzata" in questo momento,
   // per il piccolo offset che evita di sovrapporli del tutto.
   const stackIndexByPlayer = new Map<PlayerSessionId, number>();
@@ -42,6 +57,8 @@ export default function TokenLayer({ board, players, displayPositions, arrivedNo
             stackIndex={stackIndexByPlayer.get(player.sessionId) ?? 0}
             arrivedNonce={arrivedNonces[player.sessionId]}
             moveDurationMs={moveDurations?.[player.sessionId]}
+            isActive={player.sessionId === activePlayerId}
+            isHovered={player.sessionId === hoveredPlayerId}
           />
         );
       })}

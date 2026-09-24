@@ -18,6 +18,7 @@ export function createPlayer(
     jailTurns: 0,
     consecutiveDoubles: 0,
     getOutOfJailFreeCards: 0,
+    bankruptcyInsurance: false,
     pendingDebts: [],
   };
 }

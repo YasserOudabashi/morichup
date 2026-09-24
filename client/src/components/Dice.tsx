@@ -69,10 +69,10 @@ export default function Dice({ roll }: DiceProps) {
 
   return (
     <div className={`dice-pair${phase === "rolling" ? " dice-pair--rolling" : ""}`}>
-      <span className="die" aria-hidden="true">
+      <span className={`die${phase === "settled" ? " die--settled" : ""}`} aria-hidden="true">
         <DieFace value={displayValues[0]} />
       </span>
-      <span className="die" aria-hidden="true">
+      <span className={`die${phase === "settled" ? " die--settled" : ""}`} aria-hidden="true">
         <DieFace value={displayValues[1]} />
       </span>
       {phase === "settled" && roll.isDouble && (

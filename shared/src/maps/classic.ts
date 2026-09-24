@@ -14,7 +14,6 @@ const tiles: Tile[] = [
     },
     "type": "start",
     "name": "Go"
-  
   },
   {
     "id": "tile-1",
@@ -27,20 +26,19 @@ const tiles: Tile[] = [
     "group": "brown",
     "groupColor": "#e8741e",
     "purchasePrice": 60,
-    "baseRent": 5,
+    "baseRent": 3,
     "rentLevels": [
-      14,
-      22,
-      29,
-      36
+      17,
+      52,
+      155,
+      276
     ],
-    "houseCost": 30,
-    "hotelCost": 30,
+    "houseCost": 45,
+    "hotelCost": 45,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-2",
@@ -50,7 +48,6 @@ const tiles: Tile[] = [
     },
     "type": "communityChest",
     "name": "Treasury"
-  
   },
   {
     "id": "tile-3",
@@ -63,20 +60,19 @@ const tiles: Tile[] = [
     "group": "brown",
     "groupColor": "#e8741e",
     "purchasePrice": 60,
-    "baseRent": 5,
+    "baseRent": 3,
     "rentLevels": [
-      14,
-      22,
-      29,
-      36
+      17,
+      52,
+      155,
+      276
     ],
-    "houseCost": 30,
-    "hotelCost": 30,
+    "houseCost": 45,
+    "hotelCost": 45,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-4",
@@ -87,7 +83,6 @@ const tiles: Tile[] = [
     "type": "incomeTax",
     "name": "Income Tax",
     "amount": 200
-  
   },
   {
     "id": "tile-5",
@@ -101,7 +96,6 @@ const tiles: Tile[] = [
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
-  
   },
   {
     "id": "tile-6",
@@ -114,20 +108,19 @@ const tiles: Tile[] = [
     "group": "lightBlue",
     "groupColor": "#009246",
     "purchasePrice": 100,
-    "baseRent": 8,
+    "baseRent": 7,
     "rentLevels": [
-      24,
-      36,
-      48,
-      60
+      35,
+      99,
+      297,
+      449
     ],
-    "houseCost": 50,
-    "hotelCost": 50,
+    "houseCost": 45,
+    "hotelCost": 45,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-7",
@@ -137,7 +130,6 @@ const tiles: Tile[] = [
     },
     "type": "chance",
     "name": "Fortune"
-  
   },
   {
     "id": "tile-8",
@@ -150,20 +142,19 @@ const tiles: Tile[] = [
     "group": "lightBlue",
     "groupColor": "#009246",
     "purchasePrice": 100,
-    "baseRent": 8,
+    "baseRent": 7,
     "rentLevels": [
-      24,
-      36,
-      48,
-      60
+      35,
+      99,
+      297,
+      449
     ],
-    "houseCost": 50,
-    "hotelCost": 50,
+    "houseCost": 45,
+    "hotelCost": 45,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-9",
@@ -176,20 +167,19 @@ const tiles: Tile[] = [
     "group": "lightBlue",
     "groupColor": "#009246",
     "purchasePrice": 120,
-    "baseRent": 10,
+    "baseRent": 9,
     "rentLevels": [
-      29,
-      43,
-      58,
-      72
+      46,
+      132,
+      392,
+      566
     ],
-    "houseCost": 60,
-    "hotelCost": 60,
+    "houseCost": 55,
+    "hotelCost": 55,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-10",
@@ -199,7 +189,6 @@ const tiles: Tile[] = [
     },
     "type": "jail",
     "name": "Jail / Just Visiting"
-  
   },
   {
     "id": "tile-11",
@@ -212,20 +201,19 @@ const tiles: Tile[] = [
     "group": "pink",
     "groupColor": "#e0b400",
     "purchasePrice": 140,
-    "baseRent": 11,
+    "baseRent": 12,
     "rentLevels": [
-      34,
-      50,
-      67,
-      84
+      57,
+      171,
+      499,
+      701
     ],
-    "houseCost": 70,
-    "hotelCost": 70,
+    "houseCost": 80,
+    "hotelCost": 80,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-12",
@@ -239,7 +227,6 @@ const tiles: Tile[] = [
     "baseRent": 4,
     "ownerId": null,
     "mortgaged": false
-  
   },
   {
     "id": "tile-13",
@@ -252,20 +239,19 @@ const tiles: Tile[] = [
     "group": "pink",
     "groupColor": "#e0b400",
     "purchasePrice": 140,
-    "baseRent": 11,
+    "baseRent": 12,
     "rentLevels": [
-      34,
-      50,
-      67,
-      84
+      57,
+      171,
+      499,
+      701
     ],
-    "houseCost": 70,
-    "hotelCost": 70,
+    "houseCost": 80,
+    "hotelCost": 80,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-14",
@@ -278,20 +264,19 @@ const tiles: Tile[] = [
     "group": "pink",
     "groupColor": "#e0b400",
     "purchasePrice": 160,
-    "baseRent": 13,
+    "baseRent": 14,
     "rentLevels": [
-      38,
-      58,
-      77,
-      96
+      69,
+      201,
+      574,
+      791
     ],
-    "houseCost": 80,
-    "hotelCost": 80,
+    "houseCost": 85,
+    "hotelCost": 85,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-15",
@@ -305,7 +290,6 @@ const tiles: Tile[] = [
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
-  
   },
   {
     "id": "tile-16",
@@ -318,20 +302,19 @@ const tiles: Tile[] = [
     "group": "orange",
     "groupColor": "#1b3a78",
     "purchasePrice": 180,
-    "baseRent": 14,
+    "baseRent": 16,
     "rentLevels": [
-      43,
-      65,
-      86,
-      108
+      80,
+      228,
+      632,
+      858
     ],
-    "houseCost": 90,
-    "hotelCost": 90,
+    "houseCost": 85,
+    "hotelCost": 85,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-17",
@@ -341,7 +324,6 @@ const tiles: Tile[] = [
     },
     "type": "communityChest",
     "name": "Treasury"
-  
   },
   {
     "id": "tile-18",
@@ -354,20 +336,19 @@ const tiles: Tile[] = [
     "group": "orange",
     "groupColor": "#1b3a78",
     "purchasePrice": 180,
-    "baseRent": 14,
+    "baseRent": 16,
     "rentLevels": [
-      43,
-      65,
-      86,
-      108
+      80,
+      228,
+      632,
+      858
     ],
-    "houseCost": 90,
-    "hotelCost": 90,
+    "houseCost": 85,
+    "hotelCost": 85,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-19",
@@ -380,12 +361,12 @@ const tiles: Tile[] = [
     "group": "orange",
     "groupColor": "#1b3a78",
     "purchasePrice": 200,
-    "baseRent": 16,
+    "baseRent": 18,
     "rentLevels": [
-      48,
-      72,
-      96,
-      120
+      92,
+      260,
+      708,
+      928
     ],
     "houseCost": 100,
     "hotelCost": 100,
@@ -393,7 +374,6 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-20",
@@ -403,7 +383,6 @@ const tiles: Tile[] = [
     },
     "type": "freeParking",
     "name": "Free Parking"
-  
   },
   {
     "id": "tile-21",
@@ -416,20 +395,19 @@ const tiles: Tile[] = [
     "group": "red",
     "groupColor": "#2e74b5",
     "purchasePrice": 220,
-    "baseRent": 18,
+    "baseRent": 21,
     "rentLevels": [
-      53,
-      79,
-      106,
-      132
+      103,
+      295,
+      794,
+      1000
     ],
-    "houseCost": 110,
-    "hotelCost": 110,
+    "houseCost": 120,
+    "hotelCost": 120,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-22",
@@ -439,7 +417,6 @@ const tiles: Tile[] = [
     },
     "type": "chance",
     "name": "Fortune"
-  
   },
   {
     "id": "tile-23",
@@ -452,20 +429,19 @@ const tiles: Tile[] = [
     "group": "red",
     "groupColor": "#2e74b5",
     "purchasePrice": 220,
-    "baseRent": 18,
+    "baseRent": 21,
     "rentLevels": [
-      53,
-      79,
-      106,
-      132
+      103,
+      295,
+      794,
+      1000
     ],
-    "houseCost": 110,
-    "hotelCost": 110,
+    "houseCost": 120,
+    "hotelCost": 120,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-24",
@@ -478,20 +454,19 @@ const tiles: Tile[] = [
     "group": "red",
     "groupColor": "#2e74b5",
     "purchasePrice": 240,
-    "baseRent": 19,
+    "baseRent": 23,
     "rentLevels": [
-      58,
-      86,
       115,
-      144
+      334,
+      862,
+      1063
     ],
-    "houseCost": 120,
-    "hotelCost": 120,
+    "houseCost": 130,
+    "hotelCost": 130,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-25",
@@ -505,7 +480,6 @@ const tiles: Tile[] = [
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
-  
   },
   {
     "id": "tile-26",
@@ -518,12 +492,12 @@ const tiles: Tile[] = [
     "group": "yellow",
     "groupColor": "#b01c22",
     "purchasePrice": 260,
-    "baseRent": 21,
+    "baseRent": 25,
     "rentLevels": [
-      62,
-      94,
-      125,
-      156
+      126,
+      376,
+      919,
+      1120
     ],
     "houseCost": 130,
     "hotelCost": 130,
@@ -531,7 +505,6 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-27",
@@ -544,12 +517,12 @@ const tiles: Tile[] = [
     "group": "yellow",
     "groupColor": "#b01c22",
     "purchasePrice": 260,
-    "baseRent": 21,
+    "baseRent": 25,
     "rentLevels": [
-      62,
-      94,
-      125,
-      156
+      126,
+      376,
+      919,
+      1120
     ],
     "houseCost": 130,
     "hotelCost": 130,
@@ -557,7 +530,6 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-28",
@@ -571,7 +543,6 @@ const tiles: Tile[] = [
     "baseRent": 4,
     "ownerId": null,
     "mortgaged": false
-  
   },
   {
     "id": "tile-29",
@@ -584,12 +555,12 @@ const tiles: Tile[] = [
     "group": "yellow",
     "groupColor": "#b01c22",
     "purchasePrice": 280,
-    "baseRent": 22,
+    "baseRent": 28,
     "rentLevels": [
-      67,
-      101,
-      134,
-      168
+      139,
+      417,
+      983,
+      1193
     ],
     "houseCost": 140,
     "hotelCost": 140,
@@ -597,7 +568,6 @@ const tiles: Tile[] = [
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-30",
@@ -607,7 +577,6 @@ const tiles: Tile[] = [
     },
     "type": "goToJail",
     "name": "Go To Jail"
-  
   },
   {
     "id": "tile-31",
@@ -620,20 +589,19 @@ const tiles: Tile[] = [
     "group": "green",
     "groupColor": "#3b63a8",
     "purchasePrice": 300,
-    "baseRent": 24,
+    "baseRent": 30,
     "rentLevels": [
-      72,
-      108,
-      144,
-      180
+      152,
+      457,
+      1050,
+      1275
     ],
-    "houseCost": 150,
-    "hotelCost": 150,
+    "houseCost": 165,
+    "hotelCost": 165,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-32",
@@ -646,20 +614,19 @@ const tiles: Tile[] = [
     "group": "green",
     "groupColor": "#3b63a8",
     "purchasePrice": 300,
-    "baseRent": 24,
+    "baseRent": 30,
     "rentLevels": [
-      72,
-      108,
-      144,
-      180
+      152,
+      457,
+      1050,
+      1275
     ],
-    "houseCost": 150,
-    "hotelCost": 150,
+    "houseCost": 165,
+    "hotelCost": 165,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-33",
@@ -669,7 +636,6 @@ const tiles: Tile[] = [
     },
     "type": "communityChest",
     "name": "Treasury"
-  
   },
   {
     "id": "tile-34",
@@ -682,20 +648,19 @@ const tiles: Tile[] = [
     "group": "green",
     "groupColor": "#3b63a8",
     "purchasePrice": 320,
-    "baseRent": 26,
+    "baseRent": 34,
     "rentLevels": [
-      77,
-      115,
-      154,
-      192
+      168,
+      502,
+      1143,
+      1384
     ],
-    "houseCost": 160,
-    "hotelCost": 160,
+    "houseCost": 170,
+    "hotelCost": 170,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-35",
@@ -709,7 +674,6 @@ const tiles: Tile[] = [
     "baseRent": 25,
     "ownerId": null,
     "mortgaged": false
-  
   },
   {
     "id": "tile-36",
@@ -719,7 +683,6 @@ const tiles: Tile[] = [
     },
     "type": "chance",
     "name": "Fortune"
-  
   },
   {
     "id": "tile-37",
@@ -732,20 +695,19 @@ const tiles: Tile[] = [
     "group": "darkBlue",
     "groupColor": "#c41e3a",
     "purchasePrice": 350,
-    "baseRent": 28,
+    "baseRent": 42,
     "rentLevels": [
-      84,
-      126,
-      168,
-      210
+      194,
+      573,
+      1304,
+      1570
     ],
-    "houseCost": 175,
-    "hotelCost": 175,
+    "houseCost": 170,
+    "hotelCost": 170,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   },
   {
     "id": "tile-38",
@@ -756,7 +718,6 @@ const tiles: Tile[] = [
     "type": "luxuryTax",
     "name": "Luxury Tax",
     "amount": 100
-  
   },
   {
     "id": "tile-39",
@@ -769,20 +730,19 @@ const tiles: Tile[] = [
     "group": "darkBlue",
     "groupColor": "#c41e3a",
     "purchasePrice": 400,
-    "baseRent": 32,
+    "baseRent": 56,
     "rentLevels": [
-      96,
-      144,
-      192,
-      240
+      237,
+      692,
+      1571,
+      1880
     ],
-    "houseCost": 200,
-    "hotelCost": 200,
+    "houseCost": 170,
+    "hotelCost": 170,
     "ownerId": null,
     "houses": 0,
     "hotel": false,
     "mortgaged": false
-  
   }
 ] as Tile[];
 

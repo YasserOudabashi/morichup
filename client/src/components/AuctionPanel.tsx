@@ -1,6 +1,6 @@
-import { useState } from "react";
 import type { AuctionState, BoardConfig, ClientIntent, Player, PlayerSessionId } from "@morichup/shared";
 import { t } from "../i18n";
+import TurnTimerBar from "./TurnTimerBar";
 
 interface AuctionPanelProps {
   auction: AuctionState;
@@ -8,21 +8,28 @@ interface AuctionPanelProps {
   players: Player[];
   sessionId: PlayerSessionId;
   onIntent: (intent: ClientIntent) => void;
+  /** Scadenza del turn timer generico (SocketServer.ts): l'asta lo riusa
+   * per il conto alla rovescia, riazzerato ad ogni rilancio. */
+  deadline?: number | null;
 }
 
-/** Ogni giocatore agisce una volta sola, nell'ordine di auction.turnOrder: solo
- * chi è di turno nell'asta vede i controlli, gli altri vedono lo stato in sola lettura. */
-export default function AuctionPanel({ auction, board, players, sessionId, onIntent }: AuctionPanelProps) {
+/** Quanto aggiungere al prezzo attuale con un click: richiesto esplicitamente
+ * al posto di un campo numero libero. */
+const BID_STEPS = [2, 10, 100];
+
+/**
+ * Asta libera (non più a turni): un pannello unico visibile a TUTTI i
+ * giocatori, non solo a chi "è di turno" — chiunque sia ancora tra gli
+ * eligibleBidderIds può rilanciare in qualsiasi momento con +2/+10/+100,
+ * finché non passa o scade il tempo (che si riazzera ad ogni offerta).
+ */
+export default function AuctionPanel({ auction, board, players, sessionId, onIntent, deadline }: AuctionPanelProps) {
   const tile = board.tiles.find((t2) => t2.id === auction.tileId);
-  const activeBidderId = auction.turnOrder[auction.turnIndex];
-  const isMyBidTurn = activeBidderId === sessionId;
   const currentBidderName = auction.currentBidderId
     ? (players.find((p) => p.sessionId === auction.currentBidderId)?.nickname ?? "?")
     : null;
-  const activeName = players.find((p) => p.sessionId === activeBidderId)?.nickname ?? "?";
   const me = players.find((p) => p.sessionId === sessionId);
-  const minAllowed = auction.currentBid + 1;
-  const [bidAmount, setBidAmount] = useState(minAllowed);
+  const canBid = auction.eligibleBidderIds.includes(sessionId);
 
   return (
     <div className="action-panel auction-panel">
@@ -42,33 +49,33 @@ export default function AuctionPanel({ auction, board, players, sessionId, onInt
           : t("auction.noBidsYet")}
       </p>
 
-      {isMyBidTurn ? (
+      {deadline != null && <TurnTimerBar deadline={deadline} />}
+
+      {canBid ? (
         <>
-          <p className="action-panel__waiting">{t("auction.yourTurn")}</p>
-          <div className="button-row">
-            <input
-              type="number"
-              className="text-input text-input--small"
-              min={minAllowed}
-              max={me?.money}
-              value={bidAmount}
-              onChange={(e) => setBidAmount(Number(e.target.value))}
-            />
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={bidAmount <= auction.currentBid || (me ? bidAmount > me.money : true)}
-              onClick={() => onIntent({ type: "PLACE_BID", amount: bidAmount })}
-            >
-              {t("auction.placeBid")}
-            </button>
+          <div className="button-row auction-panel__quick-bids">
+            {BID_STEPS.map((step) => {
+              const amount = auction.currentBid + step;
+              const disabled = !me || amount > me.money;
+              return (
+                <button
+                  key={step}
+                  type="button"
+                  className="btn btn--primary btn--small"
+                  disabled={disabled}
+                  onClick={() => onIntent({ type: "PLACE_BID", amount })}
+                >
+                  +${step}
+                </button>
+              );
+            })}
           </div>
           <button type="button" className="btn btn--ghost btn--small" onClick={() => onIntent({ type: "PASS_AUCTION" })}>
             {t("auction.pass")}
           </button>
         </>
       ) : (
-        <p className="action-panel__waiting">{t("auction.waitingFor", { name: activeName })}</p>
+        <p className="action-panel__waiting">{t("auction.notEligible")}</p>
       )}
     </div>
   );

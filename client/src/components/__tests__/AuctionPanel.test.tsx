@@ -13,38 +13,45 @@ describe("AuctionPanel", () => {
       tileId: "t1",
       currentBid: 100,
       currentBidderId: null,
-      turnOrder: ["p1", "p2"],
-      turnIndex: 0,
+      eligibleBidderIds: ["p1", "p2"],
+      deadline: Date.now() + 20000,
       sellerId: null,
       minimumBid: 100,
       ...overrides,
     };
   }
 
-  it("mostra i controlli di offerta solo a chi è di turno nell'asta", () => {
+  it("asta libera: chiunque sia ancora eleggibile vede i bottoni di rilancio, non solo 'chi è di turno'", () => {
     const onIntent = vi.fn();
     render(<AuctionPanel auction={makeAuction()} board={board} players={players} sessionId="p1" onIntent={onIntent} />);
 
-    expect(screen.getByRole("button", { name: /bid/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+$2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+$10" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+$100" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /pass/i })).toBeInTheDocument();
   });
 
-  it("chi non è di turno vede solo lo stato, senza controlli di offerta", () => {
-    render(<AuctionPanel auction={makeAuction()} board={board} players={players} sessionId="p2" onIntent={() => {}} />);
+  it("chi ha già passato vede solo lo stato, senza controlli di offerta", () => {
+    render(
+      <AuctionPanel
+        auction={makeAuction({ eligibleBidderIds: ["p1"] })}
+        board={board}
+        players={players}
+        sessionId="p2"
+        onIntent={() => {}}
+      />
+    );
 
-    expect(screen.queryByRole("button", { name: /bid/i })).toBeNull();
-    expect(screen.getByText(/Yasser/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+$2" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /pass/i })).toBeNull();
   });
 
-  it("invia PLACE_BID con l'importo inserito quando si clicca Bid", () => {
+  it("un click su +$10 invia PLACE_BID col prezzo attuale più 10", () => {
     const onIntent = vi.fn();
     render(<AuctionPanel auction={makeAuction({ currentBid: 100 })} board={board} players={players} sessionId="p1" onIntent={onIntent} />);
 
-    const input = screen.getByRole("spinbutton");
-    fireEvent.change(input, { target: { value: "150" } });
-    fireEvent.click(screen.getByRole("button", { name: /bid/i }));
-
-    expect(onIntent).toHaveBeenCalledWith({ type: "PLACE_BID", amount: 150 });
+    fireEvent.click(screen.getByRole("button", { name: "+$10" }));
+    expect(onIntent).toHaveBeenCalledWith({ type: "PLACE_BID", amount: 110 });
   });
 
   it("invia PASS_AUCTION quando si clicca Pass", () => {
@@ -55,11 +62,20 @@ describe("AuctionPanel", () => {
     expect(onIntent).toHaveBeenCalledWith({ type: "PASS_AUCTION" });
   });
 
-  it("disabilita il pulsante Bid se l'offerta non supera quella corrente", () => {
-    render(<AuctionPanel auction={makeAuction({ currentBid: 100 })} board={board} players={players} sessionId="p1" onIntent={() => {}} />);
+  it("disabilita i bottoni di rilancio che il giocatore non può permettersi", () => {
+    render(
+      <AuctionPanel
+        auction={makeAuction({ currentBid: 995 })}
+        board={board}
+        players={players}
+        sessionId="p1"
+        onIntent={() => {}}
+      />
+    );
 
-    const input = screen.getByRole("spinbutton");
-    fireEvent.change(input, { target: { value: "100" } });
-    expect(screen.getByRole("button", { name: /bid/i })).toBeDisabled();
+    // p1 ha $1000: +$2 (=997) e +$10 (=1005, no) -> solo +$10 e +$100 superano i fondi.
+    expect(screen.getByRole("button", { name: "+$2" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "+$10" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "+$100" })).toBeDisabled();
   });
 });

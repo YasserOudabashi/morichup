@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { useEscapeToClose } from "../hooks/useEscapeToClose";
 import { flagFor } from "../lib/flags";
 import { CountryFlag } from "./flags";
+import { AirportIcon, ElectricIcon, WaterIcon } from "./icons";
 
 /** Barra cliccabile a tutta larghezza per scegliere una proprietà da mettere
  * in uno scambio: colorata dal gruppo come la casella sul tabellone, con la
@@ -13,6 +14,20 @@ import { CountryFlag } from "./flags";
  * visivo (righe piene, non una griglia di quadrati). */
 function PropertyBar({ tile, selected, onToggle }: { tile: Tile; selected: boolean; onToggle: () => void }) {
   const flag = tile.type === "property" ? flagFor(tile.name) : null;
+  // Aeroporti e utility non hanno una bandiera (non sono legati a una città),
+  // ma restavano senza alcuna icona, non riconoscibili al volo come richiesto
+  // — stesso trattamento già usato nell'elenco "Your properties".
+  const symbol = flag ? (
+    <CountryFlag code={flag} className="property-bar__flag" />
+  ) : tile.type === "railroad" ? (
+    <AirportIcon className="property-bar__symbol" />
+  ) : tile.type === "utility" ? (
+    /water/i.test(tile.name) ? (
+      <WaterIcon className="property-bar__symbol" />
+    ) : (
+      <ElectricIcon className="property-bar__symbol" />
+    )
+  ) : null;
   return (
     <button
       type="button"
@@ -21,7 +36,7 @@ function PropertyBar({ tile, selected, onToggle }: { tile: Tile; selected: boole
       onClick={onToggle}
       aria-pressed={selected}
     >
-      {flag && <CountryFlag code={flag} className="property-bar__flag" />}
+      {symbol}
       <span className="property-bar__name">{tile.name}</span>
       {tile.mortgaged && <span className="property-bar__mortgaged">{t("mortgage.mortgagedTag")}</span>}
       {tile.purchasePrice !== undefined && <span className="property-bar__price">${tile.purchasePrice}</span>}
@@ -32,7 +47,7 @@ function PropertyBar({ tile, selected, onToggle }: { tile: Tile; selected: boole
 /** Slider per l'importo in denaro: traccia riempita fino al valore corrente
  * e una "pillola" col totale che segue il pollice, invece di uno slider
  * nativo spoglio con la cifra a fianco. */
-function CashSlider({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
+export function CashSlider({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
   const clamped = Math.min(value, max);
   const percent = max > 0 ? (clamped / max) * 100 : 0;
   return (

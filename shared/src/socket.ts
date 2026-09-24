@@ -55,6 +55,18 @@ export interface OptionalRulesInput {
   freeParkingJackpot?: boolean;
   turnLimit?: number | null;
   gameTimeLimitMinutes?: number | null;
+  /** Fase 13: affitto raddoppiato sulle proprietà non edificate quando il gruppo è
+   * completo. Di serie è true (comportamento storico invariato), esposto come toggle
+   * disattivabile dall'host. */
+  doubleRentFullSet?: boolean;
+  /** Fase 13: l'affitto non si paga se il proprietario è in prigione al momento
+   * dell'atterrata. */
+  noRentInPrison?: boolean;
+  /** Fase 13: null = usa il valore di default della mappa scelta. */
+  startingMoney?: number | null;
+  /** Fase 13: mischia l'ordine di turno dei giocatori all'avvio invece di seguire
+   * l'ordine di ingresso in stanza. */
+  randomizePlayerOrder?: boolean;
 }
 
 export interface SetRulesRequest {
@@ -67,6 +79,10 @@ export interface OptionalRulesState {
   freeParkingJackpot: boolean;
   turnLimit: number | null;
   gameTimeLimitMinutes: number | null;
+  doubleRentFullSet: boolean;
+  noRentInPrison: boolean;
+  startingMoney: number | null;
+  randomizePlayerOrder: boolean;
 }
 
 export interface KickPlayerRequest {

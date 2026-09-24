@@ -17,6 +17,10 @@ interface PlayerTokenProps {
    * in base alla distanza percorsa: un volo lungo dura di più di uno corto,
    * invece di una velocità di traslazione fissa uguale per ogni mossa. */
   moveDurationMs?: number;
+  /** È il turno di questo giocatore adesso: pedina più grande. */
+  isActive?: boolean;
+  /** Il giocatore è evidenziato (hover/tap sulla lista a destra): pedina più grande. */
+  isHovered?: boolean;
 }
 
 const DEFAULT_MOVE_DURATION_MS = 400;
@@ -37,6 +41,8 @@ export default function PlayerToken({
   stackIndex,
   arrivedNonce,
   moveDurationMs = DEFAULT_MOVE_DURATION_MS,
+  isActive,
+  isHovered,
 }: PlayerTokenProps) {
   const { dx, dy } = STACK_OFFSETS_PX[stackIndex % STACK_OFFSETS_PX.length];
   const [bouncing, setBouncing] = useState(false);
@@ -51,7 +57,7 @@ export default function PlayerToken({
 
   return (
     <div
-      className={`player-token${bouncing ? " player-token--bounce" : ""}`}
+      className={`player-token${bouncing ? " player-token--bounce" : ""}${isActive ? " player-token--active" : ""}${isHovered ? " player-token--hovered" : ""}`}
       style={
         {
           left: `${leftPercent}%`,

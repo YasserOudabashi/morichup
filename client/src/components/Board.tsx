@@ -9,6 +9,8 @@ import { describeEvent, eventTarget, type EventTarget as LogEventTarget } from "
 import { t } from "../i18n";
 import { DiceIcon } from "./icons";
 import { CORNER_WEIGHT, axisTotal } from "../lib/boardGeometry";
+import { flagFor } from "../lib/flags";
+import { CountryFlag } from "./flags";
 
 interface BoardProps {
   board: BoardConfig;
@@ -30,15 +32,15 @@ interface BoardProps {
   onSelectEvent?: (target: LogEventTarget) => void;
   /** Click su una casella qualunque: apre il popup con le info (affitti per
    * numero di case, costo costruzione, ecc.). Assente nel replay/editor. */
-  onSelectTile?: (tileId: string) => void;
+  onSelectTile?: (tileId: string, x: number, y: number) => void;
 }
 
 const CORNER_TYPES = new Set(["start", "jail", "freeParking", "goToJail"]);
-/* Il riferimento visivo mostra una vera cronologia scorrevole al centro
- * della board (8-10 righe, le più vecchie sempre più sbiadite), non un
- * ticker di 3 righe: era la differenza più vistosa rispetto al video di
- * gameplay fornito. */
-const TICKER_LENGTH = 10;
+/* Richiesto esplicitamente: poter scorrere indietro fino alle ultime ~50
+ * cose successe, non solo le 10 più recenti — il contenitore stesso è
+ * scrollabile (vedi .board__ticker in theme.css), quindi qui basta non
+ * tagliare la lista troppo presto. */
+const TICKER_LENGTH = 50;
 
 /** Su quale lato della casella mostrare la barra del proprietario: quello
  * rivolto verso il centro del tabellone, non sempre in basso — su un bordo
@@ -67,6 +69,12 @@ export default function Board({
   const aspectRatio = board.width / board.height;
   const hoveredPlayer = hoveredPlayerId ? players.find((p) => p.sessionId === hoveredPlayerId) : null;
   const rollingPlayer = diceRoll ? players.find((p) => p.sessionId === diceRoll.playerId) : null;
+  // Prima mostrava il nome di chi tira solo DURANTE il lancio (diceRoll):
+  // tra la fine di un turno e il click su "tira i dadi" del prossimo non si
+  // vedeva nessun nome, anche se il prossimo giocatore era già determinato
+  // (gameState.currentTurnPlayerId) — richiesto esplicitamente che appaia subito.
+  const currentTurnPlayer = gameState ? players.find((p) => p.sessionId === gameState.currentTurnPlayerId) : null;
+  const displayedTurnPlayer = rollingPlayer ?? currentTurnPlayer;
   const { displayPositions, arrivedNonces, moveDurations } = useAnimatedPositions(players, board, moveBatch);
   const colorByPlayerId = new Map(players.map((p) => [p.sessionId, p.color]));
 
@@ -83,13 +91,17 @@ export default function Board({
   }
 
   const me = gameState && sessionId ? gameState.players.find((p) => p.sessionId === sessionId) : null;
-  const canRollHere =
-    !!gameState &&
-    !!onIntent &&
-    !!me &&
-    gameState.state === "ROLLING" &&
-    gameState.currentTurnPlayerId === sessionId &&
-    !me.inJail;
+  const isMyTurnHere = !!gameState && !!me && gameState.currentTurnPlayerId === sessionId;
+  const canRollHere = !!gameState && !!onIntent && !!me && gameState.state === "ROLLING" && isMyTurnHere && !me.inJail;
+  const canRollInJail = !!gameState && !!onIntent && !!me && gameState.state === "ROLLING" && isMyTurnHere && me.inJail;
+  const buyDecisionTile =
+    gameState && onIntent && isMyTurnHere && gameState.pendingDecision?.type === "buyOrDecline"
+      ? board.tiles.find((tl) => tl.id === gameState.pendingDecision!.tileId)
+      : null;
+  // pendingDecision può restare "buyOrDecline" anche a stato PLAYER_DECISION
+  // (bug trovato con lo screenshot: comprare/rifiutare e fine turno apparivano
+  // insieme) — la decisione d'acquisto ha sempre la precedenza.
+  const canEndTurn = !!gameState && !!onIntent && isMyTurnHere && gameState.state === "PLAYER_DECISION" && !buyDecisionTile;
 
   // `events` arriva già più-recente-per-primo (vedi il commento in useGameConnection.ts
   // su onGameEvents): slice(0, N) prende esattamente gli N più recenti, già nell'ordine
@@ -142,9 +154,9 @@ export default function Board({
       >
         <span className="board__center-title">{board.name}</span>
         <Dice roll={diceRoll ?? null} />
-        {rollingPlayer && (
-          <span className="board__center-roller" style={{ color: rollingPlayer.color }}>
-            {rollingPlayer.nickname}
+        {displayedTurnPlayer && (
+          <span className="board__center-roller" style={{ color: displayedTurnPlayer.color }}>
+            {displayedTurnPlayer.nickname}
           </span>
         )}
         {canRollHere && (
@@ -154,6 +166,67 @@ export default function Board({
             onClick={() => onIntent!({ type: "ROLL_DICE" })}
           >
             <DiceIcon className="board__center-roll-icon" /> {t("game.rollDice")}
+          </button>
+        )}
+        {canRollInJail && (
+          <div className="board__center-actions">
+            {me!.getOutOfJailFreeCards > 0 && (
+              <button type="button" className="btn btn--ghost" onClick={() => onIntent!({ type: "USE_JAIL_CARD" })}>
+                {t("game.useJailCard")}
+              </button>
+            )}
+            <button type="button" className="btn btn--ghost" onClick={() => onIntent!({ type: "PAY_BAIL" })}>
+              {t("game.payBail")}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => onIntent!({ type: "ROLL_DICE" })}
+            >
+              <DiceIcon className="board__center-roll-icon" /> {t("game.rollDice")}
+            </button>
+          </div>
+        )}
+        {buyDecisionTile && (
+          <div className="board__center-offer">
+            {/* Non è un bottone, solo il riepilogo di cosa stai valutando: prima
+             * sembrava un altro bottone tra i tanti, confuso con Decline/Buy. */}
+            <div className="property-offer property-offer--summary">
+              {(() => {
+                const flag = flagFor(buyDecisionTile.name);
+                return flag ? <CountryFlag code={flag} className="property-offer__flag" /> : null;
+              })()}
+              <span className="property-offer__name">{buyDecisionTile.name}</span>
+              <span className="property-offer__price">${buyDecisionTile.purchasePrice}</span>
+            </div>
+            <div className="button-row">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => onIntent!({ type: "DECLINE_PROPERTY", tileId: buyDecisionTile.id })}
+              >
+                {t("game.decline")}
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={!!me && me.money < (buyDecisionTile.purchasePrice ?? 0)}
+                title={
+                  me && me.money < (buyDecisionTile.purchasePrice ?? 0) ? t("game.cannotAffordProperty") : undefined
+                }
+                onClick={() => onIntent!({ type: "BUY_PROPERTY", tileId: buyDecisionTile.id })}
+              >
+                {t("game.buyProperty")}
+              </button>
+            </div>
+          </div>
+        )}
+        {canEndTurn && (
+          <button type="button" className="btn btn--primary btn--large board__center-roll-btn" onClick={() => onIntent!({ type: "END_TURN" })}>
+            {/* Cliccare qui non finisce davvero il turno se hai fatto doppio (c'è
+             * ancora un tiro extra in sospeso): l'etichetta lo dice chiaramente,
+             * invece di sembrare "fine turno" quando non lo è (richiesto esplicitamente). */}
+            {gameState?.extraRollPending ? t("game.rollAgainContinue") : t("game.endTurn")}
           </button>
         )}
         {tickerLines.length > 0 && (
@@ -183,21 +256,29 @@ export default function Board({
           </ul>
         )}
       </div>
+      {/* Effetto "luce di palco": quando c'è un'evidenziazione attiva (hover su
+       * un giocatore, o click su una casella/proprietà), il resto della board
+       * si scurisce e solo le caselle evidenziate restano a piena luce — non
+       * bastava più il solo bordo colorato, richiesto esplicitamente. */}
+      {(hoveredPlayer != null || eventHighlightTileId != null) && <div className="board-spotlight-overlay" />}
       {board.tiles.map((tile, i) => {
         const landing = landingByTile.get(i);
+        const isHighlighted = hoveredPlayer != null && tile.ownerId === hoveredPlayer.sessionId;
+        const eventHighlighted = tile.id === eventHighlightTileId;
         return (
           <Tile
             key={tile.id}
             tile={tile}
             isCorner={CORNER_TYPES.has(tile.type)}
-            isHighlighted={hoveredPlayer != null && tile.ownerId === hoveredPlayer.sessionId}
+            isHighlighted={isHighlighted}
             highlightColor={hoveredPlayer?.color}
             ownerColor={tile.ownerId ? colorByPlayerId.get(tile.ownerId) : undefined}
             ownerBarSide={ownerBarSide(tile.position.x, tile.position.y, board.width, board.height)}
             landNonce={landing?.nonce}
             landColor={landing?.color}
-            eventHighlighted={tile.id === eventHighlightTileId}
-            onClick={onSelectTile ? () => onSelectTile(tile.id) : undefined}
+            eventHighlighted={eventHighlighted}
+            spotlit={isHighlighted || eventHighlighted}
+            onClick={onSelectTile ? (x, y) => onSelectTile(tile.id, x, y) : undefined}
           />
         );
       })}
@@ -208,6 +289,8 @@ export default function Board({
         displayPositions={displayPositions}
         arrivedNonces={arrivedNonces}
         moveDurations={moveDurations}
+        activePlayerId={gameState?.currentTurnPlayerId ?? null}
+        hoveredPlayerId={hoveredPlayerId ?? null}
       />
     </div>
   );

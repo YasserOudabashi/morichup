@@ -13,6 +13,7 @@ export function makePlayer(overrides: Partial<Player> = {}): Player {
     jailTurns: 0,
     consecutiveDoubles: 0,
     getOutOfJailFreeCards: 0,
+    bankruptcyInsurance: false,
     pendingDebts: [],
     ...overrides,
   };
@@ -61,6 +62,10 @@ export function makeRoomState(overrides: Partial<RoomState> = {}): RoomState {
       freeParkingJackpot: false,
       turnLimit: null,
       gameTimeLimitMinutes: null,
+      doubleRentFullSet: true,
+      noRentInPrison: false,
+      startingMoney: null,
+      randomizePlayerOrder: false,
     },
     hasPassword: false,
     customMap: null,

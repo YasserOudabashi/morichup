@@ -14,5 +14,6 @@ export function createInitialState(roomCode: string, board: BoardConfig, players
     accusations: [],
     auction: null,
     jackpotAmount: 0,
+    extraRollPending: false,
   };
 }

@@ -16,6 +16,11 @@ import { playSound } from "../lib/sound";
 
 export type Screen = "landing" | "menu" | "lobby" | "game";
 
+/** Deve combaciare con TUMBLE_MS in Dice.tsx: la pedina parte solo dopo che
+ * i dadi si sono fermati sul risultato vero, non mentre stanno ancora
+ * "tumblando" (richiesto esplicitamente). */
+const DICE_SETTLE_MS = 650;
+
 /** Ultimo tiro di dadi ricevuto dal server, con un nonce che cambia sempre
  * (anche a parità di valori) per far ripartire l'animazione ad ogni tiro. */
 export interface DiceRoll {
@@ -137,7 +142,9 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
       prevTurnPlayerRef.current = state.currentTurnPlayerId;
     };
     const onGameEvents = (newEvents: ServerEvent[]) => {
-      setEvents((prev) => [...newEvents, ...prev].slice(0, 40));
+      // Il ticker centrale ora scorre fino alle ultime 50 (richiesto esplicitamente),
+      // quindi il buffer locale deve poterne contenere almeno altrettante.
+      setEvents((prev) => [...newEvents, ...prev].slice(0, 60));
       matchEventsRef.current.push(...newEvents);
       const diceEvent = newEvents.find((e): e is Extract<ServerEvent, { type: "DICE_RESULT" }> => e.type === "DICE_RESULT");
       if (diceEvent) {
@@ -160,8 +167,14 @@ export function useGameConnection(sessionId: PlayerSessionId): ConnectionState {
           e.type === "PLAYER_MOVED" || e.type === "SENT_TO_JAIL"
       );
       if (moves.length > 0) {
-        moveNonceRef.current += 1;
-        setMoveBatch({ nonce: moveNonceRef.current, moves });
+        // La pedina si muoveva subito, in parallelo col tumble dei dadi (Dice.tsx,
+        // TUMBLE_MS=650ms): richiesto esplicitamente che il movimento parta SOLO
+        // dopo che i dadi si sono fermati sul risultato vero, non prima. Ritardo
+        // applicato solo quando c'è stato davvero un lancio in questo batch di
+        // eventi (diceEvent), non per movimenti innescati da altro (carte ecc.).
+        const nonce = ++moveNonceRef.current;
+        const delay = diceEvent ? DICE_SETTLE_MS : 0;
+        window.setTimeout(() => setMoveBatch({ nonce, moves }), delay);
       }
     };
     const onTurnTimer = (payload: { deadline: number } | null) => {

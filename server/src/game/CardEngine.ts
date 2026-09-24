@@ -8,7 +8,8 @@ export type CardEffect =
   | { kind: "payEachPlayer"; amount: number }
   | { kind: "collectFromEachPlayer"; amount: number }
   | { kind: "goToJail" }
-  | { kind: "getOutOfJailFree" };
+  | { kind: "getOutOfJailFree" }
+  | { kind: "bankruptcyInsurance" };
 
 export interface Card {
   id: string;
@@ -32,6 +33,7 @@ const FORTUNE_CARDS: Card[] = [
   { id: "fortune-trip", text: "Take a trip to Osaka", effect: { kind: "moveToPosition", position: 37 } },
   { id: "fortune-back-3", text: "Go back 3 spaces", effect: { kind: "moveRelative", steps: -3 } },
   { id: "fortune-chairman", text: "You are elected Chairman — pay each player $50", effect: { kind: "payEachPlayer", amount: 50 } },
+  { id: "fortune-insurance", text: "Lucky break! Next bankruptcy is forgiven, free of charge", effect: { kind: "bankruptcyInsurance" } },
 ];
 
 const COMMUNITY_CHEST_CARDS: Card[] = [
@@ -43,6 +45,7 @@ const COMMUNITY_CHEST_CARDS: Card[] = [
   { id: "chest-go-to-jail", text: "Go to Jail", effect: { kind: "goToJail" } },
   { id: "chest-holiday", text: "Holiday fund matures — collect $100", effect: { kind: "collect", amount: 100 } },
   { id: "chest-birthday", text: "It's your birthday — collect $10 from every player", effect: { kind: "collectFromEachPlayer", amount: 10 } },
+  { id: "chest-insurance", text: "Life insurance matures: your next bankruptcy is forgiven", effect: { kind: "bankruptcyInsurance" } },
 ];
 
 function shuffle<T>(items: T[], rng: () => number): T[] {

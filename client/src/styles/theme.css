@@ -295,9 +295,33 @@ body {
   }
 }
 
+.hud__player-countdown {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-raised));
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.hud__player-countdown--urgent {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 16%, var(--color-surface-raised));
+  animation: turn-indicator-pulse 0.6s ease-in-out infinite;
+}
+
 .hud__player--bankrupt {
   opacity: 0.6;
   background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+}
+
+/* Saldo negativo (debito non ancora risolto): non basta il numero rosso,
+ * l'intera riga va marcata per essere vista al volo (richiesto esplicitamente). */
+.hud__player--negative {
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-danger);
 }
 
 .hud__player-status {
@@ -317,6 +341,11 @@ body {
 .hud__player-money--bankrupt {
   text-decoration: line-through;
   color: var(--color-danger);
+}
+
+.hud__player-money--negative {
+  color: var(--color-danger);
+  font-weight: 700;
 }
 
 /* Etichetta "+N"/"-N" che appare per un attimo sopra il saldo quando cambia,
@@ -418,6 +447,23 @@ body {
   gap: 8px;
 }
 
+/* Bottoni compra/rifiuta/fine turno/prigione: spostati qui sotto i dadi
+ * (prima erano nella colonna destra) — stesso posto in cui si guarda già
+ * dopo un tiro, invece di dover cercare altrove. */
+.board__center-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.board__center-offer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
 .board__center-roll-icon {
   width: 20px;
   height: 20px;
@@ -472,7 +518,8 @@ body {
 }
 
 .board__ticker-line {
-  font-size: clamp(0.66rem, 0.95vw, 0.78rem);
+  /* Richiesto esplicitamente: testo più leggibile scorrendo la cronologia. */
+  font-size: clamp(0.76rem, 1.1vw, 0.92rem);
   color: var(--color-text-muted);
   text-align: center;
   overflow: hidden;
@@ -590,6 +637,33 @@ body {
   }
 }
 
+/* "Impatto" quando il dado si ferma sul valore vero, dopo il tumble:
+ * richiesto esplicitamente un'animazione più bella, non solo il tumble. */
+.die--settled {
+  animation: die-settle-impact 0.35s var(--ease-pop);
+}
+
+@keyframes die-settle-impact {
+  0% {
+    transform: scale(1.22) rotate(-4deg);
+    box-shadow:
+      inset 0 2px 3px rgba(255, 255, 255, 0.8),
+      inset 0 -3px 5px rgba(0, 0, 0, 0.25),
+      0 6px 10px rgba(0, 0, 0, 0.45),
+      0 0 18px 4px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+  55% {
+    transform: scale(0.94) rotate(2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    box-shadow:
+      inset 0 2px 3px rgba(255, 255, 255, 0.8),
+      inset 0 -3px 5px rgba(0, 0, 0, 0.25),
+      0 6px 10px rgba(0, 0, 0, 0.45);
+  }
+}
+
 .dice-pair__double {
   position: absolute;
   bottom: -1.6rem;
@@ -621,6 +695,9 @@ body {
     animation: none;
   }
   .dice-pair__double {
+    animation: none;
+  }
+  .die--settled {
     animation: none;
   }
 }
@@ -709,6 +786,39 @@ body {
 .board-tile--event-highlight {
   z-index: 2;
   animation: tile-event-highlight 1.6s ease;
+}
+
+/* Effetto "luce di palco": un overlay scuro semi-trasparente copre l'intera
+ * board (vedi .board-spotlight-overlay sotto), e solo le caselle "spotlit"
+ * salgono sopra di esso, restando a piena luminosità — invece del solo
+ * bordo colorato di prima, che si perdeva troppo facilmente. */
+.board-tile--spotlit {
+  z-index: 7;
+}
+
+.board-spotlight-overlay {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  position: relative;
+  z-index: 6;
+  background: rgba(6, 6, 16, 0.72);
+  pointer-events: none;
+  animation: spotlight-fade-in 0.2s ease;
+}
+
+@keyframes spotlight-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-spotlight-overlay {
+    animation: none;
+  }
 }
 
 @keyframes tile-event-highlight {
@@ -1251,8 +1361,8 @@ body {
 
 .player-token {
   position: absolute;
-  width: 26px;
-  height: 26px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1262,6 +1372,26 @@ body {
   transition: left var(--move-duration, 0.4s) cubic-bezier(0.22, 0.61, 0.36, 1),
     top var(--move-duration, 0.4s) cubic-bezier(0.22, 0.61, 0.36, 1);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55));
+  z-index: 1;
+}
+
+/* Chi sta giocando adesso si riconosce subito: pedina più grande e un alone
+ * del suo colore, non solo il nome scritto sopra i dadi. */
+.player-token--active {
+  width: 76px;
+  height: 76px;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 8px var(--token-color));
+}
+
+/* Hover/tap su un giocatore nella lista a destra: la sua pedina si ingrandisce
+ * per farsi notare, oltre a illuminare le sue caselle (già esistente). */
+.player-token--hovered {
+  width: 72px;
+  height: 72px;
+  z-index: 3;
+  transition: left var(--move-duration, 0.4s) cubic-bezier(0.22, 0.61, 0.36, 1),
+    top var(--move-duration, 0.4s) cubic-bezier(0.22, 0.61, 0.36, 1), width 0.15s ease, height 0.15s ease;
 }
 
 .player-token__inner {
@@ -1843,6 +1973,10 @@ body {
 .button-row {
   display: flex;
   gap: 10px;
+}
+
+.button-row + .button-row {
+  margin-top: 10px;
 }
 
 .button-row .btn {
@@ -2616,6 +2750,26 @@ body {
   }
 }
 
+/* Riepilogo al centro board prima di comprare: deve leggersi come
+ * un'informazione, non come un altro bottone tra Decline/Buy (bordo/sfondo
+ * pieno rimossi, resta solo un piccolo divisorio sotto). */
+.property-offer--summary {
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 0 0 10px;
+  gap: 10px;
+  justify-content: center;
+  font-size: 1.05rem;
+}
+
+.property-offer__flag {
+  width: 22px;
+  height: 15px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
 /* Debiti (Fase 5) */
 
 .debt-panel {
@@ -3000,6 +3154,33 @@ body {
 
 .my-property-row__name {
   color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.my-property-row__flag {
+  width: 16px;
+  height: 11px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.my-property-row__symbol {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.8;
+  flex: 0 0 auto;
+}
+
+.my-property-row__name--clickable {
+  cursor: pointer;
+}
+
+.my-property-row__name--clickable:hover {
+  text-decoration: underline;
 }
 
 .my-property-row__mortgaged {
@@ -3052,6 +3233,18 @@ body {
   overflow: hidden;
 }
 
+/* Popup ancorato al click sulla casella, non più un overlay a tutta pagina:
+ * richiesto esplicitamente, il resto del tabellone resta visibile e usabile. */
+.tile-info-modal--anchored {
+  position: fixed;
+  z-index: 60;
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  max-height: 70vh;
+  overflow-y: auto;
+  animation: card-pop-in 0.15s var(--ease-pop);
+}
+
 .tile-info-modal__band {
   position: absolute;
   top: 0;
@@ -3102,6 +3295,28 @@ body {
 
 .tile-info-modal__close {
   margin-top: 8px;
+}
+
+.tile-info-modal__deck-label {
+  margin: 4px 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.tile-info-modal__deck-list {
+  margin: 0 0 8px;
+  padding: 0 0 0 16px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  color: var(--color-text);
+}
+
+.tile-info-modal__deck-list li {
+  margin-bottom: 4px;
 }
 
 /* Offerta di scambio in arrivo: sfondo più scuro e bordo dorato pulsante
@@ -3212,6 +3427,12 @@ body {
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  /* Ogni riga resta della stessa altezza a prescindere da quante proprietà ci
+   * sono: prima, con tante proprietà, la riga poteva schiacciarsi dentro il
+   * contenitore invece di far scorrere la lista (che ha già max-height +
+   * overflow-y, ma senza questo le righe potevano comunque restringersi). */
+  flex-shrink: 0;
+  min-height: 38px;
 }
 
 .property-bar:hover {
@@ -3241,6 +3462,15 @@ body {
   border-radius: 2px;
 }
 
+.property-bar__symbol {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.8;
+}
+
 .property-bar__name {
   flex: 1 1 auto;
   font-size: 0.82rem;
@@ -3261,6 +3491,28 @@ body {
   font-size: 0.78rem;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Sola lettura (TradeViewModal): stesse righe bandiera+nome+prezzo del form
+ * di proposta, ma senza look/comportamento da bottone. */
+.property-bar--readonly {
+  cursor: default;
+}
+
+.property-bar--readonly:hover {
+  transform: none;
+  border-color: var(--color-border);
+}
+
+.trade-view__assets {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trade-view__cash {
+  font-weight: 700;
+  font-size: 1.1rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3380,4 +3632,132 @@ body {
   min-height: 60px;
   resize: vertical;
   font-family: inherit;
+}
+
+/* Menu contestuale al click destro su un giocatore (Hud.tsx): un piccolo
+ * pannello ancorato al punto del click, non un modale a schermo intero. */
+.player-action-menu {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-panel);
+  padding: 6px;
+  animation: card-pop-in 0.15s var(--ease-pop);
+}
+
+.player-action-menu__title {
+  padding: 6px 10px 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.player-action-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.player-action-menu__item:hover {
+  background: var(--color-surface);
+}
+
+/* Emote che vola dal nome di chi la manda a quello del bersaglio lungo un
+ * arco (EmoteFly.tsx): --emote-dx/--emote-dy sono la distanza in linea retta,
+ * --emote-arc è quanto si solleva a metà volo, calcolati in JS dalle
+ * posizioni reali delle due righe nella lista giocatori. */
+.emote-fly {
+  position: fixed;
+  z-index: 70;
+  font-size: 1.6rem;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: emote-fly-arc 0.7s cubic-bezier(0.33, 0, 0.2, 1) forwards;
+}
+
+@keyframes emote-fly-arc {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(calc(var(--emote-dx) * 0.5), calc(var(--emote-dy) * 0.5 + var(--emote-arc)))
+      scale(1.15) rotate(180deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--emote-dx), var(--emote-dy)) scale(0.9) rotate(340deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emote-fly {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Popup ancorato per l'esito Treasury/Fortune (CardOutcomePopup.tsx): stesso
+ * linguaggio visivo del menu giocatore, ma non interattivo (si autochiude). */
+.card-outcome-popup {
+  position: fixed;
+  z-index: 60;
+  width: 240px;
+  max-width: calc(100vw - 24px);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-panel);
+  padding: 10px 12px;
+  animation: card-pop-in 0.18s var(--ease-pop);
+}
+
+.card-outcome-popup__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.card-outcome-popup__icon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.card-outcome-popup__player {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin: 0 0 2px;
+}
+
+.card-outcome-popup__text {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin: 0;
 }

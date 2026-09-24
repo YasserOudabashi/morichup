@@ -42,6 +42,10 @@ const CITY_COUNTRY: Record<string, CountryCode> = {
   Osaka: "JP",
   Yokohama: "JP",
   Tokyo: "JP",
+  // Thailand
+  "Chiang Mai": "TH",
+  Phuket: "TH",
+  Bangkok: "TH",
 };
 
 export function flagFor(cityName: string): CountryCode | null {

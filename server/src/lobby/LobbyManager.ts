@@ -32,7 +32,25 @@ const DEFAULT_OPTIONAL_RULES: OptionalRulesState = {
   freeParkingJackpot: false,
   turnLimit: null,
   gameTimeLimitMinutes: null,
+  doubleRentFullSet: true,
+  noRentInPrison: false,
+  startingMoney: null,
+  randomizePlayerOrder: false,
 };
+
+/** Fase 13: valori proposti nel dropdown "Starting cash" della lobby. */
+const STARTING_MONEY_PRESETS = [1000, 1500, 2000, 2500, 3000];
+
+/** Fisher-Yates, per l'ordine di turno mischiato (Fase 13); non serve un rng
+ * seedato/riproducibile come in CardEngine, qui basta imprevedibile a ogni avvio. */
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 interface RoomPlayerInternal {
   sessionId: PlayerSessionId;
@@ -302,11 +320,18 @@ export class LobbyManager {
     if (patch.gameTimeLimitMinutes !== undefined && patch.gameTimeLimitMinutes !== null && patch.gameTimeLimitMinutes <= 0) {
       throw new Error("Il limite di tempo deve essere un numero positivo di minuti");
     }
+    if (patch.startingMoney !== undefined && patch.startingMoney !== null && !STARTING_MONEY_PRESETS.includes(patch.startingMoney)) {
+      throw new Error(`Il capitale iniziale deve essere uno tra: ${STARTING_MONEY_PRESETS.join(", ")}`);
+    }
 
     if (patch.mortgageEnabled !== undefined) room.optionalRules.mortgageEnabled = patch.mortgageEnabled;
     if (patch.freeParkingJackpot !== undefined) room.optionalRules.freeParkingJackpot = patch.freeParkingJackpot;
     if (patch.turnLimit !== undefined) room.optionalRules.turnLimit = patch.turnLimit;
     if (patch.gameTimeLimitMinutes !== undefined) room.optionalRules.gameTimeLimitMinutes = patch.gameTimeLimitMinutes;
+    if (patch.doubleRentFullSet !== undefined) room.optionalRules.doubleRentFullSet = patch.doubleRentFullSet;
+    if (patch.noRentInPrison !== undefined) room.optionalRules.noRentInPrison = patch.noRentInPrison;
+    if (patch.startingMoney !== undefined) room.optionalRules.startingMoney = patch.startingMoney;
+    if (patch.randomizePlayerOrder !== undefined) room.optionalRules.randomizePlayerOrder = patch.randomizePlayerOrder;
     return room;
   }
 
@@ -333,9 +358,15 @@ export class LobbyManager {
     board.rules.freeParkingJackpot = room.optionalRules.freeParkingJackpot;
     board.rules.turnLimit = room.optionalRules.turnLimit ?? undefined;
     board.rules.gameTimeLimitMinutes = room.optionalRules.gameTimeLimitMinutes ?? undefined;
+    board.rules.doubleRentFullSet = room.optionalRules.doubleRentFullSet;
+    board.rules.noRentInPrison = room.optionalRules.noRentInPrison;
+    if (room.optionalRules.startingMoney != null) board.rules.startingMoney = room.optionalRules.startingMoney;
 
-    const colors = this.assignColors(players);
-    const enginePlayers = players.map((p) =>
+    // Fase 13: ordine di turno mischiato invece che ordine di ingresso in stanza.
+    const orderedPlayers = room.optionalRules.randomizePlayerOrder ? shuffle(players) : players;
+
+    const colors = this.assignColors(orderedPlayers);
+    const enginePlayers = orderedPlayers.map((p) =>
       createPlayer(p.sessionId, p.nickname, colors.get(p.sessionId)!, board.rules.startingMoney)
     );
     room.engine = new GameEngine(code, board, enginePlayers, Date.now());

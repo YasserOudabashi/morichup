@@ -36,6 +36,11 @@ const DEFAULT_MORTGAGE_INTEREST_RATE = 0.1;
 /** Colore neutro per i token degli spettatori: mai nella rotazione PLAYER_COLORS dei giocatori veri. */
 const SPECTATOR_COLOR = "#5a5f73";
 
+/** Finestra di conto alla rovescia dell'asta libera quando `turnTimerSeconds`
+ * è "off" (nessun timer di turno configurato): l'asta stessa deve comunque
+ * avere una scadenza, altrimenti un'asta libera non finirebbe mai da sola. */
+const DEFAULT_AUCTION_WINDOW_SECONDS = 20;
+
 interface HeldCard {
   ownerId: PlayerSessionId;
   deck: DeckName;
@@ -55,7 +60,6 @@ export class GameEngine {
   private state: GameState;
   private dice: DiceRoller;
   private cardEngine: CardDeckSource;
-  private pendingExtraRoll = false;
   private heldCards: HeldCard[] = [];
   private jailTileIndex: number;
   private tradeIdCounter = 0;
@@ -103,6 +107,7 @@ export class GameEngine {
       jailTurns: 0,
       consecutiveDoubles: 0,
       getOutOfJailFreeCards: 0,
+      bankruptcyInsurance: false,
       pendingDebts: [],
     });
   }
@@ -155,6 +160,13 @@ export class GameEngine {
       // turno, per potersi liberare rapidamente da un vincolo (FR-702).
       case "UNMORTGAGE_PROPERTY":
         return this.handleUnmortgageProperty(playerId, intent.tileId);
+      // Dare soldi a un altro giocatore (anche per aiutarlo a coprire un
+      // debito/bancarotta) è un'azione sociale come le trade: sempre
+      // permessa, non legata al proprio turno.
+      case "GIVE_MONEY":
+        return this.handleGiveMoney(playerId, intent.toPlayerId, intent.amount);
+      case "SEND_EMOTE":
+        return this.handleSendEmote(playerId, intent.toPlayerId, intent.emote);
     }
 
     if (playerId !== this.state.currentTurnPlayerId) {
@@ -248,13 +260,13 @@ export class GameEngine {
       player.consecutiveDoubles++;
       if (player.consecutiveDoubles >= DOUBLES_TO_JAIL) {
         player.consecutiveDoubles = 0;
-        this.pendingExtraRoll = false;
+        this.state.extraRollPending = false;
         events.push(...this.sendToJail(player, "threeDoubles"));
       } else {
-        this.pendingExtraRoll = true;
+        this.state.extraRollPending = true;
         events.push(...this.moveAndResolve(player, d1 + d2));
         // Se il movimento porta in prigione (casella Go To Jail), niente turno extra.
-        if (player.inJail) this.pendingExtraRoll = false;
+        if (player.inJail) this.state.extraRollPending = false;
       }
     } else {
       player.consecutiveDoubles = 0;
@@ -342,10 +354,10 @@ export class GameEngine {
     if (this.state.state !== "PLAYER_DECISION") throw new Error("Non puoi ancora terminare il turno");
     if (this.state.pendingDecision) throw new Error("Devi prima decidere se acquistare la proprietà");
 
-    const extraTurn = this.pendingExtraRoll;
+    const extraTurn = this.state.extraRollPending;
     const events: ServerEvent[] = [{ type: "TURN_ENDED", playerId: player.sessionId, extraTurn }];
     if (extraTurn) {
-      this.pendingExtraRoll = false;
+      this.state.extraRollPending = false;
       this.state.state = "ROLLING";
     } else {
       events.push(...this.advanceToNextPlayer());
@@ -472,6 +484,11 @@ export class GameEngine {
   // --- Contratti sociali -----------------------------------------------------
 
   private handleReportBrokenPromise(accuserId: PlayerSessionId, contractId: string): ServerEvent[] {
+    // Chi è già in bancarotta non può accusare nessuno (richiesto esplicitamente):
+    // non ha più nulla in gioco, non avrebbe senso fargli aprire una disputa.
+    const accuser = this.findPlayer(accuserId);
+    if (accuser.status === "bankrupt") throw new Error("Un giocatore in bancarotta non può accusare nessuno");
+
     const contract = this.findContract(contractId);
     if (contract.status !== "active") throw new Error("Questo contratto non è più attivo");
     if (!contract.participants.includes(accuserId)) {
@@ -576,7 +593,10 @@ export class GameEngine {
       { type: "PLAYER_MOVED", playerId: player.sessionId, from, to, passedGo },
     ];
     if (passedGo) {
-      player.money += board.rules.passingStartBonus;
+      // Atterrare esattamente su Go paga di più che passarci sopra soltanto
+      // (200 -> 300, cioè x1.5): richiesto esplicitamente, `to === 0` è
+      // proprio l'indice della casella Go.
+      player.money += to === 0 ? Math.round(board.rules.passingStartBonus * 1.5) : board.rules.passingStartBonus;
       events.push(...this.tryResolveDebts(player));
     }
     events.push(...this.resolveLanding(player, to));
@@ -590,27 +610,28 @@ export class GameEngine {
 
     if (isPropertyLike(tile)) {
       if (tile.ownerId == null) {
-        if (player.money >= (tile.purchasePrice ?? 0)) {
-          this.state.pendingDecision = { type: "buyOrDecline", tileId: tile.id };
-          events.push({ type: "PROPERTY_PURCHASE_OFFER", playerId: player.sessionId, tileId: tile.id });
-        } else {
-          // Fondi insufficienti: nessuna offerta d'acquisto, si passa eventualmente all'asta.
-          events.push({ type: "PROPERTY_DECLINED", playerId: player.sessionId, tileId: tile.id });
-          if (board.rules.auctionOnDecline) events.push(...this.startAuction(tile));
-        }
+        // La scelta compra/rifiuta si vede sempre, anche senza i soldi per
+        // comprare (US richiesta esplicitamente): BUY_PROPERTY resta comunque
+        // bloccato lato server se i fondi non bastano, il client disabilita
+        // solo il bottone "Buy" mostrando perché.
+        this.state.pendingDecision = { type: "buyOrDecline", tileId: tile.id };
+        events.push({ type: "PROPERTY_PURCHASE_OFFER", playerId: player.sessionId, tileId: tile.id });
       } else if (tile.ownerId !== player.sessionId && !tile.mortgaged) {
         const owner = this.findPlayer(tile.ownerId);
-        const diceSum = this.state.lastDiceRoll ? this.state.lastDiceRoll[0] + this.state.lastDiceRoll[1] : 7;
-        const rent = computeRent(board, tile, diceSum);
-        const { events: payEvents, paid } = this.payAmount(player, owner, rent);
-        events.push({
-          type: "RENT_PAID",
-          fromPlayerId: player.sessionId,
-          toPlayerId: owner.sessionId,
-          tileId: tile.id,
-          amount: paid,
-        });
-        events.push(...payEvents);
+        // Regola opzionale (Fase 13): niente affitto se il proprietario è in prigione.
+        if (!(board.rules.noRentInPrison && owner.inJail)) {
+          const diceSum = this.state.lastDiceRoll ? this.state.lastDiceRoll[0] + this.state.lastDiceRoll[1] : 7;
+          const rent = computeRent(board, tile, diceSum);
+          const { events: payEvents, paid } = this.payAmount(player, owner, rent);
+          events.push({
+            type: "RENT_PAID",
+            fromPlayerId: player.sessionId,
+            toPlayerId: owner.sessionId,
+            tileId: tile.id,
+            amount: paid,
+          });
+          events.push(...payEvents);
+        }
       }
       return events;
     }
@@ -701,6 +722,9 @@ export class GameEngine {
       case "getOutOfJailFree":
         player.getOutOfJailFreeCards++;
         this.heldCards.push({ ownerId: player.sessionId, deck, card });
+        break;
+      case "bankruptcyInsurance":
+        player.bankruptcyInsurance = true;
         break;
     }
     return events;
@@ -916,10 +940,50 @@ export class GameEngine {
     return [{ type: "PROPERTY_UNMORTGAGED", playerId, tileId, amount }];
   }
 
+  /** Regalo diretto tra giocatori: usato anche per "paga la sua bancarotta"
+   * dal client, che manda semplicemente l'importo che serve a coprirla —
+   * qui non c'è alcuna logica speciale in più, il debito si risolve da solo
+   * (tryResolveDebts) una volta che il destinatario ha abbastanza soldi. */
+  private handleGiveMoney(fromId: PlayerSessionId, toId: PlayerSessionId, amount: number): ServerEvent[] {
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Importo non valido");
+    if (fromId === toId) throw new Error("Non puoi dare soldi a te stesso");
+    const from = this.findPlayer(fromId);
+    const to = this.findPlayer(toId);
+    if (from.status === "bankrupt") throw new Error("Un giocatore in bancarotta non ha soldi da dare");
+    if (to.status === "bankrupt") throw new Error("Non puoi dare soldi a un giocatore in bancarotta");
+    if (from.money < amount) throw new Error("Fondi insufficienti");
+
+    from.money -= amount;
+    to.money += amount;
+    const events: ServerEvent[] = [{ type: "MONEY_GIVEN", fromPlayerId: fromId, toPlayerId: toId, amount }];
+    events.push(...this.tryResolveDebts(to));
+    return events;
+  }
+
+  /** Puramente cosmetica: non tocca lo stato di gioco, solo un evento che il
+   * client anima per un attimo vicino alla pedina del bersaglio. */
+  private handleSendEmote(fromId: PlayerSessionId, toId: PlayerSessionId, emote: string): ServerEvent[] {
+    this.findPlayer(fromId);
+    this.findPlayer(toId);
+    return [{ type: "EMOTE_SENT", fromPlayerId: fromId, toPlayerId: toId, emote }];
+  }
+
   private handleDeclareBankruptcy(playerId: PlayerSessionId): ServerEvent[] {
     const player = this.findPlayer(playerId);
     if (player.pendingDebts.length === 0) throw new Error("Non hai debiti da risolvere");
     if (player.status !== "active") throw new Error("Giocatore non attivo");
+
+    // Fase 14: carta "assicurazione anti-bancarotta" pescata in precedenza: la banca
+    // condona i debiti, il giocatore resta attivo e mantiene le proprietà.
+    if (player.bankruptcyInsurance) {
+      player.bankruptcyInsurance = false;
+      player.pendingDebts = [];
+      const events: ServerEvent[] = [{ type: "BANKRUPTCY_INSURANCE_USED", playerId }];
+      if (this.state.currentTurnPlayerId === player.sessionId && this.state.state === "DEBT_RESOLUTION") {
+        this.state.state = "PLAYER_DECISION";
+      }
+      return events;
+    }
 
     // PRD §30: al creditore non è garantito il totale originario, solo la liquidità disponibile ora.
     for (const debt of player.pendingDebts) {
@@ -955,7 +1019,7 @@ export class GameEngine {
       // contratto sociale mentre lo stato è ancora ROLLING/PLAYER_DECISION): se era
       // comunque il suo turno, va passato al prossimo giocatore in ogni caso.
       events.push({ type: "TURN_ENDED", playerId, extraTurn: false });
-      this.pendingExtraRoll = false;
+      this.state.extraRollPending = false;
       events.push(...this.advanceToNextPlayer());
     }
     return events;
@@ -991,59 +1055,95 @@ export class GameEngine {
     startAfterId: PlayerSessionId | null
   ): ServerEvent[] {
     if (this.state.auction) return []; // difensivo: non dovrebbe mai capitare
-    const turnOrder = computeAuctionTurnOrder(this.state.players, startAfterId).filter((id) => id !== sellerId);
-    if (turnOrder.length === 0) {
+    const eligibleBidderIds = computeAuctionTurnOrder(this.state.players, startAfterId).filter((id) => id !== sellerId);
+    if (eligibleBidderIds.length === 0) {
       if (sellerId) throw new Error("Serve almeno un altro giocatore attivo per fare un'asta");
       return []; // asta della banca: nessun altro partecipante, la proprietà resta alla banca
     }
 
+    const windowSeconds =
+      this.state.board.rules.turnTimerSeconds === "off"
+        ? DEFAULT_AUCTION_WINDOW_SECONDS
+        : this.state.board.rules.turnTimerSeconds;
     const auction: AuctionState = {
       tileId,
       currentBid: 0,
       currentBidderId: null,
-      turnOrder,
-      turnIndex: 0,
+      eligibleBidderIds,
+      deadline: Date.now() + windowSeconds * 1000,
       sellerId,
       minimumBid,
     };
     this.state.auction = auction;
     this.state.state = "AUCTION";
-    return [{ type: "AUCTION_STARTED", tileId, turnOrder }];
+    return [{ type: "AUCTION_STARTED", tileId, turnOrder: eligibleBidderIds }];
   }
 
+  /**
+   * Asta libera (richiesto esplicitamente al posto del giro a turno singolo):
+   * chiunque sia ancora tra gli "eligibleBidderIds" può rilanciare in
+   * qualunque momento con +2/+10/+100 (calcolati lato client sul prezzo
+   * attuale), non solo quando è "il suo turno". Ogni rilancio riazzera il
+   * conto alla rovegna: la deadline vera arriva dal turn timer generico
+   * (SocketServer.ts la riprogramma ad ogni broadcast), qui aggiorniamo solo
+   * il campo informativo.
+   */
   private handlePlaceBid(playerId: PlayerSessionId, amount: number): ServerEvent[] {
     const auction = this.state.auction;
     if (!auction) throw new Error("Nessuna asta in corso");
-    if (auction.turnOrder[auction.turnIndex] !== playerId) throw new Error("Non è il tuo turno d'asta");
+    if (!auction.eligibleBidderIds.includes(playerId)) throw new Error("Hai già passato in questa asta");
     const player = this.findPlayer(playerId);
     if (amount <= auction.currentBid) throw new Error("L'offerta deve superare quella attuale");
     if (amount > player.money) throw new Error("Fondi insufficienti per questa offerta");
 
     auction.currentBid = amount;
     auction.currentBidderId = playerId;
-    auction.turnIndex++;
+    const windowSeconds =
+      this.state.board.rules.turnTimerSeconds === "off"
+        ? DEFAULT_AUCTION_WINDOW_SECONDS
+        : this.state.board.rules.turnTimerSeconds;
+    auction.deadline = Date.now() + windowSeconds * 1000;
 
-    const events: ServerEvent[] = [{ type: "AUCTION_BID", playerId, amount }];
-    events.push(...this.maybeEndAuction());
-    return events;
+    return [{ type: "AUCTION_BID", playerId, amount }];
   }
 
+  /** Chi passa esce dagli eligibleBidderIds e non può più rilanciare in
+   * questa asta; se restano tutti fuori (nessuno più in grado di rilanciare)
+   * l'asta si chiude subito invece di aspettare inutilmente la deadline. */
   private handlePassAuction(playerId: PlayerSessionId): ServerEvent[] {
     const auction = this.state.auction;
     if (!auction) throw new Error("Nessuna asta in corso");
-    if (auction.turnOrder[auction.turnIndex] !== playerId) throw new Error("Non è il tuo turno d'asta");
+    if (!auction.eligibleBidderIds.includes(playerId)) throw new Error("Hai già passato in questa asta");
 
-    auction.turnIndex++;
+    auction.eligibleBidderIds = auction.eligibleBidderIds.filter((id) => id !== playerId);
     const events: ServerEvent[] = [{ type: "AUCTION_PASSED", playerId }];
-    events.push(...this.maybeEndAuction());
+    // Conclude subito solo quando non resta più NESSUNO che possa ancora
+    // agire (bid o pass): fermarsi già a "ne resta uno solo" taglierebbe
+    // fuori quell'ultimo giocatore prima che abbia potuto decidere. Con
+    // qualcuno ancora eleggibile, la chiusura naturale resta la deadline
+    // (che continua a scorrere per lui).
+    if (auction.eligibleBidderIds.length === 0) events.push(...this.concludeAuction());
     return events;
   }
 
-  /** Asta a giro singolo (semplificazione Fase 5): un turno a testa, poi vince l'offerta più alta
-   * (se è stata fatta almeno un'offerta e, per le aste tra giocatori, se supera il minimo). */
-  private maybeEndAuction(): ServerEvent[] {
+  /**
+   * Fallback server-authoritative se il tempo scade senza altri rilanci
+   * (chiamato da SocketServer via il turn timer generico, stesso schema di
+   * checkTimeLimit/forceResolveAccusation): chiude l'asta con l'offerta più
+   * alta ricevuta finora, qualunque essa sia.
+   */
+  forceEndAuction(): ServerEvent[] {
+    if (!this.state.auction) return [];
+    return this.concludeAuction();
+  }
+
+  /** Assegna la proprietà a chi ha offerto di più (se l'offerta è valida), o
+   * la lascia invenduta. Chiamato alla scadenza del tempo o quando tutti
+   * hanno passato — mai più "quando tutti hanno avuto il loro turno", visto
+   * che l'asta non è più a turni. */
+  private concludeAuction(): ServerEvent[] {
     const auction = this.state.auction;
-    if (!auction || auction.turnIndex < auction.turnOrder.length) return [];
+    if (!auction) return [];
 
     const events: ServerEvent[] = [];
     const tile = this.state.board.tiles.find((t) => t.id === auction.tileId);

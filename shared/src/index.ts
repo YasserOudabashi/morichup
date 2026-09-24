@@ -17,6 +17,10 @@ export interface Player {
   /** Doppi consecutivi ottenuti nel turno corrente (3 di fila manda in prigione). */
   consecutiveDoubles: number;
   getOutOfJailFreeCards: number;
+  /** Carta "assicurazione anti-bancarotta" (Fase 14): la prossima volta che il
+   * giocatore dichiarerebbe bancarotta, i debiti vengono invece condonati e le
+   * proprietà restano sue. Consumata alla prima bancarotta evitata. */
+  bankruptcyInsurance: boolean;
   /** Debiti non ancora coperti (PRD §28-30): il giocatore resta bloccato finché
    * non li salda vendendo proprietà alla banca o dichiara bancarotta. */
   pendingDebts: PendingDebt[];
@@ -115,6 +119,11 @@ export interface GameRules {
   turnLimit?: number;
   /** Limite di tempo di gioco in minuti prima della vittoria per patrimonio netto (US-704). */
   gameTimeLimitMinutes?: number;
+  /** Fase 13: affitto x2 sulle proprietà non edificate con gruppo completo. Default true
+   * (comportamento storico) se assente. */
+  doubleRentFullSet?: boolean;
+  /** Fase 13: nessun affitto dovuto se il proprietario è in prigione. */
+  noRentInPrison?: boolean;
 }
 
 export type GameStateMachineState =
@@ -190,9 +199,14 @@ export interface AuctionState {
   tileId: string;
   currentBid: number;
   currentBidderId: PlayerSessionId | null;
-  /** Un solo giro: ogni giocatore agisce una volta, nell'ordine qui indicato. */
-  turnOrder: PlayerSessionId[];
-  turnIndex: number;
+  /** Asta libera (non più a turni): chiunque qui dentro può rilanciare in
+   * qualsiasi momento finché non passa (uscendo dalla lista) o scade il
+   * tempo. Richiesto esplicitamente al posto del giro a turno singolo. */
+  eligibleBidderIds: PlayerSessionId[];
+  /** Ogni rilancio riazzera il conto alla rovescia: la deadline effettiva
+   * arriva comunque dall'evento "turn_timer" (stesso meccanismo del turno
+   * normale), questo campo è solo per chi legge lo stato offline. */
+  deadline: number;
   /** null = asta della banca (proprietà rifiutata); altrimenti il giocatore che
    * ha messo in vendita una propria proprietà, a cui va il ricavato. */
   sellerId: PlayerSessionId | null;
@@ -219,6 +233,10 @@ export interface GameState {
   auction: AuctionState | null;
   /** Piatto accumulato dalle tasse/multe quando `rules.freeParkingJackpot` è attivo (Fase 7, US-703). */
   jackpotAmount: number;
+  /** True se il giocatore di turno ha fatto doppio e deve ancora tirare di
+   * nuovo: il client lo usa per non far sembrare "fine turno" un semplice
+   * "prima di ritirare" (richiesto esplicitamente — era ambiguo). */
+  extraRollPending: boolean;
 }
 
 // Intent: client -> server. Elenco iniziale, estendere per fase.
@@ -244,7 +262,9 @@ export type ClientIntent =
   | { type: "BUILD_HOUSE"; tileId: string }
   | { type: "SELL_HOUSE"; tileId: string }
   | { type: "MORTGAGE_PROPERTY"; tileId: string }
-  | { type: "UNMORTGAGE_PROPERTY"; tileId: string };
+  | { type: "UNMORTGAGE_PROPERTY"; tileId: string }
+  | { type: "GIVE_MONEY"; toPlayerId: PlayerSessionId; amount: number }
+  | { type: "SEND_EMOTE"; toPlayerId: PlayerSessionId; emote: string };
 
 // Event: server -> client. Elenco iniziale, estendere per fase.
 export type ServerEvent =
@@ -260,6 +280,7 @@ export type ServerEvent =
   | { type: "SENT_TO_JAIL"; playerId: PlayerSessionId; reason: "tile" | "threeDoubles" }
   | { type: "LEFT_JAIL"; playerId: PlayerSessionId; method: "paid" | "doubles" | "card" }
   | { type: "PLAYER_BANKRUPT"; playerId: PlayerSessionId }
+  | { type: "BANKRUPTCY_INSURANCE_USED"; playerId: PlayerSessionId }
   | { type: "TURN_ENDED"; playerId: PlayerSessionId; extraTurn: boolean }
   | { type: "GAME_OVER"; winnerId: PlayerSessionId; reason: WinReason }
   | { type: "PLAYER_DISCONNECTED"; playerId: PlayerSessionId; timeoutSeconds: number }
@@ -286,7 +307,9 @@ export type ServerEvent =
   | { type: "HOUSE_SOLD"; playerId: PlayerSessionId; tileId: string; amount: number }
   | { type: "PROPERTY_MORTGAGED"; playerId: PlayerSessionId; tileId: string; amount: number }
   | { type: "PROPERTY_UNMORTGAGED"; playerId: PlayerSessionId; tileId: string; amount: number }
-  | { type: "JACKPOT_WON"; playerId: PlayerSessionId; amount: number };
+  | { type: "JACKPOT_WON"; playerId: PlayerSessionId; amount: number }
+  | { type: "MONEY_GIVEN"; fromPlayerId: PlayerSessionId; toPlayerId: PlayerSessionId; amount: number }
+  | { type: "EMOTE_SENT"; fromPlayerId: PlayerSessionId; toPlayerId: PlayerSessionId; emote: string };
 
 export * from "./maps/index";
 export * from "./socket";

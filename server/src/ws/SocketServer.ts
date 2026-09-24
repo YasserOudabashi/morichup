@@ -138,9 +138,10 @@ export function registerSocketServer(io: AppServer): void {
     let events: ServerEvent[] = [];
     try {
       if (state.state === "AUCTION" && state.auction) {
-        // Il turno dell'asta segue il proprio ordine, non necessariamente il giocatore di turno.
-        const bidderId = state.auction.turnOrder[state.auction.turnIndex];
-        if (bidderId) events = engine.applyIntent(bidderId, { type: "PASS_AUCTION" });
+        // Asta libera (non più a turni): alla scadenza si chiude e basta,
+        // con l'offerta più alta ricevuta finora — non c'è "il bidder di turno"
+        // da far passare, chiunque poteva rilanciare fino all'ultimo secondo.
+        events = engine.forceEndAuction();
       } else {
         const playerId = state.currentTurnPlayerId;
         if (!playerId) return;

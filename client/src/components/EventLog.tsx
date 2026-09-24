@@ -60,6 +60,7 @@ function primaryPlayerId(event: ServerEvent): string | null {
     case "SENT_TO_JAIL":
     case "LEFT_JAIL":
     case "PLAYER_BANKRUPT":
+    case "BANKRUPTCY_INSURANCE_USED":
     case "PLAYER_DISCONNECTED":
     case "PLAYER_RECONNECTED":
     case "PLAYER_AFK":
@@ -102,8 +103,13 @@ export function describeEvent(
       });
     case "PLAYER_MOVED": {
       const tile = board.tiles[event.to]?.name ?? String(event.to);
+      // Atterrare esattamente su Go (to === 0) paga x1.5 rispetto a passarci
+      // sopra soltanto (vedi GameEngine.ts): il testo deve riflettere
+      // l'importo davvero accreditato, non sempre lo stesso bonus fisso.
+      const bonus =
+        event.to === 0 ? Math.round(board.rules.passingStartBonus * 1.5) : board.rules.passingStartBonus;
       return event.passedGo
-        ? t("log.movedPassedGo", { name: nameOf(players, event.playerId), tile, bonus: board.rules.passingStartBonus })
+        ? t("log.movedPassedGo", { name: nameOf(players, event.playerId), tile, bonus })
         : t("log.moved", { name: nameOf(players, event.playerId), tile });
     }
     case "PROPERTY_PURCHASED":
@@ -127,6 +133,8 @@ export function describeEvent(
       return t("log.leftJail", { name: nameOf(players, event.playerId) });
     case "PLAYER_BANKRUPT":
       return t("log.bankrupt", { name: nameOf(players, event.playerId) });
+    case "BANKRUPTCY_INSURANCE_USED":
+      return t("log.bankruptcyInsuranceUsed", { name: nameOf(players, event.playerId) });
     case "PLAYER_DISCONNECTED":
       return t("log.playerDisconnected", { name: nameOf(players, event.playerId) });
     case "PLAYER_RECONNECTED":

@@ -182,6 +182,10 @@ test("Fase 7: l'host può attivare le regole opzionali in lobby, applicate solo 
     freeParkingJackpot: true,
     turnLimit: 40,
     gameTimeLimitMinutes: null,
+    doubleRentFullSet: true,
+    noRentInPrison: false,
+    startingMoney: null,
+    randomizePlayerOrder: false,
   });
 
   manager.startGame(room.code, "s1");

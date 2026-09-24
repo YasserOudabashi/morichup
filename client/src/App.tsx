@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getSavedColor, getSavedNickname, getSessionId } from "./lib/session";
 import { parseJoinCodeFromUrl } from "./lib/url";
 import { useGameConnection } from "./state/useGameConnection";
@@ -23,6 +23,15 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [replayEntry, setReplayEntry] = useState<MatchHistoryEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+
+  // L'errore restava a schermo per sempre finché non lo si chiudeva a mano
+  // (o si ricaricava la pagina): sparisce da solo dopo qualche secondo, e il
+  // timer riparte da capo a ogni nuovo errore (dipendenza su conn.error).
+  useEffect(() => {
+    if (!conn.error) return;
+    const timer = setTimeout(() => conn.dismissError(), 5000);
+    return () => clearTimeout(timer);
+  }, [conn.error, conn.dismissError]);
 
   function handleLandingSubmit(nickname: string) {
     if (joinCode) {

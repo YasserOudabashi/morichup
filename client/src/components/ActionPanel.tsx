@@ -7,9 +7,11 @@ interface ActionPanelProps {
   gameState: GameState;
   sessionId: PlayerSessionId;
   onIntent: (intent: ClientIntent) => void;
+  /** Scadenza del turn timer generico: passata all'asta per il conto alla rovescia. */
+  turnDeadline?: number | null;
 }
 
-export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPanelProps) {
+export default function ActionPanel({ gameState, sessionId, onIntent, turnDeadline }: ActionPanelProps) {
   const player = gameState.players.find((p) => p.sessionId === sessionId);
   const isMyTurn = gameState.currentTurnPlayerId === sessionId;
 
@@ -30,6 +32,7 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
         players={gameState.players}
         sessionId={sessionId}
         onIntent={onIntent}
+        deadline={turnDeadline}
       />
     );
   }
@@ -45,60 +48,11 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
     );
   }
 
+  // Tutte le azioni del proprio turno (tira i dadi, compra/rifiuta, esci di
+  // prigione, fine turno) sono al centro della board sotto i dadi, non più
+  // qui: la sidebar durante il proprio turno resta uno stato testuale, così
+  // non ci sono due bottoni "Buy"/"End turn" in due punti diversi.
   if (gameState.pendingDecision?.type === "buyOrDecline") {
-    const tile = gameState.board.tiles.find((t2) => t2.id === gameState.pendingDecision!.tileId);
-    return (
-      <div className="action-panel action-panel--active">
-        {tile && (
-          <div className="property-offer" style={{ borderColor: tile.groupColor ?? "var(--color-border)" }}>
-            <span className="property-offer__name">{tile.name}</span>
-            <span className="property-offer__price">${tile.purchasePrice}</span>
-          </div>
-        )}
-        <div className="button-row">
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => onIntent({ type: "DECLINE_PROPERTY", tileId: gameState.pendingDecision!.tileId })}
-          >
-            {t("game.decline")}
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => onIntent({ type: "BUY_PROPERTY", tileId: gameState.pendingDecision!.tileId })}
-          >
-            {t("game.buyProperty")}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (gameState.state === "ROLLING") {
-    if (player.inJail) {
-      return (
-        <div className="action-panel action-panel--active">
-          <p className="action-panel__waiting">{t("game.inJail")}</p>
-          <div className="button-row">
-            {player.getOutOfJailFreeCards > 0 && (
-              <button type="button" className="btn btn--ghost" onClick={() => onIntent({ type: "USE_JAIL_CARD" })}>
-                {t("game.useJailCard")}
-              </button>
-            )}
-            <button type="button" className="btn btn--ghost" onClick={() => onIntent({ type: "PAY_BAIL" })}>
-              {t("game.payBail")}
-            </button>
-            <button type="button" className="btn btn--primary" onClick={() => onIntent({ type: "ROLL_DICE" })}>
-              {t("game.rollDice")}
-            </button>
-          </div>
-        </div>
-      );
-    }
-    // Il bottone "tira i dadi" per il caso normale (non in prigione) è stato
-    // spostato al centro della board (Board.tsx): qui restiamo solo con lo
-    // stato d'attesa testuale, la sidebar non duplica l'azione.
     return (
       <div className="action-panel action-panel--active">
         <p className="action-panel__waiting">{t("game.yourTurn")}</p>
@@ -106,12 +60,18 @@ export default function ActionPanel({ gameState, sessionId, onIntent }: ActionPa
     );
   }
 
+  if (gameState.state === "ROLLING") {
+    return (
+      <div className="action-panel action-panel--active">
+        <p className="action-panel__waiting">{player.inJail ? t("game.inJail") : t("game.yourTurn")}</p>
+      </div>
+    );
+  }
+
   if (gameState.state === "PLAYER_DECISION") {
     return (
       <div className="action-panel action-panel--active">
-        <button type="button" className="btn btn--primary" onClick={() => onIntent({ type: "END_TURN" })}>
-          {t("game.endTurn")}
-        </button>
+        <p className="action-panel__waiting">{t("game.yourTurn")}</p>
       </div>
     );
   }

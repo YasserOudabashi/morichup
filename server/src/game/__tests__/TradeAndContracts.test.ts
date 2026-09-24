@@ -154,6 +154,27 @@ test("il trading funziona anche fuori dal proprio turno", () => {
   assert.equal(engine.getState().currentTurnPlayerId, "p2", "il turno di p2 non viene toccato dal trade");
 });
 
+test("un giocatore in bancarotta non può accusare nessuno", () => {
+  const { engine } = newEngine(3, (b) => {
+    tileById(b, "t7").ownerId = "p0";
+  });
+  engine.getState().players[0].properties = ["t7"];
+
+  const [proposed] = engine.applyIntent("p0", {
+    type: "PROPOSE_TRADE",
+    toPlayerId: "p1",
+    give: { cash: 0, propertyIds: ["t7"] },
+    receive: { cash: 100, propertyIds: [] },
+    specialConditions: "Promessa di prova",
+  });
+  const tradeId = (proposed as any).trade.id;
+  const [, contractEvent] = engine.applyIntent("p1", { type: "ACCEPT_TRADE", tradeId });
+  const contractId = (contractEvent as any).contract.id;
+
+  engine.getState().players[0].status = "bankrupt";
+  assert.throws(() => engine.applyIntent("p0", { type: "REPORT_BROKEN_PROMISE", contractId }));
+});
+
 test("una promessa infranta genera un contratto, poi un'accusa votata Guilty applica la multa", () => {
   const { engine } = newEngine(3, (b) => {
     tileById(b, "t7").ownerId = "p0";
@@ -244,4 +265,37 @@ test("forceResolveAccusation (timeout) risolve senza voti come Not Guilty", () =
 
   // Una seconda chiamata (accusa già risolta) non deve fare nulla.
   assert.deepEqual(engine.forceResolveAccusation(accusationId), []);
+});
+
+test("dare soldi a un altro giocatore trasferisce l'importo", () => {
+  const { engine } = newEngine(2);
+  const [event] = engine.applyIntent("p0", { type: "GIVE_MONEY", toPlayerId: "p1", amount: 200 });
+  assert.equal(event.type, "MONEY_GIVEN");
+  assert.equal(engine.getState().players[0].money, 1500 - 200);
+  assert.equal(engine.getState().players[1].money, 1500 + 200);
+});
+
+test("dare soldi risolve un debito pendente del destinatario", () => {
+  const { engine } = newEngine(2);
+  engine.getState().players[1].pendingDebts = [{ amount: 150, payeeId: null }];
+  engine.getState().players[1].money = 0;
+
+  const events = engine.applyIntent("p0", { type: "GIVE_MONEY", toPlayerId: "p1", amount: 150 });
+  assert.ok(events.some((e) => e.type === "MONEY_GIVEN"));
+  assert.equal(engine.getState().players[1].pendingDebts.length, 0);
+  assert.equal(engine.getState().players[1].money, 0);
+});
+
+test("non si possono dare più soldi di quanti se ne abbiano, né a se stessi", () => {
+  const { engine } = newEngine(2);
+  assert.throws(() => engine.applyIntent("p0", { type: "GIVE_MONEY", toPlayerId: "p1", amount: 999999 }));
+  assert.throws(() => engine.applyIntent("p0", { type: "GIVE_MONEY", toPlayerId: "p0", amount: 10 }));
+});
+
+test("un'emote è un evento puramente cosmetico, non tocca lo stato", () => {
+  const { engine } = newEngine(2);
+  const moneyBefore = engine.getState().players[0].money;
+  const [event] = engine.applyIntent("p0", { type: "SEND_EMOTE", toPlayerId: "p1", emote: "clown" });
+  assert.deepEqual(event, { type: "EMOTE_SENT", fromPlayerId: "p0", toPlayerId: "p1", emote: "clown" });
+  assert.equal(engine.getState().players[0].money, moneyBefore);
 });

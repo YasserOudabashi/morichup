@@ -265,6 +265,29 @@ test("bancarotta: chi non può saldare il debito può dichiararla esplicitamente
   assert.equal(engine.getState().winnerId, "p0");
 });
 
+test("carta assicurazione anti-bancarotta: condona i debiti invece di far fallire il giocatore", () => {
+  const board = buildTestBoard();
+  const players = buildTestPlayers(2);
+  tileById(board, "t7").ownerId = "p0";
+  players[0].properties = ["t7"];
+  players[1].money = 5;
+  players[1].bankruptcyInsurance = true;
+
+  const engine = new GameEngine("room", board, players, 0, { dice: new ScriptedDice([[3, 4]]) });
+  engine.getState().currentTurnPlayerId = "p1";
+  engine.applyIntent("p1", { type: "ROLL_DICE" }); // incorre nel debito, vedi test sopra
+
+  const events = engine.applyIntent("p1", { type: "DECLARE_BANKRUPTCY" });
+  assert.ok(events.some((e) => e.type === "BANKRUPTCY_INSURANCE_USED" && e.playerId === "p1"));
+  assert.ok(!events.some((e) => e.type === "PLAYER_BANKRUPT"));
+
+  const p1 = engine.getState().players[1];
+  assert.equal(p1.status, "active");
+  assert.equal(p1.bankruptcyInsurance, false);
+  assert.deepEqual(p1.pendingDebts, []);
+  assert.equal(engine.getState().state, "PLAYER_DECISION");
+});
+
 test("bancarotta fuori da DEBT_RESOLUTION (es. multa da contratto) passa comunque il turno se era il suo", () => {
   // Con 3 giocatori la partita non finisce (restano 2 attivi): a differenza del test
   // sopra, qui il debito nasce da un'azione fuori turno (multa da promessa infranta)

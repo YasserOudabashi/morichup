@@ -8,6 +8,9 @@ import { DisconnectedIcon, EyeIcon, LockIcon, ParkingIcon, SkullIcon, SleepIcon 
 interface HudProps {
   players: Player[];
   currentTurnPlayerId?: PlayerSessionId | null;
+  /** null = nessun limite di tempo attivo in questa partita: niente badge da mostrare
+   * accanto all'avatar di chi è di turno. */
+  turnDeadline?: number | null;
   onHoverPlayer?: (playerId: PlayerSessionId | null) => void;
   /** Touch non ha hover: un tap esplicito attiva/disattiva l'evidenziazione (Fase 10, US-1001). */
   onTapPlayer?: (playerId: PlayerSessionId) => void;
@@ -16,6 +19,8 @@ interface HudProps {
   /** Contenuto opzionale mostrato accanto al titolo "Players" (riferimento
    * visivo: il selettore lingua vive lì, non più nella colonna sinistra). */
   headerRight?: ReactNode;
+  /** Click destro su un giocatore: apre il menu proponi-scambio/dai-soldi/ecc. */
+  onContextMenuPlayer?: (player: Player, x: number, y: number) => void;
 }
 
 function statusIcon(player: Player): ReactNode | null {
@@ -67,15 +72,34 @@ function useMoneyDelta(players: Player[]): Map<PlayerSessionId, number> {
   return deltas;
 }
 
+/** Numero di secondi rimanenti al giocatore di turno, aggiornato ogni 250ms:
+ * un piccolo badge accanto al suo avatar, così si vede a colpo d'occhio chi
+ * sta "pensando" e quanto tempo gli resta, senza dover guardare la board. */
+function useCountdownSeconds(deadline: number | null | undefined): number | null {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!deadline) return;
+    const interval = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  if (!deadline) return null;
+  return Math.max(0, Math.ceil((deadline - now) / 1000));
+}
+
 export default function Hud({
   players,
   currentTurnPlayerId,
+  turnDeadline,
   onHoverPlayer,
   onTapPlayer,
   jackpotAmount,
   headerRight,
+  onContextMenuPlayer,
 }: HudProps) {
   const moneyDeltas = useMoneyDelta(players);
+  const countdown = useCountdownSeconds(turnDeadline);
 
   return (
     <aside className="hud">
@@ -97,10 +121,16 @@ export default function Hud({
           return (
             <li
               key={player.sessionId}
-              className={`hud__player${isCurrent ? " hud__player--current" : ""}${player.status === "bankrupt" || player.status === "spectator" ? " hud__player--bankrupt" : ""}`}
+              data-player-id={player.sessionId}
+              className={`hud__player${isCurrent ? " hud__player--current" : ""}${player.status === "bankrupt" || player.status === "spectator" ? " hud__player--bankrupt" : ""}${player.money < 0 ? " hud__player--negative" : ""}`}
               onMouseEnter={() => onHoverPlayer?.(player.sessionId)}
               onMouseLeave={() => onHoverPlayer?.(null)}
               onClick={() => onTapPlayer?.(player.sessionId)}
+              onContextMenu={(e) => {
+                if (!onContextMenuPlayer) return;
+                e.preventDefault();
+                onContextMenuPlayer(player, e.clientX, e.clientY);
+              }}
             >
               <span
                 className="hud__player-color"
@@ -113,6 +143,14 @@ export default function Hud({
                   <path d="M7 4v16l13-8Z" fill="currentColor" stroke="none" />
                 </svg>
               )}
+              {isCurrent && countdown != null && (
+                <span
+                  className={`hud__player-countdown${countdown <= 5 ? " hud__player-countdown--urgent" : ""}`}
+                  aria-label={t("game.timeLeft")}
+                >
+                  {countdown}s
+                </span>
+              )}
               <span className="hud__player-name">{player.nickname}</span>
               {status && (
                 <span className="hud__player-status" role="img" aria-label={statusText(player) ?? undefined}>
@@ -121,8 +159,12 @@ export default function Hud({
               )}
               {player.status !== "spectator" && (
                 <span className="hud__player-money-wrap">
-                  <span className={`hud__player-money${isBankrupt ? " hud__player-money--bankrupt" : ""}`}>
-                    ${player.money}
+                  <span
+                    className={`hud__player-money${isBankrupt ? " hud__player-money--bankrupt" : ""}${
+                      player.money < 0 ? " hud__player-money--negative" : ""
+                    }`}
+                  >
+                    {player.money < 0 ? `-$${Math.abs(player.money)}` : `$${player.money}`}
                   </span>
                   {delta !== undefined && delta !== 0 && (
                     <span className={`hud__money-delta${delta > 0 ? " hud__money-delta--gain" : " hud__money-delta--loss"}`}>

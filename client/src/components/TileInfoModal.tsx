@@ -1,11 +1,16 @@
+import { useEffect, useRef } from "react";
 import type { Player, Tile } from "@morichup/shared";
 import { t } from "../i18n";
 import { useEscapeToClose } from "../hooks/useEscapeToClose";
+import { COMMUNITY_CHEST_CARD_TEXTS, FORTUNE_CARD_TEXTS } from "../lib/cardDecks";
 
 interface TileInfoModalProps {
   tile: Tile;
   owner: Player | null;
   onClose: () => void;
+  /** Punto del click sulla casella: il popup si ancora lì vicino, non più al
+   * centro dello schermo a tutta pagina (richiesto esplicitamente). */
+  anchor: { x: number; y: number };
 }
 
 /** Le righe daffitto vanno mostrate nell'ordine "base, 1 casa, 2 case, 3 case,
@@ -30,17 +35,44 @@ function rentRows(tile: Tile): { label: string; amount: number }[] {
   return rows;
 }
 
-export default function TileInfoModal({ tile, owner, onClose }: TileInfoModalProps) {
+export default function TileInfoModal({ tile, owner, onClose, anchor }: TileInfoModalProps) {
   useEscapeToClose(onClose);
   const rows = rentRows(tile);
+  const ref = useRef<HTMLDivElement>(null);
+  // Richiesto esplicitamente: cliccando su Fortuna/Cassa Comune si vede subito
+  // l'intera lista di carte possibili, non solo il nome della casella.
+  const deckTexts =
+    tile.type === "chance" ? FORTUNE_CARD_TEXTS : tile.type === "communityChest" ? COMMUNITY_CHEST_CARD_TEXTS : null;
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [onClose]);
+
+  // Ancorato al punto del click, ma spostato dentro i bordi della finestra
+  // (con un margine) così non finisce mai a metà fuori schermo su una
+  // casella vicino al bordo.
+  const MARGIN = 12;
+  const POPUP_WIDTH = 260;
+  const RESERVED_HEIGHT = deckTexts ? 340 : 200;
+  const left = Math.min(Math.max(anchor.x, MARGIN), window.innerWidth - POPUP_WIDTH - MARGIN);
+  const top = Math.min(anchor.y + 12, window.innerHeight - RESERVED_HEIGHT);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="card card--narrow tile-info-modal"
-        style={tile.groupColor ? ({ "--tile-group-color": tile.groupColor } as React.CSSProperties) : undefined}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      ref={ref}
+      className="card card--narrow tile-info-modal tile-info-modal--anchored"
+      style={
+        {
+          left,
+          top,
+          ...(tile.groupColor ? { "--tile-group-color": tile.groupColor } : {}),
+        } as React.CSSProperties
+      }
+    >
         {tile.groupColor && <div className="tile-info-modal__band" />}
         <h3 className="tile-info-modal__title">{tile.name}</h3>
         {owner && (
@@ -77,10 +109,19 @@ export default function TileInfoModal({ tile, owner, onClose }: TileInfoModalPro
             {t("tileInfo.amount")}: ${tile.amount}
           </p>
         )}
+        {deckTexts && (
+          <>
+            <p className="tile-info-modal__deck-label">{t("tileInfo.deckContents")}</p>
+            <ul className="tile-info-modal__deck-list">
+              {deckTexts.map((text) => (
+                <li key={text}>{text}</li>
+              ))}
+            </ul>
+          </>
+        )}
         <button type="button" className="btn btn--ghost btn--small tile-info-modal__close" onClick={onClose}>
           {t("common.close")}
         </button>
-      </div>
     </div>
   );
 }

@@ -46,10 +46,13 @@ export function computeRent(board: BoardConfig, tile: Tile, diceSum: number): nu
       return Math.round(fourHouseRent * HOTEL_RENT_MULTIPLIER);
     }
     const hasMonopoly = tile.group ? ownsFullGroup(board, tile.ownerId, tile.group) : false;
-    return hasMonopoly ? base * 2 : base;
+    // Regola opzionale (Fase 13): di serie true, disattivabile dall'host in lobby.
+    const doubleRent = board.rules.doubleRentFullSet !== false;
+    return hasMonopoly && doubleRent ? base * 2 : base;
   }
 
   if (tile.type === "railroad") {
+    // 25 * 2^(x-1), x = quanti aeroporti possiede: 1->25, 2->50, 3->100, 4->200.
     const owned = countOwned(board, tile.ownerId, "railroad");
     const base = tile.baseRent ?? 25;
     return base * 2 ** (owned - 1);

@@ -6,7 +6,7 @@
  * accurato al pixel, ma riconoscibile a colpo d'occhio per i paesi
  * effettivamente usati dalle mappe (vedi flags.ts per la lista città→paese). */
 
-export type CountryCode = "NL" | "IT" | "DE" | "GB" | "GR" | "BR" | "ES" | "FR" | "JP";
+export type CountryCode = "NL" | "IT" | "DE" | "GB" | "GR" | "BR" | "ES" | "FR" | "JP" | "TH";
 
 interface FlagProps {
   className?: string;
@@ -117,6 +117,16 @@ function JP({ className, preserveAspectRatio }: FlagProps) {
   );
 }
 
+function TH({ className, preserveAspectRatio }: FlagProps) {
+  return (
+    <svg viewBox="0 0 24 16" preserveAspectRatio={preserveAspectRatio} className={className} aria-hidden="true">
+      <rect width="24" height="16" fill="#A51931" />
+      <rect y="2.67" width="24" height="10.67" fill="#F4F5F8" />
+      <rect y="5.33" width="24" height="5.33" fill="#2D2A4A" />
+    </svg>
+  );
+}
+
 const FLAG_COMPONENTS: Record<CountryCode, (props: FlagProps) => JSX.Element> = {
   NL,
   IT,
@@ -127,6 +137,7 @@ const FLAG_COMPONENTS: Record<CountryCode, (props: FlagProps) => JSX.Element> = 
   ES,
   FR,
   JP,
+  TH,
 };
 
 export function CountryFlag({

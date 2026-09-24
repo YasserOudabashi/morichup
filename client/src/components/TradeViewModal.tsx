@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 import type { GameState, TradeAssets, TradeOffer } from "@morichup/shared";
 import { t } from "../i18n";
 import { useEscapeToClose } from "../hooks/useEscapeToClose";
+import { flagFor } from "../lib/flags";
+import { CountryFlag } from "./flags";
+import { AirportIcon, ElectricIcon, WaterIcon } from "./icons";
 
 interface TradeViewModalProps {
   gameState: GameState;
@@ -29,14 +32,46 @@ export default function TradeViewModal({ gameState, trade, onClose, onAccept, on
     return gameState.players.find((p) => p.sessionId === id)?.nickname ?? id;
   }
 
-  function describeAssets(assets: TradeAssets): string {
-    const parts: string[] = [];
-    if (assets.cash > 0) parts.push(`$${assets.cash}`);
-    for (const id of assets.propertyIds) {
-      const tile = gameState.board.tiles.find((t2) => t2.id === id);
-      if (tile) parts.push(tile.name);
+  // Prima era un semplice testo "$100, Berlin, Munich": non si capiva a colpo
+  // d'occhio il prezzo o il paese di ogni proprietà coinvolta (richiesto
+  // esplicitamente) — stesse righe bandiera+nome+prezzo usate nel form di
+  // proposta (property-bar), qui in sola lettura.
+  function renderAssets(assets: TradeAssets) {
+    if (assets.cash <= 0 && assets.propertyIds.length === 0) {
+      return <p className="trade-card__line">{t("trade.nothing")}</p>;
     }
-    return parts.length > 0 ? parts.join(", ") : t("trade.nothing");
+    return (
+      <div className="trade-view__assets">
+        {assets.cash > 0 && <p className="trade-card__line trade-view__cash">${assets.cash}</p>}
+        {assets.propertyIds.map((id) => {
+          const tile = gameState.board.tiles.find((t2) => t2.id === id);
+          if (!tile) return null;
+          const flag = flagFor(tile.name);
+          const symbol = flag ? (
+            <CountryFlag code={flag} className="property-bar__flag" />
+          ) : tile.type === "railroad" ? (
+            <AirportIcon className="property-bar__symbol" />
+          ) : tile.type === "utility" ? (
+            /water/i.test(tile.name) ? (
+              <WaterIcon className="property-bar__symbol" />
+            ) : (
+              <ElectricIcon className="property-bar__symbol" />
+            )
+          ) : null;
+          return (
+            <div
+              key={id}
+              className="property-bar property-bar--readonly"
+              style={tile.groupColor ? ({ "--tile-group-color": tile.groupColor } as React.CSSProperties) : undefined}
+            >
+              {symbol}
+              <span className="property-bar__name">{tile.name}</span>
+              {tile.purchasePrice !== undefined && <span className="property-bar__price">${tile.purchasePrice}</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
   }
 
   const isIncomingOffer = Boolean(onAccept || onReject || onCounter);
@@ -61,11 +96,11 @@ export default function TradeViewModal({ gameState, trade, onClose, onAccept, on
         <div className="trade-columns">
           <div className="trade-column">
             <h3 className="section-label">{nameOf(trade.fromPlayerId)}</h3>
-            <p className="trade-card__line">{describeAssets(trade.give)}</p>
+            {renderAssets(trade.give)}
           </div>
           <div className="trade-column">
             <h3 className="section-label">{nameOf(trade.toPlayerId)}</h3>
-            <p className="trade-card__line">{describeAssets(trade.receive)}</p>
+            {renderAssets(trade.receive)}
           </div>
         </div>
         {trade.specialConditions && <p className="trade-card__conditions">"{trade.specialConditions}"</p>}

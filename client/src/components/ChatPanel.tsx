@@ -6,10 +6,15 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   sessionId: PlayerSessionId;
   onSend: (text: string) => void;
+  /** Colore di ogni giocatore (solo in partita, dove esiste già): il nome
+   * dell'autore in chat prende quel colore, così si riconosce subito chi
+   * scrive senza leggere il nickname (richiesto esplicitamente). Assente in
+   * lobby, dove i colori non sono ancora assegnati. */
+  colorByPlayerId?: Record<PlayerSessionId, string>;
 }
 
 /** Fase 8, US-801: chat di stanza, usata sia in lobby sia in partita (stesso componente). */
-export default function ChatPanel({ messages, sessionId, onSend }: ChatPanelProps) {
+export default function ChatPanel({ messages, sessionId, onSend, colorByPlayerId }: ChatPanelProps) {
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +37,10 @@ export default function ChatPanel({ messages, sessionId, onSend }: ChatPanelProp
         {messages.length === 0 && <p className="waiting-notice">{t("chat.noMessages")}</p>}
         {messages.map((message, i) => (
           <p key={i} className={`chat-panel__line${message.playerId === sessionId ? " chat-panel__line--mine" : ""}`}>
-            <span className="chat-panel__author">{message.nickname}:</span> {message.text}
+            <span className="chat-panel__author" style={{ color: colorByPlayerId?.[message.playerId] }}>
+              {message.nickname}:
+            </span>{" "}
+            {message.text}
           </p>
         ))}
       </div>

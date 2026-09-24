@@ -41,9 +41,15 @@ interface TileProps {
    * log appena cliccata (vedi EventLog.tsx/eventTarget): un'evidenziazione
    * più lunga e marcata del flash di atterraggio, non legata a una pedina. */
   eventHighlighted?: boolean;
+  /** True se questa casella deve restare a piena luce sopra l'overlay scuro
+   * "effetto palco" (vedi Board.tsx: acceso quando isHighlighted o
+   * eventHighlighted). Alza lo z-index sopra l'overlay. */
+  spotlit?: boolean;
   /** Fase 9: l'editor mappe riusa questo stesso componente per il rendering,
-   * aggiungendo solo l'interazione al click (non usato durante una partita). */
-  onClick?: () => void;
+   * aggiungendo solo l'interazione al click (non usato durante una partita).
+   * Riceve il punto cliccato (o il centro della casella per la tastiera): usato
+   * dal popup info per ancorarsi lì invece che aprirsi a tutto schermo. */
+  onClick?: (x: number, y: number) => void;
 }
 
 /** Contenuto compatto per il badge circolare di tipo, per le caselle non-property:
@@ -104,6 +110,7 @@ export default function Tile({
   landNonce,
   landColor,
   eventHighlighted,
+  spotlit,
   onClick,
 }: TileProps) {
   const flag = tile.type === "property" ? flagFor(tile.name) : null;
@@ -142,7 +149,7 @@ export default function Tile({
 
   return (
     <div
-      className={`board-tile board-tile--type-${tile.type}${isCorner ? " board-tile--corner" : ""}${isHighlighted ? " board-tile--highlighted" : ""}${ownerColor ? " board-tile--owned" : ""}${onClick ? " board-tile--clickable" : ""}${landing ? " board-tile--landing" : ""}${eventHighlighted ? " board-tile--event-highlight" : ""}`}
+      className={`board-tile board-tile--type-${tile.type}${isCorner ? " board-tile--corner" : ""}${isHighlighted ? " board-tile--highlighted" : ""}${ownerColor ? " board-tile--owned" : ""}${onClick ? " board-tile--clickable" : ""}${landing ? " board-tile--landing" : ""}${eventHighlighted ? " board-tile--event-highlight" : ""}${spotlit ? " board-tile--spotlit" : ""}`}
       style={{
         gridColumn: tile.position.x + 1,
         gridRow: tile.position.y + 1,
@@ -151,10 +158,19 @@ export default function Tile({
         ...(tile.groupColor ? { "--tile-group-color": tile.groupColor } : {}),
         ...(landing && landColor ? { "--land-color": landColor } : {}),
       } as CSSProperties}
-      onClick={onClick}
+      data-tile-id={tile.id}
+      onClick={onClick ? (e) => onClick(e.clientX, e.clientY) : undefined}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => (e.key === "Enter" || e.key === " ") && onClick() : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              onClick(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            }
+          : undefined
+      }
     >
       {tile.groupColor && <div className={`board-tile__band board-tile__band--${bandSide}`} />}
       {flag && (

@@ -13,6 +13,10 @@ import SoundToggle from "./SoundToggle";
 import NotificationToggle from "./NotificationToggle";
 import TradeViewModal from "./TradeViewModal";
 import TileInfoModal from "./TileInfoModal";
+import CardOutcomePopup from "./CardOutcomePopup";
+import PlayerActionMenu, { type PlayerActionMenuState } from "./PlayerActionMenu";
+import GiveMoneyModal from "./GiveMoneyModal";
+import EmoteFly, { type EmoteFlyState } from "./EmoteFly";
 import { useTurnNotification } from "../hooks/useTurnNotification";
 import { t } from "../i18n";
 
@@ -54,10 +58,27 @@ export default function GameScreen({
   const [mobileTab, setMobileTab] = useState<"chat" | "board" | "players">("board");
   const [eventHighlightTileId, setEventHighlightTileId] = useState<string | null>(null);
   const [logTradeId, setLogTradeId] = useState<string | null>(null);
-  const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const [selectedTile, setSelectedTile] = useState<{ tileId: string; x: number; y: number } | null>(null);
   const [incomingTradeId, setIncomingTradeId] = useState<string | null>(null);
+  const [playerMenu, setPlayerMenu] = useState<PlayerActionMenuState | null>(null);
+  const [giveMoneyTargetId, setGiveMoneyTargetId] = useState<PlayerSessionId | null>(null);
+  const [giveMoneyPreset, setGiveMoneyPreset] = useState(0);
+  const [tradeTargetId, setTradeTargetId] = useState<PlayerSessionId | null>(null);
+  const [counterTradeId, setCounterTradeId] = useState<string | null>(null);
+  const [cardOutcome, setCardOutcome] = useState<{
+    deck: "fortune" | "communityChest";
+    text: string;
+    playerId: PlayerSessionId;
+    x: number;
+    y: number;
+    key: number;
+  } | null>(null);
+  const lastCardEventRef = useRef<ServerEvent | null>(null);
+  const [emoteFly, setEmoteFly] = useState<EmoteFlyState | null>(null);
+  const lastEmoteEventRef = useRef<ServerEvent | null>(null);
   const seenTradeIds = useRef<Set<string>>(new Set());
   const me = gameState.players.find((p) => p.sessionId === sessionId);
+  const colorByPlayerId = Object.fromEntries(gameState.players.map((p) => [p.sessionId, p.color]));
   const isSpectator = me?.status === "spectator";
 
   useTurnNotification(gameState.currentTurnPlayerId === sessionId && !isSpectator);
@@ -69,12 +90,18 @@ export default function GameScreen({
     setHoveredPlayerId((prev) => (prev === playerId ? null : playerId));
   }
 
+  // Evidenzia una casella per un attimo: stesso flash usato dal click sul log,
+  // riusato anche per il click su una propria proprietà nella colonna destra.
+  function highlightTile(tileId: string) {
+    setEventHighlightTileId(tileId);
+    window.setTimeout(() => setEventHighlightTileId((prev) => (prev === tileId ? null : prev)), EVENT_HIGHLIGHT_MS);
+  }
+
   // Clic su una riga del log: evidenzia la casella bersaglio per un attimo,
   // o apre il dettaglio (sola lettura) di uno scambio proposto/controproposto.
   function handleSelectEvent(target: LogEventTarget) {
     if (target.type === "tile") {
-      setEventHighlightTileId(target.tileId);
-      window.setTimeout(() => setEventHighlightTileId((prev) => (prev === target.tileId ? null : prev)), EVENT_HIGHLIGHT_MS);
+      highlightTile(target.tileId);
     } else {
       setLogTradeId(target.tradeId);
     }
@@ -91,6 +118,54 @@ export default function GameScreen({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.trades]);
+
+  // Atterrare su Treasury/Fortune mostrava l'esito solo nel log: un popup
+  // piccolo ancorato vicino alla casella lo rende visibile subito (richiesto
+  // esplicitamente). `events[0]` è il più recente (vedi useGameConnection.ts).
+  useEffect(() => {
+    const latest = events[0];
+    if (!latest || latest.type !== "CARD_DRAWN" || latest === lastCardEventRef.current) return;
+    lastCardEventRef.current = latest;
+
+    const player = gameState.players.find((p) => p.sessionId === latest.playerId);
+    const tileId = player ? gameState.board.tiles[player.position]?.id : undefined;
+    const tileEl = tileId ? document.querySelector<HTMLElement>(`[data-tile-id="${tileId}"]`) : null;
+    const rect = tileEl?.getBoundingClientRect();
+    if (!rect) return;
+    setCardOutcome({
+      deck: latest.deck,
+      text: latest.text,
+      playerId: latest.playerId,
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      key: Date.now(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
+
+  // Emote (clown/pomodoro) mandata a un giocatore col menu click-destro: vola
+  // dal nome di chi la manda a quello del bersaglio lungo un arco (richiesto
+  // esplicitamente per il pomodoro).
+  useEffect(() => {
+    const latest = events[0];
+    if (!latest || latest.type !== "EMOTE_SENT" || latest === lastEmoteEventRef.current) return;
+    lastEmoteEventRef.current = latest;
+
+    const fromEl = document.querySelector<HTMLElement>(`[data-player-id="${latest.fromPlayerId}"]`);
+    const toEl = document.querySelector<HTMLElement>(`[data-player-id="${latest.toPlayerId}"]`);
+    const fromRect = fromEl?.getBoundingClientRect();
+    const toRect = toEl?.getBoundingClientRect();
+    if (!fromRect || !toRect) return;
+    setEmoteFly({
+      emote: latest.emote,
+      fromX: fromRect.left + fromRect.width / 2,
+      fromY: fromRect.top + fromRect.height / 2,
+      toX: toRect.left + toRect.width / 2,
+      toY: toRect.top + toRect.height / 2,
+      key: Date.now(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
 
   const logTrade = logTradeId ? gameState.trades.find((tr) => tr.id === logTradeId) : undefined;
   const incomingTrade = incomingTradeId ? gameState.trades.find((tr) => tr.id === incomingTradeId) : undefined;
@@ -136,7 +211,12 @@ export default function GameScreen({
               </div>
             </div>
             <TurnTimerBar deadline={turnDeadline} />
-            <ChatPanel messages={chatMessages} sessionId={sessionId} onSend={onSendChatMessage} />
+            <ChatPanel
+              messages={chatMessages}
+              sessionId={sessionId}
+              onSend={onSendChatMessage}
+              colorByPlayerId={colorByPlayerId}
+            />
           </aside>
         </div>
         <div className={`app-board-area${mobileTab === "board" ? " app-board-area--active" : ""}`}>
@@ -152,7 +232,7 @@ export default function GameScreen({
             events={events}
             eventHighlightTileId={eventHighlightTileId}
             onSelectEvent={handleSelectEvent}
-            onSelectTile={setSelectedTileId}
+            onSelectTile={(tileId, x, y) => setSelectedTile({ tileId, x, y })}
           />
         </div>
         {/* Colonna destra (riferimento visivo): giocatori + azioni + scambi/proprietà. */}
@@ -160,19 +240,32 @@ export default function GameScreen({
           <Hud
             players={gameState.players}
             currentTurnPlayerId={gameState.currentTurnPlayerId}
+            turnDeadline={turnDeadline}
             onHoverPlayer={setHoveredPlayerId}
             onTapPlayer={handleTapPlayer}
             jackpotAmount={gameState.board.rules.freeParkingJackpot ? gameState.jackpotAmount : null}
             headerRight={<LanguageSwitcher variant="inline" />}
+            onContextMenuPlayer={
+              isSpectator ? undefined : (player, x, y) => setPlayerMenu({ player, x, y })
+            }
           />
           {isSpectator ? (
             <div className="action-panel">
               <p className="action-panel__waiting">{t("game.spectatorNotice")}</p>
             </div>
           ) : (
-            <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
+            <ActionPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} turnDeadline={turnDeadline} />
           )}
-          <SocialPanel gameState={gameState} sessionId={sessionId} onIntent={onIntent} />
+          <SocialPanel
+            gameState={gameState}
+            sessionId={sessionId}
+            onIntent={onIntent}
+            onSelectTile={highlightTile}
+            initialTradeTargetId={tradeTargetId}
+            onConsumeInitialTradeTarget={() => setTradeTargetId(null)}
+            initialCounterTradeId={counterTradeId}
+            onConsumeInitialCounterTrade={() => setCounterTradeId(null)}
+          />
         </aside>
       </div>
 
@@ -217,16 +310,92 @@ export default function GameScreen({
             onIntent({ type: "REJECT_TRADE", tradeId: incomingTrade.id });
             setIncomingTradeId(null);
           }}
+          onCounter={() => {
+            setCounterTradeId(incomingTrade.id);
+            setIncomingTradeId(null);
+          }}
         />
       )}
 
-      {selectedTileId &&
+      {selectedTile &&
         (() => {
-          const tile = gameState.board.tiles.find((tl) => tl.id === selectedTileId);
+          const tile = gameState.board.tiles.find((tl) => tl.id === selectedTile.tileId);
           if (!tile) return null;
           const owner = tile.ownerId ? (gameState.players.find((p) => p.sessionId === tile.ownerId) ?? null) : null;
-          return <TileInfoModal tile={tile} owner={owner} onClose={() => setSelectedTileId(null)} />;
+          return (
+            <TileInfoModal
+              tile={tile}
+              owner={owner}
+              anchor={{ x: selectedTile.x, y: selectedTile.y }}
+              onClose={() => setSelectedTile(null)}
+            />
+          );
         })()}
+
+      {playerMenu &&
+        (() => {
+          const owed = playerMenu.player.pendingDebts.reduce((sum, d) => sum + d.amount, 0);
+          return (
+            <PlayerActionMenu
+              state={playerMenu}
+              owedDebt={owed}
+              onClose={() => setPlayerMenu(null)}
+              onProposeTrade={(player) => {
+                setTradeTargetId(player.sessionId);
+                setPlayerMenu(null);
+              }}
+              onGiveMoney={(player) => {
+                setGiveMoneyTargetId(player.sessionId);
+                setGiveMoneyPreset(0);
+                setPlayerMenu(null);
+              }}
+              onPayDebt={(player, amount) => {
+                setGiveMoneyTargetId(player.sessionId);
+                setGiveMoneyPreset(amount);
+                setPlayerMenu(null);
+              }}
+              onSendEmote={(player, emote) => {
+                onIntent({ type: "SEND_EMOTE", toPlayerId: player.sessionId, emote });
+                setPlayerMenu(null);
+              }}
+            />
+          );
+        })()}
+
+      {giveMoneyTargetId &&
+        me &&
+        (() => {
+          const target = gameState.players.find((p) => p.sessionId === giveMoneyTargetId);
+          if (!target) return null;
+          return (
+            <GiveMoneyModal
+              fromPlayer={me}
+              toPlayer={target}
+              initialAmount={giveMoneyPreset}
+              onClose={() => setGiveMoneyTargetId(null)}
+              onConfirm={(amount) => onIntent({ type: "GIVE_MONEY", toPlayerId: target.sessionId, amount })}
+            />
+          );
+        })()}
+
+      {cardOutcome &&
+        (() => {
+          const player = gameState.players.find((p) => p.sessionId === cardOutcome.playerId);
+          if (!player) return null;
+          return (
+            <CardOutcomePopup
+              key={cardOutcome.key}
+              deck={cardOutcome.deck}
+              text={cardOutcome.text}
+              playerName={player.nickname}
+              playerColor={player.color}
+              anchor={{ x: cardOutcome.x, y: cardOutcome.y }}
+              onClose={() => setCardOutcome(null)}
+            />
+          );
+        })()}
+
+      {emoteFly && <EmoteFly key={emoteFly.key} state={emoteFly} onDone={() => setEmoteFly(null)} />}
     </div>
   );
 }
